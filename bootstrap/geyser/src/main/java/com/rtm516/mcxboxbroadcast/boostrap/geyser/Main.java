@@ -53,6 +53,5 @@ public class Main implements Extension {
             this.logger().info("Failed to create xbox session!");
             e.printStackTrace();
         }
-
     }
 }
