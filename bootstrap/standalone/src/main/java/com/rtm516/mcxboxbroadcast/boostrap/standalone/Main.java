@@ -5,7 +5,7 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        SessionManager flow = new SessionManager("./cache"); // "00000000441cc96b", "http://xboxlive.com"
+        SessionManager sessionManager = new SessionManager("./cache");
 
         SessionInfo sessionInfo = new SessionInfo();
         sessionInfo.setHostName("Geyser Test Server");
@@ -17,7 +17,7 @@ public class Main {
         sessionInfo.setIp("51.210.124.95");
         sessionInfo.setPort(19132);
 
-        flow.createSession(sessionInfo);
+        sessionManager.createSession(sessionInfo);
 
         System.out.println("Created session!");
     }
