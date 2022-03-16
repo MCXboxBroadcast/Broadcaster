@@ -1,9 +1,9 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
-import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequestSessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
@@ -84,29 +84,34 @@ public class SessionManager {
             throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
         }
 
-        this.sessionInfo = new ExpandedSessionInfo(connectionId, tokenInfo.userXUID(), sessionInfo);
+        this.sessionInfo = new ExpandedSessionInfo(connectionId, tokenInfo.userXUID, sessionInfo);
 
         updateSession();
 
         CreateHandleRequest createHandleContent = new CreateHandleRequest(
                 1,
                 "activity",
-                new CreateHandleRequestSessionRef(
+                new CreateHandleRequest.SessionRef(
                         Constants.SERVICE_CONFIG_ID,
                         "MinecraftLobby",
                         this.sessionInfo.getSessionId()
                 )
         );
 
-        HttpRequest createHandleRequest = HttpRequest.newBuilder()
-                .uri(Constants.CREATE_HANDLE)
-                .header("Content-Type", "application/json")
-                .header("Authorization", token)
-                .header("x-xbl-contract-version", "107")
-                .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createHandleContent)))
-                .build();
+        HttpRequest createHandleRequest;
+        try {
+            createHandleRequest = HttpRequest.newBuilder()
+                    .uri(Constants.CREATE_HANDLE)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", token)
+                    .header("x-xbl-contract-version", "107")
+                    .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(createHandleContent)))
+                    .build();
+        } catch (JsonProcessingException e) {
+            throw new SessionCreationException("Unable to create session handle, error parsing json: " + e.getMessage());
+        }
 
-        HttpResponse<String> createHandleResponse = null;
+        HttpResponse<String> createHandleResponse;
         try {
             createHandleResponse = httpClient.send(createHandleRequest, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
@@ -126,13 +131,18 @@ public class SessionManager {
     private void updateSession() throws SessionUpdateException {
         CreateSessionRequest createSessionContent = new CreateSessionRequest(this.sessionInfo);
 
-        HttpRequest createSessionRequest = HttpRequest.newBuilder()
-                .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
-                .header("Content-Type", "application/json")
-                .header("Authorization", getTokenHeader())
-                .header("x-xbl-contract-version", "107")
-                .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createSessionContent)))
-                .build();
+        HttpRequest createSessionRequest;
+        try {
+            createSessionRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", getTokenHeader())
+                    .header("x-xbl-contract-version", "107")
+                    .PUT(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(createSessionContent)))
+                    .build();
+        } catch (JsonProcessingException e) {
+            throw new SessionUpdateException("Unable to update session information, error parsing json: " + e.getMessage());
+        }
 
         HttpResponse<String> createSessionResponse;
         try {
@@ -142,7 +152,7 @@ public class SessionManager {
         }
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
-            throw new SessionUpdateException("Unable to update session, got status " + createSessionResponse.statusCode() + " trying to update");
+            throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
         }
     }
 

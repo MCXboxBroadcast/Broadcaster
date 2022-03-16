@@ -1,6 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import com.google.gson.internal.LinkedTreeMap;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -26,8 +26,10 @@ public class RtaWebsocketClient extends WebSocketClient {
     @Override
     public void onMessage(String message) {
         if (message.contains("ConnectionId")) {
-            Object[] parts = Constants.GSON.fromJson(message, Object[].class);
-            connectionId = ((LinkedTreeMap<String, String>)parts[4]).get("ConnectionId");
+            try {
+                Object[] parts = Constants.OBJECT_MAPPER.readValue(message, Object[].class);
+                connectionId = ((Map<String, String>)parts[4]).get("ConnectionId");
+            } catch (JsonProcessingException ignored) { }
         }
     }
 

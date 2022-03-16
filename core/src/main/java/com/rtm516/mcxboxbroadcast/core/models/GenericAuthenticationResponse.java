@@ -1,31 +1,34 @@
 package com.rtm516.mcxboxbroadcast.core.models;
 
-public final class GenericAuthenticationResponse {
-    private final String IssueInstant;
-    private final String NotAfter;
-    private final String Token;
-    private final DisplayClaims DisplayClaims;
+import java.util.List;
 
-    public GenericAuthenticationResponse(String IssueInstant, String NotAfter, String Token, DisplayClaims DisplayClaims) {
-        this.IssueInstant = IssueInstant;
-        this.NotAfter = NotAfter;
-        this.Token = Token;
-        this.DisplayClaims = DisplayClaims;
+public class GenericAuthenticationResponse {
+    public String IssueInstant;
+    public String NotAfter;
+    public String Token;
+    public DisplayClaims DisplayClaims;
+
+    public static class DisplayClaims {
+        public List<Xui> xui;
+        public Xdi xdi;
+        public Xti xti;
     }
 
-    public String IssueInstant() {
-        return IssueInstant;
+    public static class Xui {
+        public String gtg;
+        public String xid;
+        public String uhs;
+        public String usr;
+        public String prv;
+        public String agg;
     }
 
-    public String NotAfter() {
-        return NotAfter;
+    public static class Xdi {
+        public String did;
+        public String dcs;
     }
 
-    public String Token() {
-        return Token;
-    }
-
-    public DisplayClaims DisplayClaims() {
-        return DisplayClaims;
+    public static class Xti {
+        public String tid;
     }
 }

@@ -25,6 +25,7 @@ public class Main implements Extension {
 
         SessionManager sessionManager = new SessionManager(this.dataFolder().toString());
 
+        // Taken from core Geyser code
         String ip = GeyserImpl.getInstance().getConfig().getBedrock().getAddress();
         try {
             // This is the most reliable for getting the main local IP

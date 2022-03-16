@@ -53,22 +53,22 @@ public class XboxTokenManager {
     public boolean verifyTokens() {
         XboxTokenCache tokenCache = getCache();
 
-        if (tokenCache.userToken() == null || tokenCache.xstsToken() == null ||
-            tokenCache.userToken().NotAfter() == null || tokenCache.xstsToken().expiresOn() == null) {
+        if (tokenCache.userToken == null || tokenCache.xstsToken == null ||
+            tokenCache.userToken.NotAfter == null || tokenCache.xstsToken.expiresOn == null) {
             return false;
         }
 
-        long userExpiry = Instant.parse(tokenCache.userToken().NotAfter()).toEpochMilli() - Instant.now().toEpochMilli();
+        long userExpiry = Instant.parse(tokenCache.userToken.NotAfter).toEpochMilli() - Instant.now().toEpochMilli();
         boolean userValid = userExpiry > 1000;
 
-        long xstsExpiry = Instant.parse(tokenCache.xstsToken().expiresOn()).toEpochMilli() - Instant.now().toEpochMilli();
+        long xstsExpiry = Instant.parse(tokenCache.xstsToken.expiresOn).toEpochMilli() - Instant.now().toEpochMilli();
         boolean xstsValid = xstsExpiry > 1000;
 
         return userValid && xstsValid;
     }
 
     public XboxTokenInfo getCachedXstsToken() {
-        return getCache().xstsToken();
+        return getCache().xstsToken;
     }
 
     public String getUserToken(String msaToken) {
@@ -76,7 +76,7 @@ public class XboxTokenManager {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
                 "http://auth.xboxlive.com",
                 "JWT",
-                new UserAuthenticationRequestProperties(
+                new GenericAuthenticationRequest.UserProperties(
                         "RPS",
                         "user.auth.xboxlive.com",
                         "t=" + msaToken,
@@ -87,14 +87,14 @@ public class XboxTokenManager {
             HttpRequest authRequest = HttpRequest.newBuilder()
                     .uri(Constants.USER_AUTHENTICATE_REQUEST)
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(requestContent)))
+                    .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(requestContent)))
                     .build();
 
-            GenericAuthenticationResponse tokenResponse = Constants.GSON.fromJson(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
+            GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
-            updateCache(new XboxTokenCache(tokenResponse, getCache().xstsToken()));
+            updateCache(new XboxTokenCache(tokenResponse, getCache().xstsToken));
 
-            return tokenResponse.Token();
+            return tokenResponse.Token;
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return null;
@@ -106,7 +106,7 @@ public class XboxTokenManager {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
                     "http://auth.xboxlive.com",
                     "JWT",
-                    new DeviceAuthenticationRequestProperties(
+                    new GenericAuthenticationRequest.DeviceProperties(
                             "ProofOfPossession",
                             "{" + UUID.randomUUID() + "}",
                             "Nintendo",
@@ -116,7 +116,7 @@ public class XboxTokenManager {
                     )
             );
 
-            String requestContentString = Constants.GSON.toJson(requestContent);
+            String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
 
             HttpRequest authRequest = HttpRequest.newBuilder()
                     .uri(Constants.DEVICE_AUTHENTICATE_REQUEST)
@@ -125,9 +125,9 @@ public class XboxTokenManager {
                     .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
                     .build();
 
-            GenericAuthenticationResponse tokenResponse = Constants.GSON.fromJson(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
+            GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
-            return tokenResponse.Token();
+            return tokenResponse.Token;
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return null;
@@ -139,7 +139,7 @@ public class XboxTokenManager {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
                     "http://auth.xboxlive.com",
                     "JWT",
-                    new TitleAuthenticationRequestProperties(
+                    new GenericAuthenticationRequest.TitleProperties(
                             "RPS",
                             deviceToken,
                             "t=" + msaToken,
@@ -148,7 +148,7 @@ public class XboxTokenManager {
                     )
             );
 
-            String requestContentString = Constants.GSON.toJson(requestContent);
+            String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
 
             HttpRequest authRequest = HttpRequest.newBuilder()
                     .uri(Constants.TITLE_AUTHENTICATE_REQUEST)
@@ -157,9 +157,9 @@ public class XboxTokenManager {
                     .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
                     .build();
 
-            GenericAuthenticationResponse tokenResponse = Constants.GSON.fromJson(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
+            GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
-            return tokenResponse.Token();
+            return tokenResponse.Token;
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return null;
@@ -171,7 +171,7 @@ public class XboxTokenManager {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
                     Constants.RELAYING_PARTY,
                     "JWT",
-                    new XSTSAuthenticationRequestProperties(
+                    new GenericAuthenticationRequest.XSTSProperties(
                             Collections.singletonList(userToken),
                             deviceToken,
                             titleToken,
@@ -180,7 +180,7 @@ public class XboxTokenManager {
                     )
             );
 
-            String requestContentString = Constants.GSON.toJson(requestContent);
+            String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
 
             HttpRequest authRequest = HttpRequest.newBuilder()
                     .uri(Constants.XSTS_AUTHENTICATE_REQUEST)
@@ -189,15 +189,15 @@ public class XboxTokenManager {
                     .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
                     .build();
 
-            GenericAuthenticationResponse tokenResponse = Constants.GSON.fromJson(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
+            GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
             XboxTokenInfo xboxTokenInfo = new XboxTokenInfo(
-                    tokenResponse.DisplayClaims().xui().get(0).xid(),
-                    tokenResponse.DisplayClaims().xui().get(0).uhs(),
-                    tokenResponse.Token(),
-                    tokenResponse.NotAfter());
+                    tokenResponse.DisplayClaims.xui.get(0).xid,
+                    tokenResponse.DisplayClaims.xui.get(0).uhs,
+                    tokenResponse.Token,
+                    tokenResponse.NotAfter);
 
-            updateCache(new XboxTokenCache(getCache().userToken(), xboxTokenInfo));
+            updateCache(new XboxTokenCache(getCache().userToken, xboxTokenInfo));
 
             return xboxTokenInfo;
         } catch (IOException | InterruptedException e) {
@@ -259,15 +259,15 @@ public class XboxTokenManager {
 
     private XboxTokenCache getCache() {
         try {
-            return Constants.GSON.fromJson(Files.readString(cache), XboxTokenCache.class);
+            return Constants.OBJECT_MAPPER.readValue(Files.readString(cache), XboxTokenCache.class);
         } catch (IOException e) {
-            return new XboxTokenCache(new GenericAuthenticationResponse(null, null, null, null), new XboxTokenInfo(null, null, null, null));
+            return new XboxTokenCache();
         }
     }
 
     private void updateCache(XboxTokenCache updatedCache) {
         try (FileWriter writer = new FileWriter(cache.toString(), StandardCharsets.UTF_8)) {
-            Constants.GSON.toJson(updatedCache, writer);
+            Constants.OBJECT_MAPPER.writeValue(writer, updatedCache);
         } catch (IOException e) {
             e.printStackTrace();
             // TODO Handle properly

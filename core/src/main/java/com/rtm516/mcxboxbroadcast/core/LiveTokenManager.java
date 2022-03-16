@@ -27,11 +27,11 @@ public class LiveTokenManager {
     public boolean verifyTokens() {
         LiveTokenCache tokenCache = getCache();
 
-        if (tokenCache.obtainedOn() == 0L) {
+        if (tokenCache.obtainedOn == 0L) {
             return false;
         }
 
-        long expiry = tokenCache.obtainedOn() + (tokenCache.token().expires_in() * 1000L);
+        long expiry = tokenCache.obtainedOn + (tokenCache.token.expires_in * 1000L);
         boolean valid = (expiry - System.currentTimeMillis()) > 1000;
 
         if (!valid) {
@@ -58,16 +58,16 @@ public class LiveTokenManager {
                 .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=refresh_token&refresh_token=" + refreshToken))
                 .build();
 
-        LiveTokenResponse tokenResponse = Constants.GSON.fromJson(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
+        LiveTokenResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
         updateCache(tokenResponse);
     }
 
     public String getAccessToken() {
-        return getCache().token().access_token();
+        return getCache().token.access_token;
     }
 
     private String getRefreshToken() {
-        return getCache().token().refresh_token();
+        return getCache().token.refresh_token;
     }
 
     public Future<String> authDeviceCode() {
@@ -80,30 +80,32 @@ public class LiveTokenManager {
                     .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&response_type=device_code"))
                     .build();
 
-            LiveDeviceCodeResponse codeResponse = Constants.GSON.fromJson(httpClient.send(codeRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveDeviceCodeResponse.class);
+            HttpResponse<String> response = httpClient.send(codeRequest, HttpResponse.BodyHandlers.ofString());
 
-            long expireTime = System.currentTimeMillis() + (codeResponse.expires_in() * 1000L);
+            LiveDeviceCodeResponse codeResponse = Constants.OBJECT_MAPPER.readValue(response.body(), LiveDeviceCodeResponse.class);
 
-            System.out.println("To sign in, use a web browser to open the page " + codeResponse.verification_uri() + " and enter the code " + codeResponse.user_code() + " to authenticate.");
+            long expireTime = System.currentTimeMillis() + (codeResponse.expires_in * 1000L);
+
+            System.out.println("To sign in, use a web browser to open the page " + codeResponse.verification_uri + " and enter the code " + codeResponse.user_code + " to authenticate.");
 
             while (System.currentTimeMillis() < expireTime) {
-                Thread.sleep(codeResponse.interval() * 1000L);
+                Thread.sleep(codeResponse.interval * 1000L);
 
                 HttpRequest tokenRequest = HttpRequest.newBuilder()
                         .uri(Constants.LIVE_TOKEN_REQUEST)
                         .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString("device_code=" + codeResponse.device_code() + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"))
+                        .POST(HttpRequest.BodyPublishers.ofString("device_code=" + codeResponse.device_code + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"))
                         .build();
 
-                LiveTokenResponse tokenResponse = Constants.GSON.fromJson(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
+                LiveTokenResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
 
-                if (tokenResponse.error() != null && !tokenResponse.error().isEmpty()) {
-                    if (!tokenResponse.error().equals("authorization_pending")) {
+                if (tokenResponse.error != null && !tokenResponse.error.isEmpty()) {
+                    if (!tokenResponse.error.equals("authorization_pending")) {
                         // TODO handle error
                     }
                 } else {
                     updateCache(tokenResponse);
-                    completableFuture.complete(tokenResponse.access_token());
+                    completableFuture.complete(tokenResponse.access_token);
                     break;
                 }
             }
@@ -116,15 +118,15 @@ public class LiveTokenManager {
 
     private LiveTokenCache getCache() {
         try {
-            return Constants.GSON.fromJson(Files.readString(cache), LiveTokenCache.class);
+            return Constants.OBJECT_MAPPER.readValue(Files.readString(cache), LiveTokenCache.class);
         } catch (IOException e) {
-            return new LiveTokenCache(0, new LiveTokenResponse(null, null, 0, null, null, null, null));
+            return new LiveTokenCache();
         }
     }
 
     private void updateCache(LiveTokenResponse tokenResponse) {
         try (FileWriter writer = new FileWriter(cache.toString(), StandardCharsets.UTF_8)) {
-            Constants.GSON.toJson(new LiveTokenCache(System.currentTimeMillis(), tokenResponse), writer);
+            Constants.OBJECT_MAPPER.writeValue(writer, new LiveTokenCache(System.currentTimeMillis(), tokenResponse));
         } catch (IOException e) {
             e.printStackTrace();
             // TODO Handle properly

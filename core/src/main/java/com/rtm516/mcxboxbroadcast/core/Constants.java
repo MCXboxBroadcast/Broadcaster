@@ -1,12 +1,11 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 
 public class Constants {
-    public static final Gson GSON = new GsonBuilder().create();
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final String AUTH_TITLE = "00000000441cc96b";
     public static final String SCOPE = "service::user.auth.xboxlive.com::MBI_SSL";
