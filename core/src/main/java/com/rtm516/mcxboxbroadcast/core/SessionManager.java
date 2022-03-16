@@ -1,21 +1,18 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequestSessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
-import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationRequest;
-import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationResponse;
-import com.rtm516.mcxboxbroadcast.core.models.JsonJWK;
-import com.rtm516.mcxboxbroadcast.core.models.UserAuthenticationRequestProperties;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -70,9 +67,9 @@ public class SessionManager {
         }
     }
 
-    public void createSession(SessionInfo sessionInfo) throws Exception {
+    public void createSession(SessionInfo sessionInfo) throws SessionCreationException, SessionUpdateException {
         if (this.sessionInfo != null) {
-            throw new Exception("Session already created!");
+            throw new SessionCreationException("Session already created!");
         }
 
         XboxTokenInfo tokenInfo = getXboxToken();
@@ -80,25 +77,16 @@ public class SessionManager {
 
         setupWebsocket(token);
 
-        String connectionId = waitForConnectionId().get();
+        String connectionId;
+        try {
+            connectionId = waitForConnectionId().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
+        }
 
         this.sessionInfo = new ExpandedSessionInfo(connectionId, tokenInfo.userXUID(), sessionInfo);
 
-        CreateSessionRequest createSessionContent = new CreateSessionRequest(this.sessionInfo);
-
-        HttpRequest createSessionRequest = HttpRequest.newBuilder()
-                .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
-                .header("Content-Type", "application/json")
-                .header("Authorization", token)
-                .header("x-xbl-contract-version", "107")
-                .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createSessionContent)))
-                .build();
-
-        HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
-
-        if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
-            throw new Exception("Error creating session (" + createSessionResponse.statusCode() + "): " + createSessionResponse.body());
-        }
+        updateSession();
 
         CreateHandleRequest createHandleContent = new CreateHandleRequest(
                 1,
@@ -118,11 +106,48 @@ public class SessionManager {
                 .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createHandleContent)))
                 .build();
 
-        HttpResponse<String> createHandleResponse = httpClient.send(createHandleRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> createHandleResponse = null;
+        try {
+            createHandleResponse = httpClient.send(createHandleRequest, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new SessionCreationException(e.getMessage());
+        }
 
         if (createHandleResponse.statusCode() != 200 && createHandleResponse.statusCode() != 201) {
-            throw new Exception("Error creating handle (" + createHandleResponse.statusCode() + "): " + createHandleResponse.body());
+            throw new SessionCreationException("Unable to create session handle, got status " + createHandleResponse.statusCode() + " trying to create");
         }
+    }
+
+    public void updateSession(SessionInfo sessionInfo) throws SessionUpdateException {
+        this.sessionInfo.updateSessionInfo(sessionInfo);
+        updateSession();
+    }
+
+    private void updateSession() throws SessionUpdateException {
+        CreateSessionRequest createSessionContent = new CreateSessionRequest(this.sessionInfo);
+
+        HttpRequest createSessionRequest = HttpRequest.newBuilder()
+                .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
+                .header("Content-Type", "application/json")
+                .header("Authorization", getTokenHeader())
+                .header("x-xbl-contract-version", "107")
+                .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createSessionContent)))
+                .build();
+
+        HttpResponse<String> createSessionResponse;
+        try {
+            createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new SessionUpdateException(e.getMessage());
+        }
+
+        if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
+            throw new SessionUpdateException("Unable to update session, got status " + createSessionResponse.statusCode() + " trying to update");
+        }
+    }
+
+    private String getTokenHeader() {
+        return getXboxToken().tokenHeader();
     }
 
     private Future<String> waitForConnectionId() {

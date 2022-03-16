@@ -3,6 +3,8 @@ package com.rtm516.mcxboxbroadcast.boostrap.geyser;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
+import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.event.Subscribe;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPreInitializeEvent;
@@ -14,6 +16,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 
 public class Main implements Extension {
     @Subscribe
@@ -49,9 +52,17 @@ public class Main implements Extension {
         try {
             sessionManager.createSession(sessionInfo);
             this.logger().info("Created xbox session!");
-        } catch (Exception e) {
-            this.logger().info("Failed to create xbox session!");
-            e.printStackTrace();
+        } catch (SessionCreationException | SessionUpdateException e) {
+            this.logger().error("Failed to create xbox session!", e);
         }
+
+        GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(() -> {
+            try {
+                sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
+                sessionManager.updateSession(sessionInfo);
+            } catch (SessionUpdateException e) {
+                this.logger().error("Failed to update session information!", e);
+            }
+        }, 30, 30, TimeUnit.SECONDS);
     }
 }
