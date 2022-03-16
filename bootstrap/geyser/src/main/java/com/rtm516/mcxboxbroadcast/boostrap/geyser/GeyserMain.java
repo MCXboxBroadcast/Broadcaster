@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.boostrap.geyser;
 
+import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
@@ -18,12 +19,14 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
-public class Main implements Extension {
+public class GeyserMain implements Extension {
     @Subscribe
     public void onPostInitialize(GeyserPreInitializeEvent event) {
-        this.logger().info("Setting up xbox session...");
+        Logger logger = new GeyserLogger(this.logger());
 
-        SessionManager sessionManager = new SessionManager(this.dataFolder().toString());
+        logger.info("Setting up xbox session...");
+
+        SessionManager sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
         // Taken from core Geyser code
         String ip = GeyserImpl.getInstance().getConfig().getBedrock().getAddress();
@@ -52,9 +55,9 @@ public class Main implements Extension {
 
         try {
             sessionManager.createSession(sessionInfo);
-            this.logger().info("Created xbox session!");
+            logger.info("Created xbox session!");
         } catch (SessionCreationException | SessionUpdateException e) {
-            this.logger().error("Failed to create xbox session!", e);
+            logger.error("Failed to create xbox session!", e);
         }
 
         GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(() -> {
@@ -62,7 +65,7 @@ public class Main implements Extension {
                 sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
                 sessionManager.updateSession(sessionInfo);
             } catch (SessionUpdateException e) {
-                this.logger().error("Failed to update session information!", e);
+                logger.error("Failed to update session information!", e);
             }
         }, 30, 30, TimeUnit.SECONDS);
     }

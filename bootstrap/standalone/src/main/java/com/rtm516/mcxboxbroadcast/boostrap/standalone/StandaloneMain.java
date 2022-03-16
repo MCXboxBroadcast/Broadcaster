@@ -1,11 +1,14 @@
 package com.rtm516.mcxboxbroadcast.boostrap.standalone;
 
+import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
-public class Main {
+public class StandaloneMain {
     public static void main(String[] args) throws Exception {
-        SessionManager sessionManager = new SessionManager("./cache");
+        Logger logger = new StandaloneLogger();
+
+        SessionManager sessionManager = new SessionManager("./cache", logger);
 
         SessionInfo sessionInfo = new SessionInfo();
         sessionInfo.setHostName("Geyser Test Server");
@@ -19,12 +22,12 @@ public class Main {
 
         sessionManager.createSession(sessionInfo);
 
-        System.out.println("Created session!");
+        logger.info("Created session!");
 
         Thread.sleep(10 * 1000);
 
         sessionInfo.setPlayers(10);
         sessionManager.updateSession(sessionInfo);
-        System.out.println("Updated session!");
+        logger.info("Updated session!");
     }
 }

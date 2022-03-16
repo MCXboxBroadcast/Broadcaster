@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.rtm516.mcxboxbroadcast.core.exceptions.LiveAuthenticationException;
 import com.rtm516.mcxboxbroadcast.core.models.*;
 
 import java.io.FileWriter;
@@ -18,10 +19,12 @@ import java.util.concurrent.Future;
 public class LiveTokenManager {
     private final Path cache;
     private final HttpClient httpClient;
+    private final Logger logger;
 
-    public LiveTokenManager(String cache, HttpClient httpClient) {
+    public LiveTokenManager(String cache, HttpClient httpClient, Logger logger) {
         this.cache = Paths.get(cache, "live_token.json");
         this.httpClient = httpClient;
+        this.logger = logger;
     }
 
     public boolean verifyTokens() {
@@ -38,7 +41,7 @@ public class LiveTokenManager {
             try {
                 refreshToken();
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Failed to refresh live token", e);
                 return false;
             }
         }
@@ -86,7 +89,7 @@ public class LiveTokenManager {
 
             long expireTime = System.currentTimeMillis() + (codeResponse.expires_in * 1000L);
 
-            System.out.println("To sign in, use a web browser to open the page " + codeResponse.verification_uri + " and enter the code " + codeResponse.user_code + " to authenticate.");
+            logger.info("To sign in, use a web browser to open the page " + codeResponse.verification_uri + " and enter the code " + codeResponse.user_code + " to authenticate.");
 
             while (System.currentTimeMillis() < expireTime) {
                 Thread.sleep(codeResponse.interval * 1000L);
@@ -101,7 +104,8 @@ public class LiveTokenManager {
 
                 if (tokenResponse.error != null && !tokenResponse.error.isEmpty()) {
                     if (!tokenResponse.error.equals("authorization_pending")) {
-                        // TODO handle error
+                        completableFuture.completeExceptionally(new LiveAuthenticationException("Failed to get authentication token while waiting for device: " + tokenResponse.error));
+                        break;
                     }
                 } else {
                     updateCache(tokenResponse);
@@ -128,8 +132,7 @@ public class LiveTokenManager {
         try (FileWriter writer = new FileWriter(cache.toString(), StandardCharsets.UTF_8)) {
             Constants.OBJECT_MAPPER.writeValue(writer, new LiveTokenCache(System.currentTimeMillis(), tokenResponse));
         } catch (IOException e) {
-            e.printStackTrace();
-            // TODO Handle properly
+            logger.error("Failed to update live token cache", e);
         }
     }
 }

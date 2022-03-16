@@ -22,18 +22,21 @@ public class SessionManager {
     private final LiveTokenManager liveTokenManager;
     private final XboxTokenManager xboxTokenManager;
     private final HttpClient httpClient;
+    private final Logger logger;
 
     private RtaWebsocketClient rtaWebsocket;
     private ExpandedSessionInfo sessionInfo;
 
-    public SessionManager(String cache) {
+    public SessionManager(String cache, Logger logger) {
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
-        this.liveTokenManager = new LiveTokenManager(cache, httpClient);
-        this.xboxTokenManager = new XboxTokenManager(cache, httpClient);
+        this.logger = logger;
+
+        this.liveTokenManager = new LiveTokenManager(cache, httpClient, logger);
+        this.xboxTokenManager = new XboxTokenManager(cache, httpClient, logger);
 
         File directory = new File(cache);
         if (! directory.exists()) {
@@ -48,7 +51,7 @@ public class SessionManager {
             try {
                 return liveTokenManager.authDeviceCode().get();
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+                logger.error("Failed to get authentication token from device code", e);
                 return "";
             }
         }

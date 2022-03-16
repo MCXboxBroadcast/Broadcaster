@@ -32,10 +32,12 @@ public class XboxTokenManager {
     private final Path cache;
     private final HttpClient httpClient;
     private final ECKey jwk;
+    private final Logger logger;
 
-    public XboxTokenManager(String cache, HttpClient httpClient) {
+    public XboxTokenManager(String cache, HttpClient httpClient, Logger logger) {
         this.cache = Paths.get(cache, "xbox_token.json");
         this.httpClient = httpClient;
+        this.logger = logger;
 
         ECKey jwk = null;
         try {
@@ -44,8 +46,7 @@ public class XboxTokenManager {
                     .algorithm(JWSAlgorithm.ES256)
                     .generate();
         } catch (JOSEException e) {
-            e.printStackTrace();
-            // TODO Handle error
+            logger.error("Failed to setup xbox jwk", e);
         }
         this.jwk = jwk;
     }
@@ -96,7 +97,7 @@ public class XboxTokenManager {
 
             return tokenResponse.Token;
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("Failed to get user authentication token", e);
             return null;
         }
     }
@@ -129,7 +130,7 @@ public class XboxTokenManager {
 
             return tokenResponse.Token;
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("Failed to get device authentication token", e);
             return null;
         }
     }
@@ -161,7 +162,7 @@ public class XboxTokenManager {
 
             return tokenResponse.Token;
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("Failed to get title authentication token", e);
             return null;
         }
     }
@@ -201,7 +202,7 @@ public class XboxTokenManager {
 
             return xboxTokenInfo;
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("Failed to get XSTS authentication token", e);
             return null;
         }
     }
@@ -250,8 +251,7 @@ public class XboxTokenManager {
 
             return Base64.getEncoder().encodeToString(arrFinal);
         } catch (NoSuchAlgorithmException | JOSEException | InvalidKeyException | SignatureException e) {
-            e.printStackTrace();
-            // TODO Handle error
+            logger.error("Failed to get create signature for message", e);
         }
 
         return null;
@@ -269,8 +269,7 @@ public class XboxTokenManager {
         try (FileWriter writer = new FileWriter(cache.toString(), StandardCharsets.UTF_8)) {
             Constants.OBJECT_MAPPER.writeValue(writer, updatedCache);
         } catch (IOException e) {
-            e.printStackTrace();
-            // TODO Handle properly
+            logger.error("Failed to update xbox token cache", e);
         }
     }
 }
