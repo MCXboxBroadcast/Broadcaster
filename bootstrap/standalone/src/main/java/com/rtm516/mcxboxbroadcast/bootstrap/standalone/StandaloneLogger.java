@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.boostrap.standalone;
+package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
 

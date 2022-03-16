@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.boostrap.geyser;
+package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import org.geysermc.geyser.api.extension.ExtensionLogger;

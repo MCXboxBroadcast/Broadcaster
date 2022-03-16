@@ -182,6 +182,4 @@ public class SessionManager {
         rtaWebsocket = new RtaWebsocketClient(token);
         rtaWebsocket.connect();
     }
-
-
 }

@@ -1,5 +1,5 @@
 name: MCXboxBroadcast
 version: 1.0
-main: com.rtm516.mcxboxbroadcast.bootstrap.geyser.Main
+main: com.rtm516.mcxboxbroadcast.bootstrap.geyser.GeyserMain
 api: "2.0.2"
 authors: ["rtm516"]

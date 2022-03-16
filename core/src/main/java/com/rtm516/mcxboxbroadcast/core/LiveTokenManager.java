@@ -83,34 +83,38 @@ public class LiveTokenManager {
                     .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&response_type=device_code"))
                     .build();
 
-            HttpResponse<String> response = httpClient.send(codeRequest, HttpResponse.BodyHandlers.ofString());
-
-            LiveDeviceCodeResponse codeResponse = Constants.OBJECT_MAPPER.readValue(response.body(), LiveDeviceCodeResponse.class);
+            LiveDeviceCodeResponse codeResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(codeRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveDeviceCodeResponse.class);
 
             long expireTime = System.currentTimeMillis() + (codeResponse.expires_in * 1000L);
 
             logger.info("To sign in, use a web browser to open the page " + codeResponse.verification_uri + " and enter the code " + codeResponse.user_code + " to authenticate.");
 
             while (System.currentTimeMillis() < expireTime) {
-                Thread.sleep(codeResponse.interval * 1000L);
+                try {
+                    Thread.sleep(codeResponse.interval * 1000L);
 
-                HttpRequest tokenRequest = HttpRequest.newBuilder()
-                        .uri(Constants.LIVE_TOKEN_REQUEST)
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString("device_code=" + codeResponse.device_code + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"))
-                        .build();
+                    HttpRequest tokenRequest = HttpRequest.newBuilder()
+                            .uri(Constants.LIVE_TOKEN_REQUEST)
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .POST(HttpRequest.BodyPublishers.ofString("device_code=" + codeResponse.device_code + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"))
+                            .build();
 
-                LiveTokenResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
+                    HttpResponse<String> response = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
 
-                if (tokenResponse.error != null && !tokenResponse.error.isEmpty()) {
-                    if (!tokenResponse.error.equals("authorization_pending")) {
-                        completableFuture.completeExceptionally(new LiveAuthenticationException("Failed to get authentication token while waiting for device: " + tokenResponse.error));
+                    LiveTokenResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(response.body(), LiveTokenResponse.class);
+
+                    if (tokenResponse.error != null && !tokenResponse.error.isEmpty()) {
+                        if (!tokenResponse.error.equals("authorization_pending")) {
+                            completableFuture.completeExceptionally(new LiveAuthenticationException("Failed to get authentication token while waiting for device: " + tokenResponse.error_description + " (" + tokenResponse.error + ")"));
+                            break;
+                        }
+                    } else {
+                        updateCache(tokenResponse);
+                        completableFuture.complete(tokenResponse.access_token);
                         break;
                     }
-                } else {
-                    updateCache(tokenResponse);
-                    completableFuture.complete(tokenResponse.access_token);
-                    break;
+                } catch (Exception e) {
+                    completableFuture.completeExceptionally(e);
                 }
             }
 
