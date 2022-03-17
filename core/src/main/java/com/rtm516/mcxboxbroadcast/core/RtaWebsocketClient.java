@@ -28,8 +28,9 @@ public class RtaWebsocketClient extends WebSocketClient {
         if (message.contains("ConnectionId")) {
             try {
                 Object[] parts = Constants.OBJECT_MAPPER.readValue(message, Object[].class);
-                connectionId = ((Map<String, String>)parts[4]).get("ConnectionId");
-            } catch (JsonProcessingException ignored) { }
+                connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
+            } catch (JsonProcessingException ignored) {
+            }
         }
     }
 

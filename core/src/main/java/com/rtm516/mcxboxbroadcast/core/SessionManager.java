@@ -6,7 +6,6 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
-import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.PeopleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
@@ -34,9 +33,9 @@ public class SessionManager {
 
     public SessionManager(String cache, Logger logger) {
         this.httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+            .version(HttpClient.Version.HTTP_1_1)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
 
         this.logger = logger;
 
@@ -44,7 +43,7 @@ public class SessionManager {
         this.xboxTokenManager = new XboxTokenManager(cache, httpClient, logger);
 
         File directory = new File(cache);
-        if (! directory.exists()) {
+        if (!directory.exists()) {
             directory.mkdirs();
         }
     }
@@ -97,24 +96,24 @@ public class SessionManager {
         updateSession();
 
         CreateHandleRequest createHandleContent = new CreateHandleRequest(
-                1,
-                "activity",
-                new CreateHandleRequest.SessionRef(
-                        Constants.SERVICE_CONFIG_ID,
-                        "MinecraftLobby",
-                        this.sessionInfo.getSessionId()
-                )
+            1,
+            "activity",
+            new CreateHandleRequest.SessionRef(
+                Constants.SERVICE_CONFIG_ID,
+                "MinecraftLobby",
+                this.sessionInfo.getSessionId()
+            )
         );
 
         HttpRequest createHandleRequest;
         try {
             createHandleRequest = HttpRequest.newBuilder()
-                    .uri(Constants.CREATE_HANDLE)
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", token)
-                    .header("x-xbl-contract-version", "107")
-                    .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(createHandleContent)))
-                    .build();
+                .uri(Constants.CREATE_HANDLE)
+                .header("Content-Type", "application/json")
+                .header("Authorization", token)
+                .header("x-xbl-contract-version", "107")
+                .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(createHandleContent)))
+                .build();
         } catch (JsonProcessingException e) {
             throw new SessionCreationException("Unable to create session handle, error parsing json: " + e.getMessage());
         }
@@ -142,12 +141,12 @@ public class SessionManager {
         HttpRequest createSessionRequest;
         try {
             createSessionRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", getTokenHeader())
-                    .header("x-xbl-contract-version", "107")
-                    .PUT(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(createSessionContent)))
-                    .build();
+                .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
+                .header("Content-Type", "application/json")
+                .header("Authorization", getTokenHeader())
+                .header("x-xbl-contract-version", "107")
+                .PUT(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(createSessionContent)))
+                .build();
         } catch (JsonProcessingException e) {
             throw new SessionUpdateException("Unable to update session information, error parsing json: " + e.getMessage());
         }
@@ -167,7 +166,7 @@ public class SessionManager {
     /**
      * Get a list of friends xuids
      *
-     * @param includeFollowing Include users that are following us and not full friends
+     * @param includeFollowing  Include users that are following us and not full friends
      * @param includeFollowedBy Include users that we are following and not full friends
      * @return
      */

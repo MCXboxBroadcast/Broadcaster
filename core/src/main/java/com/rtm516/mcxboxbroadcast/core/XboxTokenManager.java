@@ -6,7 +6,11 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.rtm516.mcxboxbroadcast.core.models.*;
+import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationRequest;
+import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationResponse;
+import com.rtm516.mcxboxbroadcast.core.models.JsonJWK;
+import com.rtm516.mcxboxbroadcast.core.models.XboxTokenCache;
+import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -42,9 +46,9 @@ public class XboxTokenManager {
         ECKey jwk = null;
         try {
             jwk = new ECKeyGenerator(Curve.P_256)
-                    .keyUse(KeyUse.SIGNATURE)
-                    .algorithm(JWSAlgorithm.ES256)
-                    .generate();
+                .keyUse(KeyUse.SIGNATURE)
+                .algorithm(JWSAlgorithm.ES256)
+                .generate();
         } catch (JOSEException e) {
             logger.error("Failed to setup xbox jwk", e);
         }
@@ -78,18 +82,18 @@ public class XboxTokenManager {
                 "http://auth.xboxlive.com",
                 "JWT",
                 new GenericAuthenticationRequest.UserProperties(
-                        "RPS",
-                        "user.auth.xboxlive.com",
-                        "t=" + msaToken,
-                        new JsonJWK(jwk.toPublicJWK())
+                    "RPS",
+                    "user.auth.xboxlive.com",
+                    "t=" + msaToken,
+                    new JsonJWK(jwk.toPublicJWK())
                 )
             );
 
             HttpRequest authRequest = HttpRequest.newBuilder()
-                    .uri(Constants.USER_AUTHENTICATE_REQUEST)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(requestContent)))
-                    .build();
+                .uri(Constants.USER_AUTHENTICATE_REQUEST)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(requestContent)))
+                .build();
 
             GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
@@ -105,26 +109,26 @@ public class XboxTokenManager {
     public String getDeviceToken() {
         try {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
-                    "http://auth.xboxlive.com",
-                    "JWT",
-                    new GenericAuthenticationRequest.DeviceProperties(
-                            "ProofOfPossession",
-                            "{" + UUID.randomUUID() + "}",
-                            "Nintendo",
-                            "{" + UUID.randomUUID() + "}",
-                            "0.0.0",
-                            new JsonJWK(jwk.toPublicJWK())
-                    )
+                "http://auth.xboxlive.com",
+                "JWT",
+                new GenericAuthenticationRequest.DeviceProperties(
+                    "ProofOfPossession",
+                    "{" + UUID.randomUUID() + "}",
+                    "Nintendo",
+                    "{" + UUID.randomUUID() + "}",
+                    "0.0.0",
+                    new JsonJWK(jwk.toPublicJWK())
+                )
             );
 
             String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
 
             HttpRequest authRequest = HttpRequest.newBuilder()
-                    .uri(Constants.DEVICE_AUTHENTICATE_REQUEST)
-                    .header("Content-Type", "application/json")
-                    .header("Signature", sign(Constants.DEVICE_AUTHENTICATE_REQUEST, "", requestContentString))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
-                    .build();
+                .uri(Constants.DEVICE_AUTHENTICATE_REQUEST)
+                .header("Content-Type", "application/json")
+                .header("Signature", sign(Constants.DEVICE_AUTHENTICATE_REQUEST, "", requestContentString))
+                .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
+                .build();
 
             GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
@@ -138,25 +142,25 @@ public class XboxTokenManager {
     public String getTitleToken(String msaToken, String deviceToken) {
         try {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
-                    "http://auth.xboxlive.com",
-                    "JWT",
-                    new GenericAuthenticationRequest.TitleProperties(
-                            "RPS",
-                            deviceToken,
-                            "t=" + msaToken,
-                            "user.auth.xboxlive.com",
-                            new JsonJWK(jwk.toPublicJWK())
-                    )
+                "http://auth.xboxlive.com",
+                "JWT",
+                new GenericAuthenticationRequest.TitleProperties(
+                    "RPS",
+                    deviceToken,
+                    "t=" + msaToken,
+                    "user.auth.xboxlive.com",
+                    new JsonJWK(jwk.toPublicJWK())
+                )
             );
 
             String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
 
             HttpRequest authRequest = HttpRequest.newBuilder()
-                    .uri(Constants.TITLE_AUTHENTICATE_REQUEST)
-                    .header("Content-Type", "application/json")
-                    .header("Signature", sign(Constants.TITLE_AUTHENTICATE_REQUEST, "", requestContentString))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
-                    .build();
+                .uri(Constants.TITLE_AUTHENTICATE_REQUEST)
+                .header("Content-Type", "application/json")
+                .header("Signature", sign(Constants.TITLE_AUTHENTICATE_REQUEST, "", requestContentString))
+                .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
+                .build();
 
             GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
@@ -170,33 +174,33 @@ public class XboxTokenManager {
     public XboxTokenInfo getXSTSToken(String userToken, String deviceToken, String titleToken) {
         try {
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
-                    Constants.RELAYING_PARTY,
-                    "JWT",
-                    new GenericAuthenticationRequest.XSTSProperties(
-                            Collections.singletonList(userToken),
-                            deviceToken,
-                            titleToken,
-                            "RETAIL",
-                            new JsonJWK(jwk.toPublicJWK())
-                    )
+                Constants.RELAYING_PARTY,
+                "JWT",
+                new GenericAuthenticationRequest.XSTSProperties(
+                    Collections.singletonList(userToken),
+                    deviceToken,
+                    titleToken,
+                    "RETAIL",
+                    new JsonJWK(jwk.toPublicJWK())
+                )
             );
 
             String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
 
             HttpRequest authRequest = HttpRequest.newBuilder()
-                    .uri(Constants.XSTS_AUTHENTICATE_REQUEST)
-                    .header("Content-Type", "application/json")
-                    .header("Signature", sign(Constants.XSTS_AUTHENTICATE_REQUEST, "", requestContentString))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
-                    .build();
+                .uri(Constants.XSTS_AUTHENTICATE_REQUEST)
+                .header("Content-Type", "application/json")
+                .header("Signature", sign(Constants.XSTS_AUTHENTICATE_REQUEST, "", requestContentString))
+                .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
+                .build();
 
             GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
 
             XboxTokenInfo xboxTokenInfo = new XboxTokenInfo(
-                    tokenResponse.DisplayClaims.xui.get(0).xid,
-                    tokenResponse.DisplayClaims.xui.get(0).uhs,
-                    tokenResponse.Token,
-                    tokenResponse.NotAfter);
+                tokenResponse.DisplayClaims.xui.get(0).xid,
+                tokenResponse.DisplayClaims.xui.get(0).uhs,
+                tokenResponse.Token,
+                tokenResponse.NotAfter);
 
             updateCache(new XboxTokenCache(getCache().userToken, xboxTokenInfo));
 
@@ -220,17 +224,17 @@ public class XboxTokenManager {
             int allocSize = /* sig */ 5 + /* ts */ 9 + /* POST */ 5 + pathAndQuery.length() + 1 + authorizationToken.length() + 1 + payload.length() + 1;
             ByteBuffer buf = ByteBuffer.allocate(allocSize);
             buf.putInt(1); // Policy Version
-            buf.put((byte)0x0);
+            buf.put((byte) 0x0);
             buf.putLong(windowsTimestamp);
-            buf.put((byte)0x0);
+            buf.put((byte) 0x0);
             buf.put("POST".getBytes(StandardCharsets.UTF_8));
-            buf.put((byte)0x0);
+            buf.put((byte) 0x0);
             buf.put(pathAndQuery.getBytes(StandardCharsets.UTF_8));
-            buf.put((byte)0x0);
+            buf.put((byte) 0x0);
             buf.put(authorizationToken.getBytes(StandardCharsets.UTF_8));
-            buf.put((byte)0x0);
+            buf.put((byte) 0x0);
             buf.put(payload.getBytes(StandardCharsets.UTF_8));
-            buf.put((byte)0x0);
+            buf.put((byte) 0x0);
 
             buf.rewind();
 

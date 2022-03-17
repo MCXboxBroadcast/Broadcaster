@@ -13,7 +13,7 @@ public class CreateSessionRequest {
 
     public CreateSessionRequest(ExpandedSessionInfo sessionInfo) {
         this.properties = new Properties(sessionInfo);
-        this.members = new HashMap<>(){{
+        this.members = new HashMap<>() {{
             put("me", new Member(sessionInfo));
         }};
     }
@@ -101,10 +101,10 @@ public class CreateSessionRequest {
         public Map<String, MemberPropertiesSystem> properties;
 
         public Member(ExpandedSessionInfo sessionInfo) {
-            this.constants = new HashMap<>(){{
+            this.constants = new HashMap<>() {{
                 put("system", new MemberConstantsSystem(sessionInfo));
             }};
-            this.properties = new HashMap<>(){{
+            this.properties = new HashMap<>() {{
                 put("system", new MemberPropertiesSystem(sessionInfo));
             }};
         }
@@ -138,7 +138,7 @@ public class CreateSessionRequest {
 
         public MemberSubscription() {
             this.id = "845CC784-7348-4A27-BCDE-C083579DD113";
-            this.changeTypes = new String[] {"everything"};
+            this.changeTypes = new String[]{"everything"};
         }
     }
 }

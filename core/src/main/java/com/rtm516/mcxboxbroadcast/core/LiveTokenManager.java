@@ -1,7 +1,9 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.rtm516.mcxboxbroadcast.core.exceptions.LiveAuthenticationException;
-import com.rtm516.mcxboxbroadcast.core.models.*;
+import com.rtm516.mcxboxbroadcast.core.models.LiveDeviceCodeResponse;
+import com.rtm516.mcxboxbroadcast.core.models.LiveTokenCache;
+import com.rtm516.mcxboxbroadcast.core.models.LiveTokenResponse;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -56,10 +58,10 @@ public class LiveTokenManager {
         }
 
         HttpRequest tokenRequest = HttpRequest.newBuilder()
-                .uri(Constants.LIVE_TOKEN_REQUEST)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=refresh_token&refresh_token=" + refreshToken))
-                .build();
+            .uri(Constants.LIVE_TOKEN_REQUEST)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=refresh_token&refresh_token=" + refreshToken))
+            .build();
 
         LiveTokenResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
         updateCache(tokenResponse);
@@ -78,10 +80,10 @@ public class LiveTokenManager {
 
         Executors.newCachedThreadPool().submit(() -> {
             HttpRequest codeRequest = HttpRequest.newBuilder()
-                    .uri(Constants.LIVE_DEVICE_CODE_REQUEST)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&response_type=device_code"))
-                    .build();
+                .uri(Constants.LIVE_DEVICE_CODE_REQUEST)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("scope=" + Constants.SCOPE + "&client_id=" + Constants.AUTH_TITLE + "&response_type=device_code"))
+                .build();
 
             LiveDeviceCodeResponse codeResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(codeRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveDeviceCodeResponse.class);
 
@@ -94,10 +96,10 @@ public class LiveTokenManager {
                     Thread.sleep(codeResponse.interval * 1000L);
 
                     HttpRequest tokenRequest = HttpRequest.newBuilder()
-                            .uri(Constants.LIVE_TOKEN_REQUEST)
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .POST(HttpRequest.BodyPublishers.ofString("device_code=" + codeResponse.device_code + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"))
-                            .build();
+                        .uri(Constants.LIVE_TOKEN_REQUEST)
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString("device_code=" + codeResponse.device_code + "&client_id=" + Constants.AUTH_TITLE + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"))
+                        .build();
 
                     HttpResponse<String> response = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
 

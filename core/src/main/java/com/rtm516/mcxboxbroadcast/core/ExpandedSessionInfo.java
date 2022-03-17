@@ -15,7 +15,7 @@ public class ExpandedSessionInfo extends SessionInfo {
 
         StringBuilder str = new StringBuilder();
         Random random = new Random();
-        for(int i = 0; i < 20; i++) {
+        for (int i = 0; i < 20; i++) {
             str.append(random.nextInt(10));
         }
         this.rakNetGUID = str.toString();
