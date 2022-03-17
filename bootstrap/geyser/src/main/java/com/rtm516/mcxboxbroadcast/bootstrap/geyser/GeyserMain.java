@@ -6,23 +6,29 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
+import org.geysermc.common.PlatformType;
+import org.geysermc.floodgate.util.Utils;
+import org.geysermc.floodgate.util.WhitelistUtils;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.event.Subscribe;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
-import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.network.MinecraftProtocol;
+import org.geysermc.geyser.session.auth.AuthType;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class GeyserMain implements Extension {
     Logger logger;
     SessionManager sessionManager;
+    SessionInfo sessionInfo;
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
@@ -48,7 +54,7 @@ public class GeyserMain implements Extension {
                 }
             }
 
-            SessionInfo sessionInfo = new SessionInfo();
+            sessionInfo = new SessionInfo();
             sessionInfo.setHostName(GeyserImpl.getInstance().getConfig().getBedrock().getMotd1());
             sessionInfo.setWorldName(GeyserImpl.getInstance().getConfig().getBedrock().getMotd2());
             sessionInfo.setVersion(MinecraftProtocol.DEFAULT_BEDROCK_CODEC.getMinecraftVersion());
@@ -66,13 +72,30 @@ public class GeyserMain implements Extension {
             }
 
             GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(() -> {
-                try {
-                    sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
-                    sessionManager.updateSession(sessionInfo);
-                } catch (SessionUpdateException e) {
-                    logger.error("Failed to update session information!", e);
-                }
+                tick();
             }, 30, 30, TimeUnit.SECONDS);
         }).start();
+    }
+
+    private void tick() {
+        try {
+            sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
+            sessionManager.updateSession(sessionInfo);
+        } catch (SessionUpdateException e) {
+            logger.error("Failed to update session information!", e);
+        }
+
+        if (GeyserImpl.getInstance().getConfig().getRemote().getAuthType() == AuthType.FLOODGATE
+            && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT) {
+            try {
+                for (String xuid : sessionManager.getXboxFriends()) {
+                    if (WhitelistUtils.addPlayer(Utils.getJavaUuid(xuid), "unknown")) {
+                        logger.info("Added xbox friend " + xuid + " to whitelist");
+                    }
+                }
+            } catch (XboxFriendsException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

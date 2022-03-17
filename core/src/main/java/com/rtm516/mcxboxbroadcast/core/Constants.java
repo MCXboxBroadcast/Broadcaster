@@ -22,4 +22,6 @@ public class Constants {
     public static final URI XSTS_AUTHENTICATE_REQUEST = URI.create("https://xsts.auth.xboxlive.com/xsts/authorize");
     public static final URI RTA_WEBSOCKET = URI.create("wss://rta.xboxlive.com/connect");
     public static final URI CREATE_HANDLE = URI.create("https://sessiondirectory.xboxlive.com/handles");
+
+    public static final URI PEOPLE = URI.create("https://social.xboxlive.com/users/me/people");
 }

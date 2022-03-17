@@ -3,8 +3,11 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
+import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationResponse;
+import com.rtm516.mcxboxbroadcast.core.models.PeopleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
 import java.io.File;
@@ -13,6 +16,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -157,6 +162,46 @@ public class SessionManager {
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
         }
+    }
+
+    /**
+     * Get a list of friends xuids
+     *
+     * @param includeFollowing Include users that are following us and not full friends
+     * @param includeFollowedBy Include users that we are following and not full friends
+     * @return
+     */
+    public List<String> getXboxFriends(boolean includeFollowing, boolean includeFollowedBy) throws XboxFriendsException {
+        List<String> xuids = new ArrayList<>();
+
+        HttpRequest xboxPeopleRequest = HttpRequest.newBuilder()
+            .uri(Constants.PEOPLE)
+            .header("Authorization", getTokenHeader())
+            .GET()
+            .build();
+
+        try {
+            PeopleResponse xboxPeopleResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxPeopleRequest, HttpResponse.BodyHandlers.ofString()).body(), PeopleResponse.class);
+
+            for (PeopleResponse.Person person : xboxPeopleResponse.people) {
+                if ((person.isFollowedByCaller && person.isFollowingCaller)
+                    || (includeFollowing && person.isFollowingCaller)
+                    || (includeFollowedBy && person.isFollowedByCaller)) {
+                    xuids.add(person.xuid);
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new XboxFriendsException(e.getMessage());
+        }
+
+        return xuids;
+    }
+
+    /**
+     * @see #getXboxFriends(boolean, boolean)
+     */
+    public List<String> getXboxFriends() throws XboxFriendsException {
+        return getXboxFriends(false, false);
     }
 
     private String getTokenHeader() {
