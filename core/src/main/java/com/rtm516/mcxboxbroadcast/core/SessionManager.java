@@ -185,11 +185,10 @@ public class SessionManager {
     /**
      * Get a list of friends xuids
      *
-     * @param includeFollowing  Include users that are following us and not full friends
-     * @param includeFollowedBy Include users that we are following and not full friends
-     * @return
+     * @return A list of xuids of your friends
+     * @throws XboxFriendsException If there was an error getting friends from xbox live
      */
-    public List<String> getXboxFriends(boolean includeFollowing, boolean includeFollowedBy) throws XboxFriendsException {
+    public List<String> getXboxFriends() throws XboxFriendsException {
         List<String> xuids = new ArrayList<>();
 
         HttpRequest xboxPeopleRequest = HttpRequest.newBuilder()
@@ -202,9 +201,8 @@ public class SessionManager {
             PeopleResponse xboxPeopleResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxPeopleRequest, HttpResponse.BodyHandlers.ofString()).body(), PeopleResponse.class);
 
             for (PeopleResponse.Person person : xboxPeopleResponse.people) {
-                if ((person.isFollowedByCaller && person.isFollowingCaller)
-                    || (includeFollowing && person.isFollowingCaller)
-                    || (includeFollowedBy && person.isFollowedByCaller)) {
+                // Make sure they are full friends
+                if (person.isFollowedByCaller && person.isFollowingCaller) {
                     xuids.add(person.xuid);
                 }
             }
@@ -213,13 +211,6 @@ public class SessionManager {
         }
 
         return xuids;
-    }
-
-    /**
-     * @see #getXboxFriends(boolean, boolean)
-     */
-    public List<String> getXboxFriends() throws XboxFriendsException {
-        return getXboxFriends(false, false);
     }
 
     private String getTokenHeader() {

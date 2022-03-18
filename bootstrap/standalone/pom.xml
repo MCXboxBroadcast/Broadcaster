@@ -45,7 +45,8 @@
                 </executions>
                 <configuration>
                     <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                        <transformer
+                                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                             <mainClass>com.rtm516.mcxboxbroadcast.bootstrap.standalone.StandaloneMain</mainClass>
                         </transformer>
                     </transformers>
