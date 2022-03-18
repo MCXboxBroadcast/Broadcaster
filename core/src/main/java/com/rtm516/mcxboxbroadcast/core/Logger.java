@@ -1,5 +1,8 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+/**
+ * A basic logger interface to allow for custom logger implementations and wrappers
+ */
 public interface Logger {
     void info(String message);
 

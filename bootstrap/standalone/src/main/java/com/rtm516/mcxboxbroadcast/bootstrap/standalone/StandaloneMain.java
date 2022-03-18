@@ -1,12 +1,13 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
+import com.rtm516.mcxboxbroadcast.core.GenericLoggerImpl;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
 public class StandaloneMain {
     public static void main(String[] args) throws Exception {
-        Logger logger = new LoggerImpl();
+        Logger logger = new GenericLoggerImpl();
 
         SessionManager sessionManager = new SessionManager("./cache", logger);
 

@@ -1,8 +1,6 @@
-package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
+package com.rtm516.mcxboxbroadcast.core;
 
-import com.rtm516.mcxboxbroadcast.core.Logger;
-
-public class LoggerImpl implements Logger {
+public class GenericLoggerImpl implements Logger {
     @Override
     public void info(String message) {
         System.out.println("[INFO] " + message);

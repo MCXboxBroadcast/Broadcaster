@@ -41,7 +41,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
-        logger = new LoggerImpl(this.logger());
+        logger = new ExtensionLoggerImpl(this.logger());
         sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
         File configFile = this.dataFolder().resolve("config.yml").toFile();
@@ -75,7 +75,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // Pull onto another thread so we don't hang the main thread
         new Thread(() -> {
-            logger.info("Setting up xbox session...");
+            logger.info("Setting up Xbox session...");
 
             // Get the ip to broadcast
             String ip = config.remoteAddress;
@@ -114,10 +114,10 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setIp(ip);
             sessionInfo.setPort(port);
 
-            // Create the xbox session
+            // Create the Xbox session
             try {
                 sessionManager.createSession(sessionInfo);
-                logger.info("Created xbox session!");
+                logger.info("Created Xbox session!");
             } catch (SessionCreationException | SessionUpdateException e) {
                 logger.error("Failed to create xbox session!", e);
                 return;

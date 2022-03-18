@@ -10,5 +10,5 @@ remote-port: auto
 # sync other data
 update-interval: 30
 
-# Should xbox live friends automatically be whitelisted
+# Should Xbox Live friends automatically be whitelisted
 whitelist-friends: false
