@@ -1,0 +1,14 @@
+# The IP address to broadcast, you likely want to change this to
+# your servers public IP
+remote-address: auto
+
+# The port to broadcast, this should be left as auto unless your
+# manipulating the port using network rules or reverse proxies
+remote-port: auto
+
+# The amount of time in seconds to update session information and
+# sync other data
+update-interval: 30
+
+# Should xbox live friends automatically be whitelisted
+whitelist-friends: false

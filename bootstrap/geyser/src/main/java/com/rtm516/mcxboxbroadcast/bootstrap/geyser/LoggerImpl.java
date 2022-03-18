@@ -3,10 +3,10 @@ package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import org.geysermc.geyser.api.extension.ExtensionLogger;
 
-public class GeyserLogger implements Logger {
+public class LoggerImpl implements Logger {
     private ExtensionLogger logger;
 
-    public GeyserLogger(ExtensionLogger logger) {
+    public LoggerImpl(ExtensionLogger logger) {
         this.logger = logger;
     }
 

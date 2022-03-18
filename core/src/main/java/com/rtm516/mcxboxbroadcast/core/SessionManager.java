@@ -79,8 +79,16 @@ public class SessionManager {
             throw new SessionCreationException("Session already created!");
         }
 
+        this.sessionInfo = new ExpandedSessionInfo("", "", sessionInfo);
+
+        createSession();
+    }
+
+    private void createSession() throws SessionCreationException, SessionUpdateException {
         XboxTokenInfo tokenInfo = getXboxToken();
         String token = tokenInfo.tokenHeader();
+
+        this.sessionInfo.setXuid(tokenInfo.userXUID);
 
         setupWebsocket(token);
 
@@ -91,7 +99,7 @@ public class SessionManager {
             throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
         }
 
-        this.sessionInfo = new ExpandedSessionInfo(connectionId, tokenInfo.userXUID, sessionInfo);
+        this.sessionInfo.setConnectionId(connectionId);
 
         updateSession();
 
@@ -160,6 +168,17 @@ public class SessionManager {
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
+        }
+    }
+
+
+    public void checkConnection() {
+        if (!rtaWebsocket.isOpen()) {
+            try {
+                createSession();
+            } catch (SessionCreationException | SessionUpdateException e) {
+                logger.error("Session is dead and hit exception trying to re-create it", e);
+            }
         }
     }
 

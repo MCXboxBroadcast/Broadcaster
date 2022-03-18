@@ -6,7 +6,7 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 
 public class StandaloneMain {
     public static void main(String[] args) throws Exception {
-        Logger logger = new StandaloneLogger();
+        Logger logger = new LoggerImpl();
 
         SessionManager sessionManager = new SessionManager("./cache", logger);
 

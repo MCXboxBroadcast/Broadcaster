@@ -2,7 +2,7 @@ package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
 
-public class StandaloneLogger implements Logger {
+public class LoggerImpl implements Logger {
     @Override
     public void info(String message) {
         System.out.println("[INFO] " + message);
