@@ -25,7 +25,7 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
-            <version>9.15.2</version>
+            <version>9.21</version>
         </dependency>
         <dependency>
             <groupId>org.java-websocket</groupId>

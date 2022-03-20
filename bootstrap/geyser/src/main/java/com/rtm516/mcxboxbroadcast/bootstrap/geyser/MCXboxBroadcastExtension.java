@@ -15,8 +15,7 @@ import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.event.Subscribe;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
-import org.geysermc.geyser.network.MinecraftProtocol;
-import org.geysermc.geyser.session.auth.AuthType;
+import org.geysermc.geyser.api.network.AuthType;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -25,12 +24,9 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -49,7 +45,7 @@ public class MCXboxBroadcastExtension implements Extension {
         // Create the config file if it doesn't exist
         if (!configFile.exists()) {
             try (FileWriter writer = new FileWriter(configFile)) {
-                try (FileSystem fileSystem = FileSystems.newFileSystem(new File(MCXboxBroadcastExtension.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toPath(), Collections.emptyMap())) {
+                try (FileSystem fileSystem = this.fileSystem()) {
                     try (InputStream input = Files.newInputStream(fileSystem.getPath("config.yml"))) {
                         byte[] bytes = new byte[input.available()];
 
@@ -60,7 +56,7 @@ public class MCXboxBroadcastExtension implements Extension {
                         writer.flush();
                     }
                 }
-            } catch (IOException | URISyntaxException e) {
+            } catch (IOException e) {
                 logger.error("Failed to create config", e);
                 return;
             }
@@ -81,7 +77,7 @@ public class MCXboxBroadcastExtension implements Extension {
             String ip = config.remoteAddress;
             if (ip.equals("auto")) {
                 // Taken from core Geyser code
-                ip = GeyserImpl.getInstance().getConfig().getBedrock().getAddress();
+                ip = this.geyserApi().bedrockListener().address();
                 try {
                     // This is the most reliable for getting the main local IP
                     Socket socket = new Socket();
@@ -97,19 +93,19 @@ public class MCXboxBroadcastExtension implements Extension {
             }
 
             // Get the port to broadcast
-            int port = GeyserImpl.getInstance().getConfig().getBedrock().getPort();
+            int port = this.geyserApi().bedrockListener().port();
             if (!config.remotePort.equals("auto")) {
                 port = Integer.parseInt(config.remotePort);
             }
 
             // Create the session information based on the Geyser config
             sessionInfo = new SessionInfo();
-            sessionInfo.setHostName(GeyserImpl.getInstance().getConfig().getBedrock().getMotd1());
-            sessionInfo.setWorldName(GeyserImpl.getInstance().getConfig().getBedrock().getMotd2());
-            sessionInfo.setVersion(MinecraftProtocol.DEFAULT_BEDROCK_CODEC.getMinecraftVersion());
-            sessionInfo.setProtocol(MinecraftProtocol.DEFAULT_BEDROCK_CODEC.getProtocolVersion());
+            sessionInfo.setHostName(this.geyserApi().bedrockListener().primaryMotd());
+            sessionInfo.setWorldName(this.geyserApi().bedrockListener().secondaryMotd());
+            sessionInfo.setVersion(this.geyserApi().defaultRemoteServer().minecraftVersion());
+            sessionInfo.setProtocol(this.geyserApi().defaultRemoteServer().protocolVersion());
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
-            sessionInfo.setMaxPlayers(GeyserImpl.getInstance().getConfig().getMaxPlayers());
+            sessionInfo.setMaxPlayers(this.geyserApi().maxPlayers());
 
             sessionInfo.setIp(ip);
             sessionInfo.setPort(port);
@@ -142,7 +138,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
-        if (GeyserImpl.getInstance().getConfig().getRemote().getAuthType() == AuthType.FLOODGATE
+        if (this.geyserApi().defaultRemoteServer().authType() == AuthType.HYBRID
             && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT
             && config.whitelistFriends) {
             try {
