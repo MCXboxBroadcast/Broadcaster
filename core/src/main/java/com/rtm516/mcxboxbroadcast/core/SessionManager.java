@@ -268,7 +268,7 @@ public class SessionManager {
 
         // Create the request for getting the users friends
         HttpRequest xboxPeopleRequest = HttpRequest.newBuilder()
-            .uri(Constants.PEOPLE)
+            .uri(URI.create(Constants.PEOPLE))
             .header("Authorization", getTokenHeader())
             .GET()
             .build();
@@ -290,6 +290,48 @@ public class SessionManager {
         }
 
         return xuids;
+    }
+
+    /**
+     * Add a friend from xbox live
+     *
+     * @param xuid The XUID of the friend to add
+     * @return If the request was successful, this will be true even if the user is already your friend, false if something goes wrong
+     */
+    public boolean addXboxFriend(String xuid) {
+        HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
+            .uri(URI.create(Constants.PEOPLE + "/xuid(" + xuid + ")"))
+            .header("Authorization", getTokenHeader())
+            .PUT(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
+            return response.statusCode() == 204;
+        } catch (IOException | InterruptedException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Remove a friend from xbox live
+     *
+     * @param xuid The XUID of the friend to remove
+     * @return If the request was successful, this will be true even if the user isn't your friend, false if something goes wrong
+     */
+    public boolean removeXboxFriend(String xuid) {
+        HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
+            .uri(URI.create(Constants.PEOPLE + "/xuid(" + xuid + ")"))
+            .header("Authorization", getTokenHeader())
+            .DELETE()
+            .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
+            return response.statusCode() == 204;
+        } catch (IOException | InterruptedException e) {
+            return false;
+        }
     }
 
     /**

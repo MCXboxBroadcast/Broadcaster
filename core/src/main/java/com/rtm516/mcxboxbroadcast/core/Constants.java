@@ -23,5 +23,5 @@ public class Constants {
     public static final URI RTA_WEBSOCKET = URI.create("wss://rta.xboxlive.com/connect");
     public static final URI CREATE_HANDLE = URI.create("https://sessiondirectory.xboxlive.com/handles");
 
-    public static final URI PEOPLE = URI.create("https://social.xboxlive.com/users/me/people");
+    public static final String PEOPLE = "https://social.xboxlive.com/users/me/people";
 }
