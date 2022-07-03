@@ -1,11 +1,16 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class SessionInfo {
+    @JsonProperty("host-name")
     private String hostName;
+    @JsonProperty("world-name")
     private String worldName;
     private String version;
     private int protocol;
     private int players;
+    @JsonProperty("max-players")
     private int maxPlayers;
     private String ip;
     private int port;
