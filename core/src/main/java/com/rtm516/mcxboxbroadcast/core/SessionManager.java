@@ -6,7 +6,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
-import com.rtm516.mcxboxbroadcast.core.models.PeopleResponse;
+import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
 import java.io.File;
@@ -260,28 +260,34 @@ public class SessionManager {
     /**
      * Get a list of friends XUIDs
      *
+     * @param includeFollowing  Include users that are following us and not full friends
+     * @param includeFollowedBy Include users that we are following and not full friends
      * @return A list of XUIDs of your friends
      * @throws XboxFriendsException If there was an error getting friends from Xbox Live
      */
-    public List<String> getXboxFriends() throws XboxFriendsException {
+    public List<String> getXboxFriends(boolean includeFollowing, boolean includeFollowedBy) throws XboxFriendsException {
         List<String> xuids = new ArrayList<>();
 
         // Create the request for getting the users friends
-        HttpRequest xboxPeopleRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.PEOPLE))
+        HttpRequest xboxFollowerRequest = HttpRequest.newBuilder()
+            .uri(Constants.FOLLOWERS)
             .header("Authorization", getTokenHeader())
+            .header("x-xbl-contract-version", "5")
+            .header("accept-language", "en-GB")
             .GET()
             .build();
 
         try {
             // Get the list of friends from the api
-            PeopleResponse xboxPeopleResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxPeopleRequest, HttpResponse.BodyHandlers.ofString()).body(), PeopleResponse.class);
+            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxFollowerRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
 
             // Parse through the returned list to make sure we are friends and
             // add them to the list to return
-            for (PeopleResponse.Person person : xboxPeopleResponse.people) {
+            for (FollowerResponse.Person person : xboxFollowerResponse.people) {
                 // Make sure they are full friends
-                if (person.isFollowedByCaller && person.isFollowingCaller) {
+                if ((person.isFollowedByCaller && person.isFollowingCaller)
+                    || (includeFollowing && person.isFollowingCaller)
+                    || (includeFollowedBy && person.isFollowedByCaller)) {
                     xuids.add(person.xuid);
                 }
             }
@@ -290,6 +296,13 @@ public class SessionManager {
         }
 
         return xuids;
+    }
+
+    /**
+     * @see #getXboxFriends(boolean, boolean) 
+     */
+    public List<String> getXboxFriends() throws XboxFriendsException {
+        return getXboxFriends(false, false);
     }
 
     /**

@@ -21,6 +21,8 @@ public class StandaloneMain {
         sessionInfo.setIp("51.210.124.95");
         sessionInfo.setPort(19132);
 
+        logger.info("Creating session...");
+
         sessionManager.createSession(sessionInfo);
 
         logger.info("Created session!");
