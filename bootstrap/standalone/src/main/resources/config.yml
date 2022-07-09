@@ -1,0 +1,14 @@
+# The amount of time in seconds to update session information and
+# sync other data
+update-interval: 30
+
+# The data to broadcast over xbox live
+session-info:
+  host-name: "Geyser Test Server"
+  world-name: "\u00A7aGeyserMC \u00A7bDemo \u00A7f& \u00A7cTest \u00A7fServer"
+  version: 1.19.2
+  protocol: 527
+  players: 0
+  max-players: 20
+  ip: 51.210.124.95
+  port: 19132
