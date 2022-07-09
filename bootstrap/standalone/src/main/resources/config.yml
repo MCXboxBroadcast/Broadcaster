@@ -1,17 +1,30 @@
-# The amount of time in seconds to update session information and
-# sync other data
-update-interval: 30
+# Core session settings
+session:
+  # The amount of time in seconds to update session information
+  update-interval: 30
 
-# Should we query the bedrock server to sync the session information
-query-server: true
+  # Should we query the bedrock server to sync the session information
+  query-server: true
 
-# The data to broadcast over xbox live
-session-info:
-  host-name: "Geyser Test Server"
-  world-name: "\u00A7aGeyserMC \u00A7bDemo \u00A7f& \u00A7cTest \u00A7fServer"
-  version: 1.19.2
-  protocol: 527
-  players: 0
-  max-players: 20
-  ip: 51.210.124.95
-  port: 19132
+  # The data to broadcast over xbox live, this is the default if querying is enabled
+  session-info:
+    host-name: "Geyser Test Server"
+    world-name: "\u00A7aGeyserMC \u00A7bDemo \u00A7f& \u00A7cTest \u00A7fServer"
+    version: 1.19.2
+    protocol: 527
+    players: 0
+    max-players: 20
+    ip: 51.210.124.95
+    port: 19132
+
+# Friend/follower list sync settings
+friend-sync:
+  # The amount of time in seconds to check for follower changes
+  # This can be no lower than 10 due to xbox rate limits
+  update-interval: 10
+
+  # Should we automatically follow people that follow us
+  auto-follow: true
+
+  # Should we automatically unfollow people that no longer follow us
+  auto-unfollow: true

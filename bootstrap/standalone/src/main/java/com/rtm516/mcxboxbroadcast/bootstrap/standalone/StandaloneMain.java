@@ -9,16 +9,15 @@ import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
+import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
 import org.java_websocket.util.NamedThreadFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,7 +30,7 @@ public class StandaloneMain {
     public static void main(String[] args) throws Exception {
         logger = new GenericLoggerImpl();
 
-        ScheduledExecutorService scheduledThread = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Scheduled Thread"));
+        ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Scheduled Thread"));
 
         SessionManager sessionManager = new SessionManager("./cache", logger);
 
@@ -64,7 +63,7 @@ public class StandaloneMain {
             return;
         }
 
-        SessionInfo sessionInfo = config.sessionInfo;
+        SessionInfo sessionInfo = config.sessionConfig.sessionInfo;
 
         // Sync the session info from the server if needed
         updateSessionInfo(sessionInfo);
@@ -75,7 +74,7 @@ public class StandaloneMain {
 
         logger.info("Created session!");
 
-        scheduledThread.scheduleWithFixedDelay(() -> {
+        scheduledThreadPool.scheduleWithFixedDelay(() -> {
             updateSessionInfo(sessionInfo);
 
             try {
@@ -84,11 +83,33 @@ public class StandaloneMain {
             } catch (SessionUpdateException e) {
                 logger.error("Failed to update session", e);
             }
-        }, config.updateInterval, config.updateInterval, TimeUnit.SECONDS);
+        }, config.sessionConfig.updateInterval, config.sessionConfig.updateInterval, TimeUnit.SECONDS);
+
+        if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
+            scheduledThreadPool.scheduleWithFixedDelay(() -> {
+                try {
+                    for (FollowerResponse.Person person : sessionManager.getXboxFriends(true, true)) {
+                        // Follow the person back
+                        if (config.friendSyncConfig.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
+                            logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
+                            sessionManager.addXboxFriend(person.xuid);
+                        }
+
+                        // Unfollow the person
+                        if (config.friendSyncConfig.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
+                            logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
+                            sessionManager.removeXboxFriend(person.xuid);
+                        }
+                    }
+                } catch (XboxFriendsException e) {
+                    logger.error("Failed to sync friends", e);
+                }
+            }, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+        }
     }
 
     private static void updateSessionInfo(SessionInfo sessionInfo) {
-        if (config.queryServer) {
+        if (config.sessionConfig.queryServer) {
             BedrockClient client = null;
             try {
                 InetSocketAddress bindAddress = new InetSocketAddress("0.0.0.0", 0);

@@ -262,14 +262,14 @@ public class SessionManager {
      *
      * @param includeFollowing  Include users that are following us and not full friends
      * @param includeFollowedBy Include users that we are following and not full friends
-     * @return A list of XUIDs of your friends
+     * @return A list of {@link FollowerResponse.Person} of your friends
      * @throws XboxFriendsException If there was an error getting friends from Xbox Live
      */
-    public List<String> getXboxFriends(boolean includeFollowing, boolean includeFollowedBy) throws XboxFriendsException {
-        List<String> xuids = new ArrayList<>();
+    public List<FollowerResponse.Person> getXboxFriends(boolean includeFollowing, boolean includeFollowedBy) throws XboxFriendsException {
+        List<FollowerResponse.Person> people = new ArrayList<>();
 
-        // Create the request for getting the users friends
-        HttpRequest xboxFollowerRequest = HttpRequest.newBuilder()
+        // Create the request for getting the people following us and friends
+        HttpRequest xboxFollowersRequest = HttpRequest.newBuilder()
             .uri(Constants.FOLLOWERS)
             .header("Authorization", getTokenHeader())
             .header("x-xbl-contract-version", "5")
@@ -279,29 +279,55 @@ public class SessionManager {
 
         try {
             // Get the list of friends from the api
-            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxFollowerRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
+            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
 
             // Parse through the returned list to make sure we are friends and
             // add them to the list to return
             for (FollowerResponse.Person person : xboxFollowerResponse.people) {
                 // Make sure they are full friends
                 if ((person.isFollowedByCaller && person.isFollowingCaller)
-                    || (includeFollowing && person.isFollowingCaller)
-                    || (includeFollowedBy && person.isFollowedByCaller)) {
-                    xuids.add(person.xuid);
+                    || (includeFollowing && person.isFollowingCaller)) {
+                    people.add(person);
                 }
             }
         } catch (IOException | InterruptedException e) {
             throw new XboxFriendsException(e.getMessage());
         }
 
-        return xuids;
+        if (includeFollowedBy) {
+            // Create the request for getting the people we are following and friends
+            HttpRequest xboxSocialRequest = HttpRequest.newBuilder()
+                .uri(Constants.SOCIAL)
+                .header("Authorization", getTokenHeader())
+                .header("x-xbl-contract-version", "5")
+                .header("accept-language", "en-GB")
+                .GET()
+                .build();
+
+            try {
+                // Get the list of people we are following from the api
+                FollowerResponse xboxSocialResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
+
+                // Parse through the returned list to make sure we are following them and
+                // add them to the list to return
+                for (FollowerResponse.Person person : xboxSocialResponse.people) {
+                    // Make sure we are following them
+                    if (person.isFollowedByCaller) {
+                        people.add(person);
+                    }
+                }
+            } catch (IOException | InterruptedException e) {
+                throw new XboxFriendsException(e.getMessage());
+            }
+        }
+
+        return people;
     }
 
     /**
      * @see #getXboxFriends(boolean, boolean) 
      */
-    public List<String> getXboxFriends() throws XboxFriendsException {
+    public List<FollowerResponse.Person> getXboxFriends() throws XboxFriendsException {
         return getXboxFriends(false, false);
     }
 

@@ -25,4 +25,5 @@ public class Constants {
 
     public static final String PEOPLE = "https://social.xboxlive.com/users/me/people";
     public static final URI FOLLOWERS = URI.create("https://peoplehub.xboxlive.com/users/me/people/followers");
+    public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
 }

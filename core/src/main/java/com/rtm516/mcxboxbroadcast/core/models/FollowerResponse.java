@@ -4,69 +4,64 @@ import java.util.Date;
 import java.util.List;
 
 public class FollowerResponse {
-    public Object accountLinkDetails;
-    public Object friendFinderState;
     public List<Person> people;
     public Object recommendationSummary;
-
-    public static class Follower {
-        public Date followedDateTime;
-        public String text;
-    }
+    public Object friendFinderState;
+    public Object accountLinkDetails;
 
     public static class LinkedAccount {
-        public Object deeplink;
-        public String displayName;
-        public boolean isFamilyFriendly;
         public String networkName;
+        public String displayName;
         public boolean showOnProfile;
+        public boolean isFamilyFriendly;
+        public Object deeplink;
     }
 
     public static class Person {
-        public Object addedDateTimeUtc;
-        public Object avatar;
-        public Object broadcast;
-        public String colorTheme;
-        public Object communityManagerTitles;
-        public Object detail;
+        public String xuid;
+        public boolean isFavorite;
+        public boolean isFollowingCaller;
+        public boolean isFollowedByCaller;
+        public boolean isIdentityShared;
+        public Date addedDateTimeUtc;
         public String displayName;
+        public String realName;
         public String displayPicRaw;
-        public Follower follower;
-        public String gamerScore;
+        public String showUserAsAvatar;
         public String gamertag;
+        public String gamerScore;
+        public String modernGamertag;
+        public String modernGamertagSuffix;
+        public String uniqueModernGamertag;
+        public String xboxOneRep;
+        public String presenceState;
+        public String presenceText;
+        public Object presenceDevices;
         public boolean isBroadcasting;
         public Object isCloaked;
-        public boolean isFavorite;
-        public boolean isFollowedByCaller;
-        public boolean isFollowingCaller;
-        public boolean isIdentityShared;
         public boolean isQuarantined;
         public boolean isXbox360Gamerpic;
         public Date lastSeenDateTimeUtc;
-        public List<LinkedAccount> linkedAccounts;
-        public String modernGamertag;
-        public String modernGamertagSuffix;
-        public Object multiplayerSummary;
-        public Object preferredColor;
-        public String preferredFlag;
-        public List<String> preferredPlatforms;
-        public Object presenceDetails;
-        public Object presenceDevices;
-        public String presenceState;
-        public String presenceText;
-        public Object presenceTitleIds;
-        public String realName;
-        public Object recentPlayer;
+        public Object suggestion;
         public Object recommendation;
         public Object search;
-        public String showUserAsAvatar;
-        public Object socialManager;
-        public Object suggestion;
         public Object titleHistory;
+        public Object multiplayerSummary;
+        public Object recentPlayer;
+        public Object follower;
+        public Object preferredColor;
+        public Object presenceDetails;
         public Object titlePresence;
         public Object titleSummaries;
-        public String uniqueModernGamertag;
-        public String xboxOneRep;
-        public String xuid;
+        public Object presenceTitleIds;
+        public Object detail;
+        public Object communityManagerTitles;
+        public Object socialManager;
+        public Object broadcast;
+        public Object avatar;
+        public List<LinkedAccount> linkedAccounts;
+        public String colorTheme;
+        public String preferredFlag;
+        public List<String> preferredPlatforms;
     }
 }
