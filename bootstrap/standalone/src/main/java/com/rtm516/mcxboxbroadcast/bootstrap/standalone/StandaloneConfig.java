@@ -6,6 +6,8 @@ import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 public class StandaloneConfig {
     @JsonProperty("update-interval")
     public int updateInterval;
+    @JsonProperty("query-server")
+    public boolean queryServer;
     @JsonProperty("session-info")
     public SessionInfo sessionInfo;
 }

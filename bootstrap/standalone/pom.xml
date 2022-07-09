@@ -29,6 +29,12 @@
             <version>2.13.2</version>
             <scope>compile</scope>
         </dependency>
+        <!-- For pinging servers -->
+        <dependency>
+            <groupId>com.nukkitx.protocol</groupId>
+            <artifactId>bedrock-common</artifactId>
+            <version>2.9.4</version>
+        </dependency>
     </dependencies>
 
     <build>

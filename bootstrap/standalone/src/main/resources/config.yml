@@ -2,6 +2,9 @@
 # sync other data
 update-interval: 30
 
+# Should we query the bedrock server to sync the session information
+query-server: true
+
 # The data to broadcast over xbox live
 session-info:
   host-name: "Geyser Test Server"

@@ -17,6 +17,29 @@
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>opencollab-release-repo</id>
+            <url>https://repo.opencollab.dev/maven-releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>opencollab-snapshot-repo</id>
+            <url>https://repo.opencollab.dev/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>com.rtm516.mcxboxbroadcast</groupId>
@@ -27,7 +50,7 @@
     </dependencies>
 
     <modules>
-        <module>geyser</module>
+<!--        <module>geyser</module>-->
         <module>standalone</module>
     </modules>
 </project>
