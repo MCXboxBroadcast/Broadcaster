@@ -7,12 +7,14 @@
 
 A simple [Geyser](https://github.com/GeyserMC/Geyser) extension that broadcasts the server over Xbox Live.
 
-This shows up to the authenticated accounts friends ingame as a joinable session and then anyone thats friends with someone who joined through that method will also see the session as joinable ingame.
+This shows up to the authenticated accounts friends in-game as a joinable session and then anyone thats friends with someone who joined through that method will also see the session as joinable ingame.
 
 ![Example screenshot](https://user-images.githubusercontent.com/5401186/159083033-b965bfba-de17-4708-8979-1f33bfd5fa28.png)
 
-## Config
-* `remote-address` - The IP address to broadcast, you likely want to change this to your servers public IP
-* `remote-port` - The port to broadcast, this should be left as auto unless your manipulating the port using network rules or reverse proxies
-* `update-interval` - The amount of time in seconds to update session information and sync other data
-* `whitelist-friends` - Should Xbox Live friends automatically be whitelisted
+# DISCLAIMER
+You use this project at your own risk, the contributors are not responsible for any damage or loss caused by the software. We suggest you use an alt account for running the tool incase the account it banned as we emulate some features of a client which may or may not be against TOS.
+
+## Features
+ - Syncing of MOTD and other server details
+ - Automatic friend list management
+ - ~~Easy Geyser integration (as an extension)~~ (Currently not working due to API limitations)
