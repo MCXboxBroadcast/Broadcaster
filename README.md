@@ -18,3 +18,6 @@ You use this project at your own risk, the contributors are not responsible for 
  - Syncing of MOTD and other server details
  - Automatic friend list management
  - ~~Easy Geyser integration (as an extension)~~ (Currently not working due to API limitations)
+
+## Pterodactyl Panel
+There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`

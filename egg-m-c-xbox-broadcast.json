@@ -1,0 +1,42 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2022-07-10T10:48:50+00:00",
+    "name": "MCXboxBroadcast",
+    "author": "panel@rtm516.co.uk",
+    "description": "Show a server on the friends tab in Minecraft for easier connection to remote servers",
+    "features": null,
+    "docker_images": {
+        "Java 17": "ghcr.io\/pterodactyl\/yolks:java_17"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"Created session!\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/bash\r\n# MCXboxBroadcast install script.\r\n#\r\n# Server Files: \/mnt\/server\r\ncd \/mnt\/server\r\ncurl -o ${SERVER_JARFILE} \"https:\/\/ci.rtm516.co.uk\/job\/MCXboxBroadcast\/job\/master\/lastSuccessfulBuild\/artifact\/bootstrap\/standalone\/target\/MCXboxBroadcastStandalone.jar\"",
+            "container": "ghcr.io\/pterodactyl\/installers:alpine",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Jar File",
+            "description": "The name of the jarfile to be used when downloading & running.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "MCXboxBroadcastStandalone.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        }
+    ]
+}
