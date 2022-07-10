@@ -73,7 +73,7 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onClose(int code, String reason, boolean remote) {
-
+    logger.debug("Websocket disconnected: " + reason + " (" + code + ")");
     }
 
     /**
@@ -81,6 +81,6 @@ public class RtaWebsocketClient extends WebSocketClient {
      **/
     @Override
     public void onError(Exception ex) {
-
+        logger.debug("Websocket error: " + ex.getMessage());
     }
 }

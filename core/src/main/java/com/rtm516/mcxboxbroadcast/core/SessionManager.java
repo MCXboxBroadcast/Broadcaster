@@ -251,7 +251,9 @@ public class SessionManager {
     public void checkConnection() {
         if (!rtaWebsocket.isOpen()) {
             try {
+                logger.info("Connection to websocket lost, re-creating session...");
                 createSession();
+                logger.info("Re-connected!");
             } catch (SessionCreationException | SessionUpdateException e) {
                 logger.error("Session is dead and hit exception trying to re-create it", e);
             }
