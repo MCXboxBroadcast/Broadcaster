@@ -1,0 +1,42 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v1",
+        "update_url": null
+    },
+    "exported_at": "2022-07-10T01:59:49-05:00",
+    "name": "MC XB Broadcaster",
+    "author": "greaper.9.88@gmail.com",
+    "description": "Friend listener for allowing consoles to connect to remote servers",
+    "features": null,
+    "images": [
+        "ghcr.io\/pterodactyl\/yolks:java_11",
+        "ghcr.io\/pterodactyl\/yolks:java_17"
+    ],
+    "file_denylist": [],
+    "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"Created session!\"\r\n}",
+        "logs": "{\r\n    \"custom\": false,\r\n    \"location\": \"logs\/latest.log\"\r\n}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/bash\r\n# FriendConnect install script.\r\n#\r\n# Server Files: \/mnt\/server\r\napt update\r\napt install -y curl\r\ncd \/mnt\/server\r\ncurl -Lf -o ${SERVER_JARFILE} \"https:\/\/ci.rtm516.co.uk\/job\/MCXboxBroadcast\/job\/master\/lastSuccessfulBuild\/artifact\/bootstrap\/standalone\/target\/MCXboxBroadcastStandalone.jar\"",
+            "container": "debian:buster-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Jar File",
+            "description": "The name of the jarfile to be used when downloading & running.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "MCXboxBroadcastStandalone.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string"
+        }
+    ]
+}
