@@ -8,6 +8,8 @@ public class StandaloneConfig {
     public SessionConfig sessionConfig;
     @JsonProperty("friend-sync")
     public FriendSyncConfig friendSyncConfig;
+    @JsonProperty("debug-log")
+    public boolean debugLog;
 
     public static class SessionConfig {
         @JsonProperty("update-interval")

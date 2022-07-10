@@ -29,3 +29,6 @@ friend-sync:
 
   # Should we automatically unfollow people that no longer follow us
   auto-unfollow: true
+
+# Enable debug logs
+debug-log: false

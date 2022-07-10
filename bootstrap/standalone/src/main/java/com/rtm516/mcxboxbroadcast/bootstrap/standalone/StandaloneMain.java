@@ -12,11 +12,13 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
 import org.java_websocket.util.NamedThreadFactory;
 import org.slf4j.LoggerFactory;
+import org.slf4j.impl.SimpleLogger;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -31,8 +33,6 @@ public class StandaloneMain {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
 
         ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Scheduled Thread"));
-
-        SessionManager sessionManager = new SessionManager("./cache", logger);
 
         String configFileName = "config.yml";
         File configFile = new File(configFileName);
@@ -63,6 +63,15 @@ public class StandaloneMain {
             return;
         }
 
+        // Use reflection to put the logger in debug mode
+        if (config.debugLog) {
+            Field currentLogLevel = SimpleLogger.class.getDeclaredField("currentLogLevel");
+            currentLogLevel.setAccessible(true);
+            currentLogLevel.set(LoggerFactory.getLogger(StandaloneMain.class), 10);
+        }
+
+        SessionManager sessionManager = new SessionManager("./cache", logger);
+
         SessionInfo sessionInfo = config.sessionConfig.sessionInfo;
 
         // Sync the session info from the server if needed
@@ -78,6 +87,10 @@ public class StandaloneMain {
             updateSessionInfo(sessionInfo);
 
             try {
+                // Make sure the connection is still active
+                sessionManager.checkConnection();
+
+                // Update the session
                 sessionManager.updateSession(sessionInfo);
                 logger.info("Updated session!");
             } catch (SessionUpdateException e) {
@@ -88,7 +101,7 @@ public class StandaloneMain {
         if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
             scheduledThreadPool.scheduleWithFixedDelay(() -> {
                 try {
-                    for (FollowerResponse.Person person : sessionManager.getXboxFriends(true, true)) {
+                    for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.friendSyncConfig.autoFollow, config.friendSyncConfig.autoUnfollow)) {
                         // Follow the person back
                         if (config.friendSyncConfig.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
                             logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");

@@ -239,6 +239,7 @@ public class SessionManager {
         }
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
+            logger.debug("Got session response: " + createSessionResponse.body());
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
         }
     }
@@ -277,9 +278,11 @@ public class SessionManager {
             .GET()
             .build();
 
+        String lastResponse = "";
         try {
             // Get the list of friends from the api
-            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
+            lastResponse = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body();
+            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
 
             // Parse through the returned list to make sure we are friends and
             // add them to the list to return
@@ -291,6 +294,7 @@ public class SessionManager {
                 }
             }
         } catch (IOException | InterruptedException e) {
+            logger.debug("Follower request response: " + lastResponse);
             throw new XboxFriendsException(e.getMessage());
         }
 
@@ -317,6 +321,7 @@ public class SessionManager {
                     }
                 }
             } catch (IOException | InterruptedException e) {
+                logger.debug("Social request response: " + lastResponse);
                 throw new XboxFriendsException(e.getMessage());
             }
         }
@@ -408,7 +413,7 @@ public class SessionManager {
      * @param token The authentication token to use
      */
     private void setupWebsocket(String token) {
-        rtaWebsocket = new RtaWebsocketClient(token);
+        rtaWebsocket = new RtaWebsocketClient(token, logger);
         rtaWebsocket.connect();
     }
 }

@@ -11,15 +11,18 @@ import java.util.Map;
  */
 public class RtaWebsocketClient extends WebSocketClient {
     private String connectionId;
+    private final Logger logger;
+    private boolean firstConnectionId = true;
 
     /**
      * Create a new websocket and add the Authorization header
      *
      * @param authenticationToken The token to use for authentication
      */
-    public RtaWebsocketClient(String authenticationToken) {
+    public RtaWebsocketClient(String authenticationToken, Logger logger) {
         super(Constants.RTA_WEBSOCKET);
         addHeader("Authorization", authenticationToken);
+        this.logger = logger;
     }
 
     /**
@@ -53,12 +56,15 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onMessage(String message) {
-        if (message.contains("ConnectionId")) {
+        if (message.contains("ConnectionId") && firstConnectionId) {
             try {
                 Object[] parts = Constants.OBJECT_MAPPER.readValue(message, Object[].class);
                 connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
+                firstConnectionId = false;
             } catch (JsonProcessingException ignored) {
             }
+        } else {
+            logger.debug("Websocket message: " + message);
         }
     }
 
