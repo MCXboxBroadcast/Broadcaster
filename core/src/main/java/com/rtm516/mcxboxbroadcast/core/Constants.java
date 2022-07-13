@@ -26,4 +26,10 @@ public class Constants {
     public static final String PEOPLE = "https://social.xboxlive.com/users/me/people";
     public static final URI FOLLOWERS = URI.create("https://peoplehub.xboxlive.com/users/me/people/followers");
     public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
+    /**
+     * From the ConnectionType enum in the game
+     * pre 1.19.10 UPNP was 7
+     * 1.19.10+ UPNP is 6 as a previous entry was removed
+     */
+    public static int ConnectionTypeUPNP = 6;
 }

@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core.models;
 
+import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 
 import java.util.Collections;
@@ -89,7 +90,7 @@ public class CreateSessionRequest {
         public String RakNetGUID;
 
         public Connection(String ip, int port) {
-            this.ConnectionType = 7;
+            this.ConnectionType = Constants.ConnectionTypeUPNP;
             this.HostIpAddress = ip;
             this.HostPort = port;
             this.RakNetGUID = "";
