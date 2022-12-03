@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -107,11 +110,17 @@ public class StandaloneMain {
                             logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
                             sessionManager.addXboxFriend(person.xuid);
                         }
-
                         // Unfollow the person
                         if (config.friendSyncConfig.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
                             logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
                             sessionManager.removeXboxFriend(person.xuid);
+                        }
+                        // Auto remove friends after 10 days of no activity.
+                        if (config.friendSyncConfig.autoRemove) {
+                            if (person.lastSeenDateTimeUtc.before(Date.from(Instant.from(LocalDate.now().minusDays(10))))) {
+                                logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
+                                sessionManager.removeXboxFriend(person.xuid);
+                            }
                         }
                     }
                 } catch (XboxFriendsException e) {
