@@ -117,7 +117,7 @@ public class StandaloneMain {
                         }
                         // Auto remove friends after 10 days of no activity.
                         if (config.friendSyncConfig.autoRemove) {
-                            if (person.lastSeenDateTimeUtc.before(Date.from(Instant.from(LocalDate.now().minusDays(10))))) {
+                            if (person.lastSeenDateTimeUtc.before(Date.from(Instant.from(LocalDate.now().minusDays(config.friendSyncConfig.removeAfter))))) {
                                 logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
                                 sessionManager.removeXboxFriend(person.xuid);
                             }

@@ -29,5 +29,7 @@ public class StandaloneConfig {
         public boolean autoUnfollow;
         @JsonProperty("auto-remove")
         public boolean autoRemove;
+        @JsonProperty("remove-after")
+        public int removeAfter;
     }
 }
