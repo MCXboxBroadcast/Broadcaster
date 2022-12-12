@@ -32,7 +32,7 @@ friend-sync:
 
   auto-remove: true
 
-  # Remove friends after X Days of no activity?
+  # Remove friends after X days of no activity.
   remove-after: 10
 
 # Enable debug logs
