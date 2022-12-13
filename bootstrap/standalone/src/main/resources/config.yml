@@ -30,5 +30,10 @@ friend-sync:
   # Should we automatically unfollow people that no longer follow us
   auto-unfollow: true
 
+  auto-remove: true
+
+  # Remove friends after X days of no activity.
+  remove-after: 10
+
 # Enable debug logs
 debug-log: false
