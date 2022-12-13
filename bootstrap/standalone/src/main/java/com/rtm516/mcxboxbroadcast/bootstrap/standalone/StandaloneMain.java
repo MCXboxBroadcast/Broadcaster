@@ -20,22 +20,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Date;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Calendar;
+import java.util.concurrent.*;
 
 public class StandaloneMain {
     private static StandaloneConfig config;
     private static Logger logger;
+    private static ScheduledExecutorService scheduledThreadPool = null;
 
     public static void main(String[] args) throws Exception {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
-
-        ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Scheduled Thread"));
+        scheduledThreadPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Scheduled Thread"));
 
         String configFileName = "config.yml";
         File configFile = new File(configFileName);
@@ -86,6 +81,11 @@ public class StandaloneMain {
 
         logger.info("Created session!");
 
+        if (config.friendSyncConfig.autoRemove) {
+            autoPurge(sessionManager);
+            logger.info("Auto purge friends enabled!");
+        }
+
         scheduledThreadPool.scheduleWithFixedDelay(() -> {
             updateSessionInfo(sessionInfo);
 
@@ -115,19 +115,31 @@ public class StandaloneMain {
                             logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
                             sessionManager.removeXboxFriend(person.xuid);
                         }
-                        // Auto remove friends after X days of no activity.
-                        if (config.friendSyncConfig.autoRemove) {
-                            if (person.lastSeenDateTimeUtc.before(Date.from(Instant.from(LocalDate.now().minusDays(config.friendSyncConfig.removeAfter))))) {
-                                logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
-                                sessionManager.removeXboxFriend(person.xuid);
-                            }
-                        }
                     }
                 } catch (XboxFriendsException e) {
                     logger.error("Failed to sync friends", e);
                 }
             }, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
         }
+    }
+
+    private static void autoPurge(SessionManager sessionManager) {
+        scheduledThreadPool.scheduleWithFixedDelay(() -> {
+            try {
+                for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.friendSyncConfig.autoFollow, config.friendSyncConfig.autoUnfollow)) {
+                    // Date calculation.
+                    Calendar cal = Calendar.getInstance();
+                    // Current date minus 10 days.
+                    cal.add(Calendar.DATE, - config.friendSyncConfig.removeAfter);
+                    if (person.lastSeenDateTimeUtc.before(cal.getTime())) {
+                        logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend.");
+                        sessionManager.removeXboxFriend(person.xuid);
+                    }
+                }
+            } catch (XboxFriendsException e) {
+                logger.error("Failed to purge friends!");
+            }
+        }, 1, 1, TimeUnit.HOURS);
     }
 
     private static void updateSessionInfo(SessionInfo sessionInfo) {
