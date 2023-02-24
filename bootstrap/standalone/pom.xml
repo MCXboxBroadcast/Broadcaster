@@ -20,20 +20,20 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.13.2</version>
+            <version>2.14.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.13.2</version>
+            <version>2.14.0</version>
             <scope>compile</scope>
         </dependency>
         <!-- For pinging servers -->
         <dependency>
             <groupId>com.nukkitx.protocol</groupId>
             <artifactId>bedrock-common</artifactId>
-            <version>2.9.4</version>
+            <version>2.9.17-20230217.002312-1</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

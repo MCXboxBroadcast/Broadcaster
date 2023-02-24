@@ -38,6 +38,14 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>sonatype-oss-snapshots1</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -50,7 +58,7 @@
     </dependencies>
 
     <modules>
-<!--        <module>geyser</module>-->
+        <module>geyser</module>
         <module>standalone</module>
     </modules>
 </project>

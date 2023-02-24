@@ -8,11 +8,13 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
+import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
+import org.geysermc.api.Geyser;
 import org.geysermc.common.PlatformType;
+import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;
 import org.geysermc.floodgate.util.WhitelistUtils;
 import org.geysermc.geyser.GeyserImpl;
-import org.geysermc.geyser.api.event.Subscribe;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
@@ -24,9 +26,12 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -45,7 +50,7 @@ public class MCXboxBroadcastExtension implements Extension {
         // Create the config file if it doesn't exist
         if (!configFile.exists()) {
             try (FileWriter writer = new FileWriter(configFile)) {
-                try (FileSystem fileSystem = this.fileSystem()) {
+                try (FileSystem fileSystem = FileSystems.newFileSystem(new File(MCXboxBroadcastExtension.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toPath(), Collections.emptyMap())) {
                     try (InputStream input = Files.newInputStream(fileSystem.getPath("config.yml"))) {
                         byte[] bytes = new byte[input.available()];
 
@@ -56,7 +61,7 @@ public class MCXboxBroadcastExtension implements Extension {
                         writer.flush();
                     }
                 }
-            } catch (IOException e) {
+            } catch (IOException | URISyntaxException e) {
                 logger.error("Failed to create config", e);
                 return;
             }
@@ -105,7 +110,7 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setVersion(this.geyserApi().defaultRemoteServer().minecraftVersion());
             sessionInfo.setProtocol(this.geyserApi().defaultRemoteServer().protocolVersion());
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
-            sessionInfo.setMaxPlayers(this.geyserApi().maxPlayers());
+            sessionInfo.setMaxPlayers(GeyserImpl.getInstance().getConfig().getMaxPlayers()); // TODO Find API equivalent
 
             sessionInfo.setIp(ip);
             sessionInfo.setPort(port);
@@ -120,7 +125,7 @@ public class MCXboxBroadcastExtension implements Extension {
             }
 
             // Start the update timer
-            GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS);
+            GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS); // TODO Find API equivalent
         }).start();
     }
 
@@ -138,13 +143,13 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
-        if (this.geyserApi().defaultRemoteServer().authType() == AuthType.HYBRID
-            && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT
+        if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
+            && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT // TODO Find API equivalent
             && config.whitelistFriends) {
             try {
-                for (String xuid : sessionManager.getXboxFriends()) {
-                    if (WhitelistUtils.addPlayer(Utils.getJavaUuid(xuid), "unknown")) {
-                        logger.info("Added xbox friend " + xuid + " to whitelist");
+                for (FollowerResponse.Person person : sessionManager.getXboxFriends()) {
+                    if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {
+                        logger.info("Added xbox friend " + person.displayName + " to whitelist");
                     }
                 }
             } catch (XboxFriendsException e) {
