@@ -126,7 +126,37 @@ public class MCXboxBroadcastExtension implements Extension {
 
             // Start the update timer
             GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS); // TODO Find API equivalent
+
+            // Due to API limitations stated in the config, need a separate update timer
+            GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(this::autoFriend, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+
         }).start();
+
+    }
+
+    private void autoFriend() {
+        // Make sure the connection is still active
+        sessionManager.checkConnection();
+
+        // Auto Friend Checker (stolen from the standalone one)
+        try {
+            for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.friendSyncConfig.autoFollow, config.friendSyncConfig.autoUnfollow)) {
+                // Follow the person back
+                if (config.friendSyncConfig.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
+                    logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
+                    sessionManager.addXboxFriend(person.xuid);
+                }
+
+                // Unfollow the person
+                if (config.friendSyncConfig.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
+                    logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
+                    sessionManager.removeXboxFriend(person.xuid);
+                }
+            }
+        } catch (XboxFriendsException e) {
+            logger.error("Failed to sync friends", e);
+        }
+
     }
 
     private void tick() {
@@ -140,6 +170,7 @@ public class MCXboxBroadcastExtension implements Extension {
         } catch (SessionUpdateException e) {
             logger.error("Failed to update session information!", e);
         }
+
 
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
