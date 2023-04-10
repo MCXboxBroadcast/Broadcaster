@@ -1,9 +1,7 @@
-package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
+package com.rtm516.mcxboxbroadcast.core.configs;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ExtensionConfig {
     @JsonProperty("remote-address")
     public String remoteAddress;
@@ -17,5 +15,7 @@ public class ExtensionConfig {
     @JsonProperty("whitelist-friends")
     public boolean whitelistFriends;
 
+    @JsonProperty("friend-sync")
+    public FriendSyncConfig friendSyncConfig;
 
 }

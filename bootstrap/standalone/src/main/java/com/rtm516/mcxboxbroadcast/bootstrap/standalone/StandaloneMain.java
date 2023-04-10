@@ -1,17 +1,15 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
-import com.rtm516.mcxboxbroadcast.core.FriendConfig;
+import com.rtm516.mcxboxbroadcast.core.FriendUtils;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
+import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
 import org.java_websocket.util.NamedThreadFactory;
 import org.slf4j.LoggerFactory;
 import org.slf4j.impl.SimpleLogger;
@@ -29,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 public class StandaloneMain {
     private static StandaloneConfig config;
-    private static FriendConfig friendConfig;
     private static Logger logger;
 
     public static void main(String[] args) throws Exception {
@@ -60,8 +57,7 @@ public class StandaloneMain {
         }
 
         try {
-            config = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, StandaloneConfig.class);
-            friendConfig = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, FriendConfig.class);
+            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, StandaloneConfig.class);
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
@@ -102,10 +98,10 @@ public class StandaloneMain {
             }
         }, config.sessionConfig.updateInterval, config.sessionConfig.updateInterval, TimeUnit.SECONDS);
 
-        if (friendConfig.friendSyncConfig.autoFollow || friendConfig.friendSyncConfig.autoUnfollow) {
+        if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
             scheduledThreadPool.scheduleWithFixedDelay(() -> {
-                FriendConfig.autoFriend(sessionManager, friendConfig, logger);
-            }, friendConfig.friendSyncConfig.updateInterval, friendConfig.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+                FriendUtils.autoFriend(sessionManager, logger, config);
+            }, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
         }
     }
 

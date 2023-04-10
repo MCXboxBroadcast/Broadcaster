@@ -1,12 +1,12 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.rtm516.mcxboxbroadcast.core.FriendConfig;
+import com.rtm516.mcxboxbroadcast.core.FriendUtils;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
+import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
@@ -40,7 +40,6 @@ public class MCXboxBroadcastExtension implements Extension {
     SessionManager sessionManager;
     SessionInfo sessionInfo;
     ExtensionConfig config;
-    FriendConfig friendConfig;
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
@@ -70,8 +69,7 @@ public class MCXboxBroadcastExtension implements Extension {
         }
 
         try {
-            config = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, ExtensionConfig.class);
-            friendConfig = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, FriendConfig.class);
+            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, ExtensionConfig.class);
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
@@ -131,8 +129,8 @@ public class MCXboxBroadcastExtension implements Extension {
             GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS); // TODO Find API equivalent
 
             // Due to API limitations stated in the config, need a separate update timer
-            if (friendConfig.friendSyncConfig.autoFollow || friendConfig.friendSyncConfig.autoUnfollow) {
-                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendConfig.autoFriend(sessionManager, friendConfig, logger), friendConfig.friendSyncConfig.updateInterval, friendConfig.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+            if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
+                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
             }
 
         }).start();
@@ -155,8 +153,8 @@ public class MCXboxBroadcastExtension implements Extension {
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
         if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
-            && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT // TODO Find API equivalent
-            && config.whitelistFriends) {
+                && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT // TODO Find API equivalent
+                && config.whitelistFriends) {
             try {
                 for (FollowerResponse.Person person : sessionManager.getXboxFriends()) {
                     if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {
