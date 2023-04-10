@@ -1,9 +1,11 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
+import com.rtm516.mcxboxbroadcast.core.FriendConfig;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 public class StandaloneMain {
     private static StandaloneConfig config;
+    private static FriendConfig friendConfig;
     private static Logger logger;
 
     public static void main(String[] args) throws Exception {
@@ -57,7 +60,8 @@ public class StandaloneMain {
         }
 
         try {
-            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, StandaloneConfig.class);
+            config = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, StandaloneConfig.class);
+            friendConfig = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, FriendConfig.class);
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
@@ -98,26 +102,10 @@ public class StandaloneMain {
             }
         }, config.sessionConfig.updateInterval, config.sessionConfig.updateInterval, TimeUnit.SECONDS);
 
-        if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
+        if (friendConfig.friendSyncConfig.autoFollow || friendConfig.friendSyncConfig.autoUnfollow) {
             scheduledThreadPool.scheduleWithFixedDelay(() -> {
-                try {
-                    for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.friendSyncConfig.autoFollow, config.friendSyncConfig.autoUnfollow)) {
-                        // Follow the person back
-                        if (config.friendSyncConfig.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
-                            logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
-                            sessionManager.addXboxFriend(person.xuid);
-                        }
-
-                        // Unfollow the person
-                        if (config.friendSyncConfig.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
-                            logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
-                            sessionManager.removeXboxFriend(person.xuid);
-                        }
-                    }
-                } catch (XboxFriendsException e) {
-                    logger.error("Failed to sync friends", e);
-                }
-            }, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+                FriendConfig.autoFriend(sessionManager, friendConfig, logger);
+            }, friendConfig.friendSyncConfig.updateInterval, friendConfig.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
         }
     }
 
