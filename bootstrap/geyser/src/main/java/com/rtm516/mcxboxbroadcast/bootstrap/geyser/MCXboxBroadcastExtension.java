@@ -1,7 +1,9 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.rtm516.mcxboxbroadcast.core.FriendConfig;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -9,7 +11,6 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
-import org.geysermc.api.Geyser;
 import org.geysermc.common.PlatformType;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;
@@ -39,6 +40,7 @@ public class MCXboxBroadcastExtension implements Extension {
     SessionManager sessionManager;
     SessionInfo sessionInfo;
     ExtensionConfig config;
+    FriendConfig friendConfig;
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
@@ -68,7 +70,8 @@ public class MCXboxBroadcastExtension implements Extension {
         }
 
         try {
-            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, ExtensionConfig.class);
+            config = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, ExtensionConfig.class);
+            friendConfig = new ObjectMapper(new YAMLFactory()).configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false).readValue(configFile, FriendConfig.class);
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
@@ -128,34 +131,11 @@ public class MCXboxBroadcastExtension implements Extension {
             GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS); // TODO Find API equivalent
 
             // Due to API limitations stated in the config, need a separate update timer
-            GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(this::autoFriend, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+            if (friendConfig.friendSyncConfig.autoFollow || friendConfig.friendSyncConfig.autoUnfollow) {
+                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendConfig.autoFriend(sessionManager, friendConfig, logger), friendConfig.friendSyncConfig.updateInterval, friendConfig.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+            }
 
         }).start();
-
-    }
-
-    private void autoFriend() {
-        // Make sure the connection is still active
-        sessionManager.checkConnection();
-
-        // Auto Friend Checker (stolen from the standalone one)
-        try {
-            for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.friendSyncConfig.autoFollow, config.friendSyncConfig.autoUnfollow)) {
-                // Follow the person back
-                if (config.friendSyncConfig.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
-                    logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
-                    sessionManager.addXboxFriend(person.xuid);
-                }
-
-                // Unfollow the person
-                if (config.friendSyncConfig.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
-                    logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
-                    sessionManager.removeXboxFriend(person.xuid);
-                }
-            }
-        } catch (XboxFriendsException e) {
-            logger.error("Failed to sync friends", e);
-        }
 
     }
 
@@ -170,6 +150,7 @@ public class MCXboxBroadcastExtension implements Extension {
         } catch (SessionUpdateException e) {
             logger.error("Failed to update session information!", e);
         }
+
 
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
