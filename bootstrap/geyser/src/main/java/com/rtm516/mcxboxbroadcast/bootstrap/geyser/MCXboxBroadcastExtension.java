@@ -171,7 +171,6 @@ public class MCXboxBroadcastExtension implements Extension {
             logger.error("Failed to update session information!", e);
         }
 
-
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
         if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
