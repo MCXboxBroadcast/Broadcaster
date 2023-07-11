@@ -134,7 +134,6 @@ public class MCXboxBroadcastExtension implements Extension {
             }
 
         }).start();
-
     }
 
     private void tick() {
@@ -152,8 +151,8 @@ public class MCXboxBroadcastExtension implements Extension {
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
         if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
-                && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT // TODO Find API equivalent
-                && config.whitelistFriends) {
+            && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT // TODO Find API equivalent
+            && config.whitelistFriends) {
             try {
                 for (FollowerResponse.Person person : sessionManager.getXboxFriends()) {
                     if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {

@@ -11,4 +11,3 @@ public class FriendSyncConfig {
     public boolean autoUnfollow;
 
 }
-
