@@ -1,17 +1,17 @@
 pipeline {
     agent any
     tools {
-        maven 'Maven 3'
+        gradle 'Gradle 8'
         jdk 'Java 17'
     }
     stages {
         stage('Build') {
             steps {
-                sh 'mvn clean package'
+                sh './gradlew clean build'
             }
             post {
                 success {
-                    archiveArtifacts artifacts: 'bootstrap/**/target/*.jar', excludes: 'bootstrap/**/target/original-*.jar', fingerprint: true
+                    archiveArtifacts artifacts: 'bootstrap/**/build/libs/*.jar', excludes: 'bootstrap/**/target/bootstrap-*.jar', fingerprint: true
                 }
             }
         }

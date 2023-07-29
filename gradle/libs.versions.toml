@@ -1,0 +1,34 @@
+[versions]
+bedrock-common = "2.9.17-20230217.002312-1"
+geyser ="2.1.0-SNAPSHOT"
+jackson = "2.14.0"
+java-websocket = "1.5.3"
+nimbus-jose-jwt = "9.23"
+shadow = "8.1.1"
+slf4j-simple = "1.7.36"
+
+[libraries]
+bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
+floodgate-spigot = { group = "org.geysermc.floodgate", name = "spigot", version.ref = "geyser" }
+geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
+geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
+jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+jackson-dataformat-yaml = { group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
+java-websocket = { group = "org.java-websocket", name = "Java-WebSocket", version.ref = "java-websocket" }
+nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
+shadow = { group = "com.github.johnrengelman", name = "shadow", version.ref = "shadow" }
+slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j-simple" }
+
+[bundles]
+jackson-yaml = [
+  "jackson-core",
+  "jackson-dataformat-yaml"
+]
+geyser = [
+    "geyser-api",
+    "geyser-core"
+]
+
+[plugins]
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
