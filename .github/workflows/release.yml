@@ -51,7 +51,12 @@ jobs:
         if: success()
         env:
           PREVIOUS_BUILD: ${{ steps.getPreviousBuild.outputs.tag }}
-        run: echo result=$((++PREVIOUS_BUILD)) >> $GITHUB_OUTPUT
+        run: | 
+          if [ "$a" -gt "0" ]; then
+            echo result=$((++PREVIOUS_BUILD)) >> $GITHUB_OUTPUT
+          else
+            echo result= >> $GITHUB_OUTPUT
+          fi
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.1
