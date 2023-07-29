@@ -45,18 +45,13 @@ jobs:
         uses: WyriHaximus/github-action-get-previous-tag@v1
         if: success()
         with:
-          fallback: 0
+          fallback: ''
       - name: Get current build number
         id: getCurrentBuild
         if: success()
         env:
           PREVIOUS_BUILD: ${{ steps.getPreviousBuild.outputs.tag }}
-        run: | 
-          if [ "$a" -gt "0" ]; then
-            echo result=$((++PREVIOUS_BUILD)) >> $GITHUB_OUTPUT
-          else
-            echo result= >> $GITHUB_OUTPUT
-          fi
+        run: echo result=$((++PREVIOUS_BUILD)) >> $GITHUB_OUTPUT
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.1
