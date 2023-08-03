@@ -1,0 +1,45 @@
+name: Build Pull Request
+
+on: 
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'egg-m-c-xbox-broadcast.json'
+      - 'LICENSE'
+      - 'README.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+      - name: Build with Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: build
+          gradle-home-cache-cleanup: true
+      - uses: actions/upload-artifact@v3
+        if: success()
+        with:
+          name: MCXboxBroadcastExtension
+          path: bootstrap/geyser/build/libs/MCXboxBroadcastExtension.jar
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        if: success()
+        with:
+          name: MCXboxBroadcastStandalone
+          path: bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar
+          if-no-files-found: error
