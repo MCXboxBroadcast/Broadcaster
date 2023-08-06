@@ -1,6 +1,7 @@
 [versions]
 bedrock-common = "2.9.17-20230217.002312-1"
-geyser ="2.1.0-SNAPSHOT"
+geyser ="2.1.2-SNAPSHOT"
+floodgate ="2.2.2-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"
@@ -9,7 +10,7 @@ slf4j-simple = "1.7.36"
 
 [libraries]
 bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
-floodgate-spigot = { group = "org.geysermc.floodgate", name = "spigot", version.ref = "geyser" }
+floodgate-spigot = { group = "org.geysermc.floodgate", name = "spigot", version.ref = "floodgate" }
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
 jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }

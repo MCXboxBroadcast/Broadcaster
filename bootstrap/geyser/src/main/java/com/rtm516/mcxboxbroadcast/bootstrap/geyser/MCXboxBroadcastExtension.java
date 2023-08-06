@@ -11,7 +11,6 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
-import org.geysermc.common.PlatformType;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;
 import org.geysermc.floodgate.util.WhitelistUtils;
@@ -19,6 +18,7 @@ import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
+import org.geysermc.geyser.api.util.PlatformType;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -150,7 +150,7 @@ public class MCXboxBroadcastExtension implements Extension {
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
         if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
-                && GeyserImpl.getInstance().getPlatformType() == PlatformType.SPIGOT // TODO Find API equivalent
+                && this.geyserApi().platformType() == PlatformType.SPIGOT // TODO Find API equivalent
                 && config.whitelistFriends) {
             try {
                 for (FollowerResponse.Person person : sessionManager.getXboxFriends()) {
