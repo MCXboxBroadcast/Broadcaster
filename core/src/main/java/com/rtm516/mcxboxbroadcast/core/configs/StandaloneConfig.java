@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
+package com.rtm516.mcxboxbroadcast.core.configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
@@ -6,10 +6,10 @@ import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 public class StandaloneConfig {
     @JsonProperty("session")
     public SessionConfig sessionConfig;
-    @JsonProperty("friend-sync")
-    public FriendSyncConfig friendSyncConfig;
     @JsonProperty("debug-log")
     public boolean debugLog;
+    @JsonProperty("friend-sync")
+    public FriendSyncConfig friendSyncConfig;
 
     public static class SessionConfig {
         @JsonProperty("update-interval")
@@ -18,14 +18,5 @@ public class StandaloneConfig {
         public boolean queryServer;
         @JsonProperty("session-info")
         public SessionInfo sessionInfo;
-    }
-
-    public static class FriendSyncConfig {
-        @JsonProperty("update-interval")
-        public int updateInterval;
-        @JsonProperty("auto-follow")
-        public boolean autoFollow;
-        @JsonProperty("auto-unfollow")
-        public boolean autoUnfollow;
     }
 }

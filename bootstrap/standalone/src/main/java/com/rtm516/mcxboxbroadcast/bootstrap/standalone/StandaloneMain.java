@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
+import com.rtm516.mcxboxbroadcast.core.FriendUtils;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
+import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
 import org.java_websocket.util.NamedThreadFactory;
 import org.slf4j.LoggerFactory;
 import org.slf4j.impl.SimpleLogger;
@@ -99,25 +99,7 @@ public class StandaloneMain {
         }, config.sessionConfig.updateInterval, config.sessionConfig.updateInterval, TimeUnit.SECONDS);
 
         if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
-            scheduledThreadPool.scheduleWithFixedDelay(() -> {
-                try {
-                    for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.friendSyncConfig.autoFollow, config.friendSyncConfig.autoUnfollow)) {
-                        // Follow the person back
-                        if (config.friendSyncConfig.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
-                            logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
-                            sessionManager.addXboxFriend(person.xuid);
-                        }
-
-                        // Unfollow the person
-                        if (config.friendSyncConfig.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
-                            logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
-                            sessionManager.removeXboxFriend(person.xuid);
-                        }
-                    }
-                } catch (XboxFriendsException e) {
-                    logger.error("Failed to sync friends", e);
-                }
-            }, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+            scheduledThreadPool.scheduleWithFixedDelay(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSyncConfig), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
         }
     }
 

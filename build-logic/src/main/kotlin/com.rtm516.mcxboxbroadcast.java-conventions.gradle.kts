@@ -4,7 +4,7 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
+//    mavenLocal()
     maven("https://repo.maven.apache.org/maven2/")
     maven("https://repo.opencollab.dev/maven-releases/")
     maven("https://repo.opencollab.dev/maven-snapshots/")

@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
+package com.rtm516.mcxboxbroadcast.core.configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -14,4 +14,7 @@ public class ExtensionConfig {
 
     @JsonProperty("whitelist-friends")
     public boolean whitelistFriends;
+
+    @JsonProperty("friend-sync")
+    public FriendSyncConfig friendSyncConfig;
 }
