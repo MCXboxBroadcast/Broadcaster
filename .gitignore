@@ -1,6 +1,6 @@
 
-# Created by https://www.toptal.com/developers/gitignore/api/git,java,maven,eclipse,netbeans,jetbrains+all,visualstudiocode
-# Edit at https://www.toptal.com/developers/gitignore?templates=git,java,maven,eclipse,netbeans,jetbrains+all,visualstudiocode
+# Created by https://www.toptal.com/developers/gitignore/api/git,java,gradle,eclipse,netbeans,jetbrains+all,visualstudiocode
+# Edit at https://www.toptal.com/developers/gitignore?templates=git,java,gradle,eclipse,netbeans,jetbrains+all,visualstudiocode
 
 ### Eclipse ###
 .metadata
@@ -97,6 +97,7 @@ local.properties
 .mtj.tmp/
 
 # Package Files #
+*.jar
 *.war
 *.nar
 *.ear
@@ -137,9 +138,6 @@ replay_pid*
 # Gradle
 .idea/**/gradle.xml
 .idea/**/libraries
-.gradle
-**/build
-build/
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,
@@ -199,25 +197,6 @@ fabric.properties
 !.idea/codeStyles
 !.idea/runConfigurations
 
-### Maven ###
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-# https://github.com/takari/maven-wrapper#usage-without-binary-jar
-.mvn/wrapper/maven-wrapper.jar
-
-# Eclipse m2e generated files
-# Eclipse Core
-.project
-# JDT-specific (Eclipse Java Development Tools)
-.classpath
-
 ### NetBeans ###
 **/nbproject/private/
 **/nbproject/Makefile-*.mk
@@ -247,9 +226,33 @@ nbdist/
 .history
 .ionide
 
-# Support for Project snippet scope
+### Gradle ###
+.gradle
+**/build/
+!src/**/build/
 
-# End of https://www.toptal.com/developers/gitignore/api/git,java,maven,eclipse,netbeans,jetbrains+all,visualstudiocode
+# Ignore Gradle GUI config
+gradle-app.setting
 
-cache/
-/config.yml
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Avoid ignore Gradle wrappper properties
+!gradle-wrapper.properties
+
+# Cache of project
+.gradletasknamecache
+
+# Eclipse Gradle plugin generated files
+# Eclipse Core
+.project
+# JDT-specific (Eclipse Java Development Tools)
+.classpath
+
+### Gradle Patch ###
+# Java heap dump
+*.hprof
+
+# End of https://www.toptal.com/developers/gitignore/api/git,java,gradle,eclipse,netbeans,jetbrains+all,visualstudiocode
+
+run/

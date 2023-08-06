@@ -112,7 +112,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // Pull onto another thread so we don't hang the main thread
         new Thread(() -> {
-            logger.info("Setting up Xbox session...");
+            logger.info("Setting up session info...");
 
             // Get the ip to broadcast
             String ip = config.remoteAddress();
@@ -158,6 +158,7 @@ public class MCXboxBroadcastExtension implements Extension {
     private void createSession() {
         // Create the Xbox session
         try {
+            logger.info("Setting up Xbox session...");
             sessionManager.createSession(sessionInfo);
             logger.info("Created Xbox session!");
         } catch (SessionCreationException | SessionUpdateException e) {

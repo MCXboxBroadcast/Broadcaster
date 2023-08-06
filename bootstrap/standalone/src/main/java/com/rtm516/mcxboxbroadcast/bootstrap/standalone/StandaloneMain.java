@@ -5,20 +5,18 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
 import com.rtm516.mcxboxbroadcast.core.FriendUtils;
-import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
+import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import org.java_websocket.util.NamedThreadFactory;
 import org.slf4j.LoggerFactory;
-import org.slf4j.impl.SimpleLogger;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -27,12 +25,13 @@ import java.util.concurrent.TimeUnit;
 
 public class StandaloneMain {
     private static StandaloneConfig config;
-    private static Logger logger;
+    private static StandaloneLoggerImpl logger;
+    private static SessionManager sessionManager;
+    private static SessionInfo sessionInfo;
+    private static ScheduledExecutorService scheduledThreadPool;
 
     public static void main(String[] args) throws Exception {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
-
-        ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Scheduled Thread"));
 
         String configFileName = "config.yml";
         File configFile = new File(configFileName);
@@ -63,19 +62,31 @@ public class StandaloneMain {
             return;
         }
 
-        // Use reflection to put the logger in debug mode
-        if (config.debugLog()) {
-            Field currentLogLevel = SimpleLogger.class.getDeclaredField("currentLogLevel");
-            currentLogLevel.setAccessible(true);
-            currentLogLevel.set(LoggerFactory.getLogger(StandaloneMain.class), 10);
-        }
+        logger.setDebug(config.debugLog());
 
-        SessionManager sessionManager = new SessionManager("./cache", logger);
+        sessionManager = new SessionManager("./cache", logger);
 
-        SessionInfo sessionInfo = config.session().sessionInfo();
+        sessionInfo = config.session().sessionInfo();
 
         // Sync the session info from the server if needed
         updateSessionInfo(sessionInfo);
+
+        createSession();
+
+        logger.start();
+    }
+
+    public static void restart() throws SessionUpdateException, SessionCreationException {
+        sessionManager.stopSession();
+        scheduledThreadPool.shutdown();
+
+        sessionManager = new SessionManager("./cache", logger);
+
+        createSession();
+    }
+
+    private static void createSession() throws SessionCreationException, SessionUpdateException {
+        scheduledThreadPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Scheduled Thread"));
 
         logger.info("Creating session...");
 

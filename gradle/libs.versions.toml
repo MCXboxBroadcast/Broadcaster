@@ -6,20 +6,33 @@ jackson = "2.14.0"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"
 shadow = "8.1.1"
-slf4j-simple = "1.7.36"
+log4j = "2.20.0"
+jline = "3.23.0"
+terminalconsoleappender = "1.3.0"
 
 [libraries]
 bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
 floodgate-spigot = { group = "org.geysermc.floodgate", name = "spigot", version.ref = "floodgate" }
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
+
 jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 jackson-dataformat-yaml = { group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
+
 java-websocket = { group = "org.java-websocket", name = "Java-WebSocket", version.ref = "java-websocket" }
 nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
 shadow = { group = "com.github.johnrengelman", name = "shadow", version.ref = "shadow" }
-slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j-simple" }
+
+terminalconsoleappender = { group = "net.minecrell", name = "terminalconsoleappender", version.ref = "terminalconsoleappender" }
+
+log4j-api = { group = "org.apache.logging.log4j", name = "log4j-api", version.ref = "log4j" }
+log4j-core = { group = "org.apache.logging.log4j", name = "log4j-core", version.ref = "log4j" }
+log4j-slf4j2-impl = { group = "org.apache.logging.log4j", name = "log4j-slf4j2-impl", version.ref = "log4j" }
+
+jline-terminal = { group = "org.jline", name = "jline-terminal", version.ref = "jline" }
+jline-terminal-jna = { group = "org.jline", name = "jline-terminal-jna", version.ref = "jline" }
+jline-reader = { group = "org.jline", name = "jline-reader", version.ref = "jline" }
 
 [bundles]
 jackson-yaml = [
@@ -29,6 +42,16 @@ jackson-yaml = [
 geyser = [
     "geyser-api",
     "geyser-core"
+]
+log4j = [
+    "log4j-api",
+    "log4j-core",
+    "log4j-slf4j2-impl"
+]
+jline = [
+    "jline-terminal",
+    "jline-terminal-jna",
+    "jline-reader"
 ]
 
 [plugins]
