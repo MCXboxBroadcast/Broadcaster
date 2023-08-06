@@ -80,7 +80,7 @@ public class MCXboxBroadcastExtension implements Extension {
             logger.info("Setting up Xbox session...");
 
             // Get the ip to broadcast
-            String ip = config.remoteAddress;
+            String ip = config.remoteAddress();
             if (ip.equals("auto")) {
                 // Taken from core Geyser code
                 ip = this.geyserApi().bedrockListener().address();
@@ -100,8 +100,8 @@ public class MCXboxBroadcastExtension implements Extension {
 
             // Get the port to broadcast
             int port = this.geyserApi().bedrockListener().port();
-            if (!config.remotePort.equals("auto")) {
-                port = Integer.parseInt(config.remotePort);
+            if (!config.remotePort().equals("auto")) {
+                port = Integer.parseInt(config.remotePort());
             }
 
             // Create the session information based on the Geyser config
@@ -126,11 +126,11 @@ public class MCXboxBroadcastExtension implements Extension {
             }
 
             // Start the update timer
-            GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS); // TODO Find API equivalent
+            GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval(), config.updateInterval(), TimeUnit.SECONDS); // TODO Find API equivalent
 
             // Start a timer for the friend sync if enabled
-            if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
-                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSyncConfig), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+            if (config.friendSync().autoFollow() || config.friendSync().autoUnfollow()) {
+                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSync()), config.friendSync().updateInterval(), config.friendSync().updateInterval(), TimeUnit.SECONDS);
             }
         }).start();
     }
@@ -151,7 +151,7 @@ public class MCXboxBroadcastExtension implements Extension {
         // get the users friends and whitelist them
         if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
                 && this.geyserApi().platformType() == PlatformType.SPIGOT // TODO Find API equivalent
-                && config.whitelistFriends) {
+                && config.whitelistFriends()) {
             try {
                 for (FollowerResponse.Person person : sessionManager.getXboxFriends()) {
                     if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {

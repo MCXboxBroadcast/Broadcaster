@@ -64,7 +64,7 @@ public class StandaloneMain {
         }
 
         // Use reflection to put the logger in debug mode
-        if (config.debugLog) {
+        if (config.debugLog()) {
             Field currentLogLevel = SimpleLogger.class.getDeclaredField("currentLogLevel");
             currentLogLevel.setAccessible(true);
             currentLogLevel.set(LoggerFactory.getLogger(StandaloneMain.class), 10);
@@ -72,7 +72,7 @@ public class StandaloneMain {
 
         SessionManager sessionManager = new SessionManager("./cache", logger);
 
-        SessionInfo sessionInfo = config.sessionConfig.sessionInfo;
+        SessionInfo sessionInfo = config.session().sessionInfo();
 
         // Sync the session info from the server if needed
         updateSessionInfo(sessionInfo);
@@ -96,15 +96,15 @@ public class StandaloneMain {
             } catch (SessionUpdateException e) {
                 logger.error("Failed to update session", e);
             }
-        }, config.sessionConfig.updateInterval, config.sessionConfig.updateInterval, TimeUnit.SECONDS);
+        }, config.session().updateInterval(), config.session().updateInterval(), TimeUnit.SECONDS);
 
-        if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
-            scheduledThreadPool.scheduleWithFixedDelay(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSyncConfig), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+        if (config.friendSync().autoFollow() || config.friendSync().autoUnfollow()) {
+            scheduledThreadPool.scheduleWithFixedDelay(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSync()), config.friendSync().updateInterval(), config.friendSync().updateInterval(), TimeUnit.SECONDS);
         }
     }
 
     private static void updateSessionInfo(SessionInfo sessionInfo) {
-        if (config.sessionConfig.queryServer) {
+        if (config.session().queryServer()) {
             BedrockClient client = null;
             try {
                 InetSocketAddress bindAddress = new InetSocketAddress("0.0.0.0", 0);

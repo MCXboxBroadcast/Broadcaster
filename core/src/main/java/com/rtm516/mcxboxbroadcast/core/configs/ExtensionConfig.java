@@ -2,19 +2,10 @@ package com.rtm516.mcxboxbroadcast.core.configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ExtensionConfig {
-    @JsonProperty("remote-address")
-    public String remoteAddress;
-
-    @JsonProperty("remote-port")
-    public String remotePort;
-
-    @JsonProperty("update-interval")
-    public int updateInterval;
-
-    @JsonProperty("whitelist-friends")
-    public boolean whitelistFriends;
-
-    @JsonProperty("friend-sync")
-    public FriendSyncConfig friendSyncConfig;
+public record ExtensionConfig(
+    @JsonProperty("remote-address") String remoteAddress,
+    @JsonProperty("remote-port") String remotePort,
+    @JsonProperty("update-interval") int updateInterval,
+    @JsonProperty("whitelist-friends") boolean whitelistFriends,
+    @JsonProperty("friend-sync") FriendSyncConfig friendSync) {
 }

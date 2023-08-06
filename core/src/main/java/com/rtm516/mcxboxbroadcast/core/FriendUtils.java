@@ -12,9 +12,9 @@ public class FriendUtils {
 
         // Auto Friend Checker
         try {
-            for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.autoFollow, config.autoUnfollow)) {
+            for (FollowerResponse.Person person : sessionManager.getXboxFriends(config.autoFollow(), config.autoUnfollow())) {
                 // Follow the person back
-                if (config.autoFollow && person.isFollowingCaller && !person.isFollowedByCaller) {
+                if (config.autoFollow() && person.isFollowingCaller && !person.isFollowedByCaller) {
                     if (sessionManager.addXboxFriend(person.xuid)) {
                         logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
                     } else {
@@ -23,7 +23,7 @@ public class FriendUtils {
                 }
 
                 // Unfollow the person
-                if (config.autoUnfollow && !person.isFollowingCaller && person.isFollowedByCaller) {
+                if (config.autoUnfollow() && !person.isFollowingCaller && person.isFollowedByCaller) {
                     if (sessionManager.removeXboxFriend(person.xuid)) {
                         logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
                     } else {
