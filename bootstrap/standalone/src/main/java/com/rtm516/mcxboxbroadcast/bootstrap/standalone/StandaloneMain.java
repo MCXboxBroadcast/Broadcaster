@@ -99,9 +99,7 @@ public class StandaloneMain {
         }, config.sessionConfig.updateInterval, config.sessionConfig.updateInterval, TimeUnit.SECONDS);
 
         if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
-            scheduledThreadPool.scheduleWithFixedDelay(() -> {
-                FriendUtils.autoFriend(sessionManager, logger, config);
-            }, config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+            scheduledThreadPool.scheduleWithFixedDelay(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSyncConfig), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
         }
     }
 

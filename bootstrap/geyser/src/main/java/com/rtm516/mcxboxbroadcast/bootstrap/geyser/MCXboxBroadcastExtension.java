@@ -11,7 +11,6 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
-import org.geysermc.common.PlatformType;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;
 import org.geysermc.floodgate.util.WhitelistUtils;
@@ -19,6 +18,7 @@ import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
+import org.geysermc.geyser.api.util.PlatformType;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -128,13 +128,11 @@ public class MCXboxBroadcastExtension implements Extension {
             // Start the update timer
             GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval, config.updateInterval, TimeUnit.SECONDS); // TODO Find API equivalent
 
-            // Due to API limitations stated in the config, need a separate update timer
+            // Start a timer for the friend sync if enabled
             if (config.friendSyncConfig.autoFollow || config.friendSyncConfig.autoUnfollow) {
-                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
+                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSyncConfig), config.friendSyncConfig.updateInterval, config.friendSyncConfig.updateInterval, TimeUnit.SECONDS);
             }
-
         }).start();
-
     }
 
     private void tick() {

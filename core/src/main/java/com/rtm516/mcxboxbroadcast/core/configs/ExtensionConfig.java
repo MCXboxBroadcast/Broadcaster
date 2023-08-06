@@ -17,5 +17,4 @@ public class ExtensionConfig {
 
     @JsonProperty("friend-sync")
     public FriendSyncConfig friendSyncConfig;
-
 }
