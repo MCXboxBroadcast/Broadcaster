@@ -26,9 +26,10 @@ import java.util.concurrent.TimeUnit;
 public class StandaloneMain {
     private static StandaloneConfig config;
     private static StandaloneLoggerImpl logger;
-    private static SessionManager sessionManager;
     private static SessionInfo sessionInfo;
     private static ScheduledExecutorService scheduledThreadPool;
+
+    public static SessionManager sessionManager;
 
     public static void main(String[] args) throws Exception {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));

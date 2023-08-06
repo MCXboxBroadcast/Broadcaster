@@ -74,6 +74,20 @@ public class MCXboxBroadcastExtension implements Extension {
                 createSession();
             })
             .build());
+
+        event.register(Command.builder(this)
+            .source(CommandSource.class)
+            .name("dumpsession")
+            .description("Dump the current session to json files.")
+            .executor((source, command, args) -> {
+                if (!source.isConsole()) {
+                    source.sendMessage("This command can only be ran from the console.");
+                    return;
+                }
+
+                sessionManager.dumpSession();
+            })
+            .build());
     }
 
     @Subscribe

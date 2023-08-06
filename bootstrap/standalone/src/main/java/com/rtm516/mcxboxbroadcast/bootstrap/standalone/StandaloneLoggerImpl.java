@@ -53,6 +53,7 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
             switch (commandNode) {
                 case "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
+                case "dumpsession" -> StandaloneMain.sessionManager.dumpSession();
                 default -> logger.warn("Unknown command: {}", commandNode);
             }
         } catch (Exception e) {
