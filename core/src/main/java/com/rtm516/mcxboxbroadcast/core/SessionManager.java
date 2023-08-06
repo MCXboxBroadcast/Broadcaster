@@ -195,6 +195,7 @@ public class SessionManager {
 
         // Check to make sure the handle was created
         if (createHandleResponse.statusCode() != 200 && createHandleResponse.statusCode() != 201) {
+            logger.debug("Failed to create session handle '"  + createHandleResponse.body() + "' (" + createHandleResponse.statusCode() + ")");
             throw new SessionCreationException("Unable to create session handle, got status " + createHandleResponse.statusCode() + " trying to create");
         }
     }
@@ -417,5 +418,10 @@ public class SessionManager {
     private void setupWebsocket(String token) {
         rtaWebsocket = new RtaWebsocketClient(token, logger);
         rtaWebsocket.connect();
+    }
+
+    public void stopSession() {
+        rtaWebsocket.close();
+        this.sessionInfo.setSessionId(null);
     }
 }

@@ -15,6 +15,10 @@ import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;
 import org.geysermc.floodgate.util.WhitelistUtils;
 import org.geysermc.geyser.GeyserImpl;
+import org.geysermc.geyser.api.command.Command;
+import org.geysermc.geyser.api.command.CommandSource;
+import org.geysermc.geyser.api.connection.GeyserConnection;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
@@ -33,6 +37,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -40,6 +45,36 @@ public class MCXboxBroadcastExtension implements Extension {
     SessionManager sessionManager;
     SessionInfo sessionInfo;
     ExtensionConfig config;
+    private ScheduledFuture<?> updateTimerScheduledFuture;
+    private ScheduledFuture<?> friendTimerScheduledFuture;
+
+    @Subscribe
+    public void onCommandDefine(GeyserDefineCommandsEvent event) {
+        event.register(Command.builder(this)
+            .source(CommandSource.class)
+            .name("restart")
+            .description("Restart the connection to Xbox Live.")
+            .executor((source, command, args) -> {
+                if (!source.isConsole()) {
+                    source.sendMessage("This command can only be ran from the console.");
+                    return;
+                }
+
+                sessionManager.stopSession();
+
+                if (updateTimerScheduledFuture != null) {
+                    updateTimerScheduledFuture.cancel(true);
+                }
+                if (friendTimerScheduledFuture != null) {
+                    friendTimerScheduledFuture.cancel(true);
+                }
+
+                sessionManager = new SessionManager(this.dataFolder().toString(), logger);
+
+                createSession();
+            })
+            .build());
+    }
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
@@ -116,23 +151,27 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setIp(ip);
             sessionInfo.setPort(port);
 
-            // Create the Xbox session
-            try {
-                sessionManager.createSession(sessionInfo);
-                logger.info("Created Xbox session!");
-            } catch (SessionCreationException | SessionUpdateException e) {
-                logger.error("Failed to create xbox session!", e);
-                return;
-            }
-
-            // Start the update timer
-            GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval(), config.updateInterval(), TimeUnit.SECONDS); // TODO Find API equivalent
-
-            // Start a timer for the friend sync if enabled
-            if (config.friendSync().autoFollow() || config.friendSync().autoUnfollow()) {
-                GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSync()), config.friendSync().updateInterval(), config.friendSync().updateInterval(), TimeUnit.SECONDS);
-            }
+            createSession();
         }).start();
+    }
+
+    private void createSession() {
+        // Create the Xbox session
+        try {
+            sessionManager.createSession(sessionInfo);
+            logger.info("Created Xbox session!");
+        } catch (SessionCreationException | SessionUpdateException e) {
+            logger.error("Failed to create xbox session!", e);
+            return;
+        }
+
+        // Start the update timer
+        updateTimerScheduledFuture = GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval(), config.updateInterval(), TimeUnit.SECONDS); // TODO Find API equivalent
+
+        // Start a timer for the friend sync if enabled
+        if (config.friendSync().autoFollow() || config.friendSync().autoUnfollow()) {
+            friendTimerScheduledFuture = GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSync()), config.friendSync().updateInterval(), config.friendSync().updateInterval(), TimeUnit.SECONDS);
+        }
     }
 
     private void tick() {
