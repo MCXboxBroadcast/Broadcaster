@@ -1,11 +1,12 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 
 public class Constants {
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public static final String AUTH_TITLE = "00000000441cc96b"; // Minecraft for Nintendo Switch
     public static final String SCOPE = "service::user.auth.xboxlive.com::MBI_SSL";
