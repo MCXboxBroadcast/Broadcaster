@@ -34,7 +34,7 @@ public class ExpandedSessionInfo extends SessionInfo {
 
     public void updateSessionInfo(SessionInfo sessionInfo) {
         setHostName(sessionInfo.getHostName());
-        setWorldName(sessionInfo.getWorldName());
+        setWorldName(sessionInfo.getWorldName().isEmpty() ? sessionInfo.getHostName() : sessionInfo.getWorldName());
         setVersion(sessionInfo.getVersion());
         setProtocol(sessionInfo.getProtocol());
         setPlayers(sessionInfo.getPlayers());
