@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.models.SISUAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
 import java.io.File;
@@ -107,11 +108,14 @@ public class SessionManager {
             return xboxTokenManager.getCachedXstsToken();
         } else {
             String msaToken = getMsaToken();
-            String userToken = xboxTokenManager.getUserToken(msaToken);
             String deviceToken = xboxTokenManager.getDeviceToken();
-            String titleToken = xboxTokenManager.getTitleToken(msaToken, deviceToken);
-            XboxTokenInfo xsts = xboxTokenManager.getXSTSToken(userToken, deviceToken, titleToken);
-            return xsts;
+            SISUAuthenticationResponse sisuAuthenticationResponse =  xboxTokenManager.getSISUToken(msaToken, deviceToken);
+            if (sisuAuthenticationResponse == null) {
+                logger.info("SISU authentication response is null, please login again");
+                liveTokenManager.clearTokenCache();
+                return getXboxToken();
+            }
+            return xboxTokenManager.getXSTSToken(sisuAuthenticationResponse);
         }
     }
 

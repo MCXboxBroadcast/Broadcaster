@@ -107,6 +107,17 @@ public class LiveTokenManager {
     }
 
     /**
+     * Delete the cached token file
+     */
+    public void clearTokenCache() {
+        try {
+            Files.deleteIfExists(cache);
+        } catch (IOException e) {
+            logger.error("Failed to delete Live token cache", e);
+        }
+    }
+
+    /**
      * Take the stored refresh token and use it to get
      * a new authentication token
      *
@@ -125,6 +136,11 @@ public class LiveTokenManager {
             .build();
 
         LiveTokenResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString()).body(), LiveTokenResponse.class);
+
+        if (tokenResponse.error != null && !tokenResponse.error.isEmpty()) {
+            throw new Exception("Failed to get authentication token: " + tokenResponse.error_description + " (" + tokenResponse.error + ")");
+        }
+
         updateCache(tokenResponse);
     }
 

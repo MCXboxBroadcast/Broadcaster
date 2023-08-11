@@ -31,15 +31,13 @@ public class GenericAuthenticationRequest {
         public String AuthMethod;
         public String Id;
         public String DeviceType;
-        public String SerialNumber;
         public String Version;
         public JsonJWK ProofKey;
 
-        public DeviceProperties(String AuthMethod, String Id, String DeviceType, String SerialNumber, String Version, JsonJWK ProofKey) {
+        public DeviceProperties(String AuthMethod, String Id, String DeviceType, String Version, JsonJWK ProofKey) {
             this.AuthMethod = AuthMethod;
             this.Id = Id;
             this.DeviceType = DeviceType;
-            this.SerialNumber = SerialNumber;
             this.Version = Version;
             this.ProofKey = ProofKey;
         }

@@ -9,6 +9,7 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationRequest;
 import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.JsonJWK;
+import com.rtm516.mcxboxbroadcast.core.models.SISUAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenCache;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
@@ -30,6 +31,8 @@ import java.security.SignatureException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -113,20 +116,16 @@ public class XboxTokenManager {
         XboxTokenCache tokenCache = getCache();
 
         // Check if the token is null
-        if (tokenCache.userToken == null || tokenCache.xstsToken == null ||
-            tokenCache.userToken.NotAfter == null || tokenCache.xstsToken.expiresOn == null) {
+        if (tokenCache.xstsToken() == null ||
+            tokenCache.xstsToken().expiresOn == null) {
             return false;
         }
 
-        // Check if the user token is valid
-        long userExpiry = Instant.parse(tokenCache.userToken.NotAfter).toEpochMilli() - Instant.now().toEpochMilli();
-        boolean userValid = userExpiry > 1000;
-
         // Check if the XSTS token is valid
-        long xstsExpiry = Instant.parse(tokenCache.xstsToken.expiresOn).toEpochMilli() - Instant.now().toEpochMilli();
+        long xstsExpiry = Instant.parse(tokenCache.xstsToken().expiresOn).toEpochMilli() - Instant.now().toEpochMilli();
         boolean xstsValid = xstsExpiry > 1000;
 
-        return userValid && xstsValid;
+        return xstsValid;
     }
 
     /**
@@ -135,47 +134,7 @@ public class XboxTokenManager {
      * @return The stored XSTS token and relevant information
      */
     public XboxTokenInfo getCachedXstsToken() {
-        return getCache().xstsToken;
-    }
-
-    /**
-     * Get a user token using the supplied Microsoft token
-     *
-     * @param msaToken The Microsoft authentication token to use
-     * @return The token received from the request
-     */
-    public String getUserToken(String msaToken) {
-        try {
-            // Create the JWT user request payload
-            GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
-                "http://auth.xboxlive.com",
-                "JWT",
-                new GenericAuthenticationRequest.UserProperties(
-                    "RPS",
-                    "user.auth.xboxlive.com",
-                    "t=" + msaToken,
-                    new JsonJWK(jwk.toPublicJWK())
-                )
-            );
-
-            // Send the payload off to the authentication service
-            HttpRequest authRequest = HttpRequest.newBuilder()
-                .uri(Constants.USER_AUTHENTICATE_REQUEST)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(Constants.OBJECT_MAPPER.writeValueAsString(requestContent)))
-                .build();
-
-            // Get and parse the response
-            GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
-
-            // Update the cache with the new information
-            updateCache(new XboxTokenCache(tokenResponse, getCache().xstsToken));
-
-            return tokenResponse.Token;
-        } catch (IOException | InterruptedException e) {
-            logger.error("Failed to get user authentication token", e);
-            return null;
-        }
+        return getCache().xstsToken();
     }
 
     /**
@@ -192,9 +151,8 @@ public class XboxTokenManager {
                 new GenericAuthenticationRequest.DeviceProperties(
                     "ProofOfPossession",
                     "{" + UUID.randomUUID() + "}",
-                    "Nintendo",
-                    "{" + UUID.randomUUID() + "}",
-                    "0.0.0",
+                    "Android",
+                    "10",
                     new JsonJWK(jwk.toPublicJWK())
                 )
             );
@@ -221,67 +179,22 @@ public class XboxTokenManager {
     }
 
     /**
-     * Get a title token using the supplied Microsoft and device token
-     *
-     * @param msaToken The Microsoft authentication token to use
-     * @param deviceToken The device authentication token to use
-     * @return The title token received
-     */
-    public String getTitleToken(String msaToken, String deviceToken) {
-        try {
-            // Create the JWT title request payload
-            GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
-                "http://auth.xboxlive.com",
-                "JWT",
-                new GenericAuthenticationRequest.TitleProperties(
-                    "RPS",
-                    deviceToken,
-                    "t=" + msaToken,
-                    "user.auth.xboxlive.com",
-                    new JsonJWK(jwk.toPublicJWK())
-                )
-            );
-
-            // Convert the request to a string, so it can be used to sign the request
-            String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
-
-            // Send the payload off to the authentication service
-            HttpRequest authRequest = HttpRequest.newBuilder()
-                .uri(Constants.TITLE_AUTHENTICATE_REQUEST)
-                .header("Content-Type", "application/json")
-                .header("Signature", sign(Constants.TITLE_AUTHENTICATE_REQUEST, requestContentString))
-                .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
-                .build();
-
-            // Get and parse the response
-            GenericAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), GenericAuthenticationResponse.class);
-
-            return tokenResponse.Token;
-        } catch (IOException | InterruptedException e) {
-            logger.error("Failed to get title authentication token", e);
-            return null;
-        }
-    }
-
-    /**
      * Get a XSTS token from the xbox authentication servers
      * using a full set of user, device and title tokens
      *
-     * @param userToken The user authentication token to use
-     * @param deviceToken The device authentication token to use
-     * @param titleToken The title authentication token to use
+     * @param sisuAuthenticationResponse The response from SISU containing the user, device and title tokens
      * @return The XSTS token received
      */
-    public XboxTokenInfo getXSTSToken(String userToken, String deviceToken, String titleToken) {
+    public XboxTokenInfo getXSTSToken(SISUAuthenticationResponse sisuAuthenticationResponse) {
         try {
             // Create the XSTS request payload
             GenericAuthenticationRequest requestContent = new GenericAuthenticationRequest(
                 Constants.RELAYING_PARTY,
                 "JWT",
                 new GenericAuthenticationRequest.XSTSProperties(
-                    Collections.singletonList(userToken),
-                    deviceToken,
-                    titleToken,
+                    Collections.singletonList(sisuAuthenticationResponse.UserToken().Token),
+                    sisuAuthenticationResponse.DeviceToken(),
+                    sisuAuthenticationResponse.TitleToken().Token,
                     "RETAIL",
                     new JsonJWK(jwk.toPublicJWK())
                 )
@@ -309,11 +222,53 @@ public class XboxTokenManager {
                 tokenResponse.NotAfter);
 
             // Update the cache with the new information
-            updateCache(new XboxTokenCache(getCache().userToken, xboxTokenInfo));
+            updateCache(new XboxTokenCache(xboxTokenInfo));
 
             return xboxTokenInfo;
         } catch (IOException | InterruptedException e) {
             logger.error("Failed to get XSTS authentication token", e);
+            return null;
+        }
+    }
+
+    /**
+     * Use SISU to get a user and title token from the xbox authentication servers
+     *
+     * @param msa The MSA token to use
+     * @param deviceToken The device token to use
+     * @return The SISU response containing the user title and device tokens
+     */
+    public SISUAuthenticationResponse getSISUToken(String msa, String deviceToken) {
+        try {
+            Map<String, Object> requestContent = new HashMap<>() {{
+                put("AccessToken", "t=" + msa);
+                put("AppId", Constants.AUTH_TITLE);
+                put("deviceToken", deviceToken);
+                put("Sandbox", "RETAIL");
+                put("UseModernGamertag", true);
+                put("SiteName", "user.auth.xboxlive.com");
+                put("RelyingParty", "https://multiplayer.minecraft.net/");
+                put("ProofKey", new JsonJWK(jwk.toPublicJWK()));
+            }};
+
+            // Convert the request to a string, so it can be used to sign the request
+            String requestContentString = Constants.OBJECT_MAPPER.writeValueAsString(requestContent);
+
+            // Send the payload off to the authentication service
+            URI uri = URI.create("https://sisu.xboxlive.com/authorize");
+            HttpRequest authRequest = HttpRequest.newBuilder()
+                .uri(uri)
+                .header("Content-Type", "application/json")
+                .header("Signature", sign(uri, requestContentString))
+                .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
+                .build();
+
+            // Get and parse the response
+            SISUAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), SISUAuthenticationResponse.class);
+
+            return tokenResponse;
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to get SISU authentication token", e);
             return null;
         }
     }
