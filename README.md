@@ -18,6 +18,7 @@ You use this project at your own risk, the contributors are not responsible for 
  - Syncing of MOTD and other server details
  - Automatic friend list management
  - Easy Geyser integration (as an extension)
+ - Shows as online and playing Minecraft in the Xbox app and website
 
 ## Pterodactyl Panel
 There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`
