@@ -174,6 +174,7 @@ public class MCXboxBroadcastExtension implements Extension {
         try {
             logger.info("Setting up Xbox session...");
             sessionManager.createSession(sessionInfo);
+            sessionManager.updatePresence();
             logger.info("Created Xbox session!");
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create xbox session!", e);
@@ -197,6 +198,7 @@ public class MCXboxBroadcastExtension implements Extension {
         try {
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
             sessionManager.updateSession(sessionInfo);
+            sessionManager.updatePresence();
         } catch (SessionUpdateException e) {
             logger.error("Failed to update session information!", e);
         }

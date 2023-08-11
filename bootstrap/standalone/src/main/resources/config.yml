@@ -1,6 +1,7 @@
 # Core session settings
 session:
   # The amount of time in seconds to update session information
+  # Warning: This can be no lower than 20 due to xbox rate limits
   update-interval: 30
 
   # Should we query the bedrock server to sync the session information

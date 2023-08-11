@@ -92,6 +92,7 @@ public class StandaloneMain {
         logger.info("Creating session...");
 
         sessionManager.createSession(sessionInfo);
+        sessionManager.updatePresence();
 
         logger.info("Created session!");
 
@@ -104,6 +105,7 @@ public class StandaloneMain {
 
                 // Update the session
                 sessionManager.updateSession(sessionInfo);
+                sessionManager.updatePresence();
                 logger.info("Updated session!");
             } catch (SessionUpdateException e) {
                 logger.error("Failed to update session", e);

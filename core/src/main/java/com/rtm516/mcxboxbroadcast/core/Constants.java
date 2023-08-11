@@ -22,7 +22,8 @@ public class Constants {
     public static final URI RTA_WEBSOCKET = URI.create("wss://rta.xboxlive.com/connect");
     public static final URI CREATE_HANDLE = URI.create("https://sessiondirectory.xboxlive.com/handles");
 
-    public static final String PEOPLE = "https://social.xboxlive.com/users/me/people";
+    public static final String PEOPLE = "https://social.xboxlive.com/users/me/people/xuid(%s)";
+    public static final String USER_PRESENCE = "https://userpresence.xboxlive.com/users/xuid(%s)/devices/current/titles/current";
     public static final URI FOLLOWERS = URI.create("https://peoplehub.xboxlive.com/users/me/people/followers");
     public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
     /**

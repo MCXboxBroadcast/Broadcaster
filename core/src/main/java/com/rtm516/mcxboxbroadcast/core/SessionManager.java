@@ -358,7 +358,7 @@ public class SessionManager {
      */
     public boolean addXboxFriend(String xuid) {
         HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.PEOPLE + "/xuid(" + xuid + ")"))
+            .uri(URI.create(Constants.PEOPLE.formatted(xuid)))
             .header("Authorization", getTokenHeader())
             .PUT(HttpRequest.BodyPublishers.noBody())
             .build();
@@ -379,7 +379,7 @@ public class SessionManager {
      */
     public boolean removeXboxFriend(String xuid) {
         HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.PEOPLE + "/xuid(" + xuid + ")"))
+            .uri(URI.create(Constants.PEOPLE.formatted(xuid)))
             .header("Authorization", getTokenHeader())
             .DELETE()
             .build();
@@ -465,5 +465,25 @@ public class SessionManager {
         }
 
         logger.info("Dumped session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
+    }
+
+    public void updatePresence() {
+        HttpRequest updatePresenceRequest = HttpRequest.newBuilder()
+            .uri(URI.create(Constants.USER_PRESENCE.formatted(getXboxToken().userXUID)))
+            .header("Content-Type", "application/json")
+            .header("Authorization", getTokenHeader())
+            .header("x-xbl-contract-version", "3")
+            .POST(HttpRequest.BodyPublishers.ofString("{\"state\": \"active\"}"))
+            .build();
+
+        try {
+            HttpResponse<Void> updatePresenceResponse = httpClient.send(updatePresenceRequest, HttpResponse.BodyHandlers.discarding());
+
+            if (updatePresenceResponse.statusCode() != 200) {
+                logger.error("Failed to update presence, got status " + updatePresenceResponse.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -8,6 +8,7 @@ remote-port: auto
 
 # The amount of time in seconds to update session information and
 # sync other data
+# Warning: This can be no lower than 20 due to xbox rate limits
 update-interval: 30
 
 # Should Xbox Live friends automatically be whitelisted
