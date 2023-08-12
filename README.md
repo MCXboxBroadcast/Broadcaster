@@ -2,6 +2,7 @@
 [![License: GPL-3.0](https://img.shields.io/github/license/rtm516/MCXboxBroadcast)](LICENSE)
 [![Build Release](https://github.com/rtm516/MCXboxBroadcast/actions/workflows/release.yml/badge.svg)](https://github.com/rtm516/MCXboxBroadcast/releases)
 [![HitCount](https://hits.dwyl.com/rtm516/MCXboxBroadcast.svg?style=flat)](http://hits.dwyl.com/rtm516/MCXboxBroadcast)
+[![Discord](https://img.shields.io/discord/1139621390908133396?label=discord&color=5865F2)](https://discord.gg/Tp3tA2kdCN)
 
 A simple [Geyser](https://github.com/GeyserMC/Geyser) extension that broadcasts the server over Xbox Live.
 
