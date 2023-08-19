@@ -10,16 +10,4 @@ public class CreateHandleRequest {
         this.type = type;
         this.sessionRef = sessionRef;
     }
-
-    public static class SessionRef {
-        public String scid;
-        public String templateName;
-        public String name;
-
-        public SessionRef(String scid, String templateName, String name) {
-            this.scid = scid;
-            this.templateName = templateName;
-            this.name = name;
-        }
-    }
 }

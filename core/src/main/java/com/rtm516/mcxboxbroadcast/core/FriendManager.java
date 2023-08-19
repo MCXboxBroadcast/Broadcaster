@@ -16,9 +16,9 @@ import java.util.concurrent.TimeUnit;
 public class FriendManager {
     private final HttpClient httpClient;
     private final Logger logger;
-    private final SessionManager sessionManager;
+    private final SessionManagerCore sessionManager;
 
-    public FriendManager(HttpClient httpClient, Logger logger, SessionManager sessionManager) {
+    public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
         this.logger = logger;
         this.sessionManager = sessionManager;

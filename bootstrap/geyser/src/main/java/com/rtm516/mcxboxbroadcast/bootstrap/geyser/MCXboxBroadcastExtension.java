@@ -22,20 +22,11 @@ import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
 import org.geysermc.geyser.api.util.PlatformType;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.util.Collections;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -89,16 +80,13 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // Pull onto another thread so we don't hang the main thread
         new Thread(() -> {
-            logger.info("Setting up session info...");
-
             // Get the ip to broadcast
             String ip = config.remoteAddress();
             if (ip.equals("auto")) {
-                // Taken from core Geyser code
                 ip = this.geyserApi().bedrockListener().address();
-                try {
-                    // This is the most reliable for getting the main local IP
-                    Socket socket = new Socket();
+
+                // This is the most reliable for getting the main local IP
+                try (Socket socket = new Socket()) {
                     socket.connect(new InetSocketAddress("geysermc.org", 80));
                     ip = socket.getLocalAddress().getHostAddress();
                 } catch (IOException e1) {

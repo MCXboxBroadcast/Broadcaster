@@ -8,6 +8,7 @@ public class ExpandedSessionInfo extends SessionInfo {
     private String xuid;
     private String rakNetGUID;
     private String sessionId;
+    private String handleId;
 
     ExpandedSessionInfo(String connectionId, String xuid, SessionInfo sessionInfo) {
         this.connectionId = connectionId;
@@ -73,5 +74,13 @@ public class ExpandedSessionInfo extends SessionInfo {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public String getHandleId() {
+        return handleId;
+    }
+
+    public void setHandleId(String handleId) {
+        this.handleId = handleId;
     }
 }

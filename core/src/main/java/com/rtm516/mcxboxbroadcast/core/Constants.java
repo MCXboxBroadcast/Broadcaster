@@ -13,7 +13,8 @@ public class Constants {
     public static final String RELAYING_PARTY = "http://xboxlive.com";
 
     public static final String SERVICE_CONFIG_ID = "4fc10100-5f7a-4470-899b-280835760c07"; // The service config ID for Minecraft
-    public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/MinecraftLobby/sessions/";
+    public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/MinecraftLobby/sessions/%s";
+    public static final String JOIN_SESSION = "https://sessiondirectory.xboxlive.com/handles/%s/session";
 
     public static final URI LIVE_DEVICE_CODE_REQUEST = URI.create("https://login.live.com/oauth20_connect.srf");
     public static final URI LIVE_TOKEN_REQUEST = URI.create("https://login.live.com/oauth20_token.srf");
