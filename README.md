@@ -21,3 +21,25 @@ You use this project at your own risk, the contributors are not responsible for 
 
 ## Pterodactyl Panel
 There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`
+
+## Installation
+### Extension
+1. Download the latest release file `MCXboxBroadcastExtension.jar`
+2. Drop the extension into the Geyser `extensions` folder
+3. Restart the server
+4. Wait for the extension to start and present you with an authentication code
+   - `To sign in, use a web browser to open the page https://www.microsoft.com/link and enter the code XXXXXXXX to authenticate.`
+5. Follow the link and enter the code
+6. Login to the account you want to use
+7. Follow the account on Xbox LIVE
+8. Check the friends tab ingame and you should see the server listed
+
+### Standalone
+1. Download the latest release file `MCXboxBroadcastStandalone.jar`
+2. Start the jar file using `java -jar MCXboxBroadcastStandalone.jar`
+3. Wait for the extension to start and present you with an authentication code
+    - `To sign in, use a web browser to open the page https://www.microsoft.com/link and enter the code XXXXXXXX to authenticate.`
+4. Follow the link and enter the code
+5. Login to the account you want to use
+6. Follow the account on Xbox LIVE
+7. Check the friends tab ingame and you should see the server listed
