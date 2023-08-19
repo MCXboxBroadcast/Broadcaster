@@ -3,12 +3,11 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
-import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
 import com.rtm516.mcxboxbroadcast.core.models.SISUAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
+import org.java_websocket.util.NamedThreadFactory;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -17,12 +16,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -30,7 +29,9 @@ import java.util.concurrent.Future;
 public class SessionManager {
     private final LiveTokenManager liveTokenManager;
     private final XboxTokenManager xboxTokenManager;
+    private final FriendManager friendManager;
     private final HttpClient httpClient;
+    private final ScheduledExecutorService scheduledThreadPool;
     private final Logger logger;
     private final String cache;
 
@@ -38,22 +39,6 @@ public class SessionManager {
     private ExpandedSessionInfo sessionInfo;
 
     private String lastSessionResponse;
-
-    /**
-     * Create an instance of SessionManager using default values
-     */
-    public SessionManager() {
-        this("./cache");
-    }
-
-    /**
-     * Create an instance of SessionManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     */
-    public SessionManager(String cache) {
-        this(cache, new GenericLoggerImpl());
-    }
 
     /**
      * Create an instance of SessionManager
@@ -70,13 +55,33 @@ public class SessionManager {
         this.logger = logger;
         this.cache = cache;
 
+        this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
+
         this.liveTokenManager = new LiveTokenManager(cache, httpClient, logger);
         this.xboxTokenManager = new XboxTokenManager(cache, httpClient, logger);
+
+        this.friendManager = new FriendManager(httpClient, logger, this);
 
         File directory = new File(cache);
         if (!directory.exists()) {
             directory.mkdirs();
         }
+    }
+
+    /**
+     * Get the Xbox LIVE friend manager for this session manager
+     * @return The friend manager
+     */
+    public FriendManager friendManager() {
+        return friendManager;
+    }
+
+    /**
+     * Get the scheduled thread pool for this session manager
+     * @return The scheduled thread pool
+     */
+    public ScheduledExecutorService scheduledThread() {
+        return scheduledThreadPool;
     }
 
     /**
@@ -103,7 +108,7 @@ public class SessionManager {
      *
      * @return The information about the Xbox authentication token including the token itself
      */
-    public XboxTokenInfo getXboxToken() {
+    private XboxTokenInfo getXboxToken() {
         if (xboxTokenManager.verifyTokens()) {
             return xboxTokenManager.getCachedXstsToken();
         } else {
@@ -120,22 +125,36 @@ public class SessionManager {
     }
 
     /**
-     * Create a new session for the given session information
+     * Initialize the session manager with the given session information
      *
-     * @param sessionInfo The information to create the session with
+     * @param sessionInfo The session information to use
      * @throws SessionCreationException If the session failed to create either because it already exists or some other reason
-     * @throws SessionUpdateException If the session data couldn't be set due to some issue
+     * @throws SessionUpdateException   If the session data couldn't be set due to some issue
      */
-    public void createSession(SessionInfo sessionInfo) throws SessionCreationException, SessionUpdateException {
+    public void init(SessionInfo sessionInfo) throws SessionCreationException, SessionUpdateException {
         if (this.sessionInfo != null) {
-            throw new SessionCreationException("Session already created!");
+            throw new SessionCreationException("Already initialized!");
         }
+
+        logger.info("Starting MCXboxBroadcast...");
+
+        // Make sure we are logged in
+        XboxTokenInfo tokenInfo = getXboxToken();
+        logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ")");
+
+        logger.info("Creating Xbox LIVE session...");
 
         // Set the internal session information based on the session info
         this.sessionInfo = new ExpandedSessionInfo("", "", sessionInfo);
 
         // Create the session
         createSession();
+
+        // Update the presence
+        updatePresence();
+
+        // Let the user know we are done
+        logger.info("Creation of Xbox LIVE was successful!");
     }
 
     /**
@@ -150,7 +169,7 @@ public class SessionManager {
         String token = tokenInfo.tokenHeader();
 
         // Update the current session infos XUID
-        this.sessionInfo.setXuid(tokenInfo.userXUID);
+        this.sessionInfo.setXuid(tokenInfo.userXUID());
 
         // Create the RTA websocket connection
         setupWebsocket(token);
@@ -226,6 +245,9 @@ public class SessionManager {
      * @throws SessionUpdateException If the update fails
      */
     private void updateSession() throws SessionUpdateException {
+        // Make sure the websocket connection is still active
+        checkConnection();
+
         CreateSessionRequest createSessionContent = new CreateSessionRequest(this.sessionInfo);
 
         HttpRequest createSessionRequest;
@@ -273,131 +295,11 @@ public class SessionManager {
     }
 
     /**
-     * Get a list of friends XUIDs
-     *
-     * @param includeFollowing  Include users that are following us and not full friends
-     * @param includeFollowedBy Include users that we are following and not full friends
-     * @return A list of {@link FollowerResponse.Person} of your friends
-     * @throws XboxFriendsException If there was an error getting friends from Xbox Live
-     */
-    public List<FollowerResponse.Person> getXboxFriends(boolean includeFollowing, boolean includeFollowedBy) throws XboxFriendsException {
-        List<FollowerResponse.Person> people = new ArrayList<>();
-
-        // Create the request for getting the people following us and friends
-        HttpRequest xboxFollowersRequest = HttpRequest.newBuilder()
-            .uri(Constants.FOLLOWERS)
-            .header("Authorization", getTokenHeader())
-            .header("x-xbl-contract-version", "5")
-            .header("accept-language", "en-GB")
-            .GET()
-            .build();
-
-        String lastResponse = "";
-        try {
-            // Get the list of friends from the api
-            lastResponse = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body();
-            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
-
-            // Parse through the returned list to make sure we are friends and
-            // add them to the list to return
-            for (FollowerResponse.Person person : xboxFollowerResponse.people) {
-                // Make sure they are full friends
-                if ((person.isFollowedByCaller && person.isFollowingCaller)
-                    || (includeFollowing && person.isFollowingCaller)) {
-                    people.add(person);
-                }
-            }
-        } catch (IOException | InterruptedException e) {
-            logger.debug("Follower request response: " + lastResponse);
-            throw new XboxFriendsException(e.getMessage());
-        }
-
-        if (includeFollowedBy) {
-            // Create the request for getting the people we are following and friends
-            HttpRequest xboxSocialRequest = HttpRequest.newBuilder()
-                .uri(Constants.SOCIAL)
-                .header("Authorization", getTokenHeader())
-                .header("x-xbl-contract-version", "5")
-                .header("accept-language", "en-GB")
-                .GET()
-                .build();
-
-            try {
-                // Get the list of people we are following from the api
-                FollowerResponse xboxSocialResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
-
-                // Parse through the returned list to make sure we are following them and
-                // add them to the list to return
-                for (FollowerResponse.Person person : xboxSocialResponse.people) {
-                    // Make sure we are following them
-                    if (person.isFollowedByCaller) {
-                        people.add(person);
-                    }
-                }
-            } catch (IOException | InterruptedException e) {
-                logger.debug("Social request response: " + lastResponse);
-                throw new XboxFriendsException(e.getMessage());
-            }
-        }
-
-        return people;
-    }
-
-    /**
-     * @see #getXboxFriends(boolean, boolean) 
-     */
-    public List<FollowerResponse.Person> getXboxFriends() throws XboxFriendsException {
-        return getXboxFriends(false, false);
-    }
-
-    /**
-     * Add a friend from xbox live
-     *
-     * @param xuid The XUID of the friend to add
-     * @return If the request was successful, this will be true even if the user is already your friend, false if something goes wrong
-     */
-    public boolean addXboxFriend(String xuid) {
-        HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.PEOPLE.formatted(xuid)))
-            .header("Authorization", getTokenHeader())
-            .PUT(HttpRequest.BodyPublishers.noBody())
-            .build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 204;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Remove a friend from xbox live
-     *
-     * @param xuid The XUID of the friend to remove
-     * @return If the request was successful, this will be true even if the user isn't your friend, false if something goes wrong
-     */
-    public boolean removeXboxFriend(String xuid) {
-        HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.PEOPLE.formatted(xuid)))
-            .header("Authorization", getTokenHeader())
-            .DELETE()
-            .build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 204;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
-    }
-
-    /**
      * Use the data in the cache to get the Xbox authentication header
      *
      * @return The formatted XBL3.0 authentication header
      */
-    private String getTokenHeader() {
+    public String getTokenHeader() {
         return getXboxToken().tokenHeader();
     }
 
@@ -431,11 +333,18 @@ public class SessionManager {
         rtaWebsocket.connect();
     }
 
-    public void stopSession() {
+    /**
+     * Stop the current session and close the websocket
+     */
+    public void shutdown() {
         rtaWebsocket.close();
         this.sessionInfo.setSessionId(null);
+        scheduledThreadPool.shutdown();
     }
 
+    /**
+     * Dump the current and last session responses to json files
+     */
     public void dumpSession() {
         logger.info("Dumping current and last session responses");
         try {
@@ -467,23 +376,38 @@ public class SessionManager {
         logger.info("Dumped session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
     }
 
-    public void updatePresence() {
+    /**
+     * Update the presence of the current user on Xbox LIVE
+     */
+    private void updatePresence() {
         HttpRequest updatePresenceRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.USER_PRESENCE.formatted(getXboxToken().userXUID)))
+            .uri(URI.create(Constants.USER_PRESENCE.formatted(getXboxToken().userXUID())))
             .header("Content-Type", "application/json")
             .header("Authorization", getTokenHeader())
             .header("x-xbl-contract-version", "3")
             .POST(HttpRequest.BodyPublishers.ofString("{\"state\": \"active\"}"))
             .build();
 
+        int heartbeatAfter = 300;
         try {
             HttpResponse<Void> updatePresenceResponse = httpClient.send(updatePresenceRequest, HttpResponse.BodyHandlers.discarding());
 
             if (updatePresenceResponse.statusCode() != 200) {
                 logger.error("Failed to update presence, got status " + updatePresenceResponse.statusCode());
+            } else {
+                // Read X-Heartbeat-After header to get the next time we should update presence
+                try {
+                    heartbeatAfter = Integer.parseInt(updatePresenceResponse.headers().firstValue("X-Heartbeat-After").orElse("300"));
+                } catch (NumberFormatException e) {
+                    logger.debug("Failed to parse heartbeat after header, using default of 300");
+                }
             }
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to update presence", e);
         }
+
+        // Schedule the next presence update
+        logger.debug("Presence update successful, scheduling presence update in " + heartbeatAfter + " seconds");
+        scheduledThreadPool.schedule(this::updatePresence, heartbeatAfter, TimeUnit.SECONDS);
     }
 }

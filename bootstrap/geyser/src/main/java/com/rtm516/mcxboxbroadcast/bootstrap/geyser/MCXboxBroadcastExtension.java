@@ -2,7 +2,6 @@ package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.rtm516.mcxboxbroadcast.core.FriendUtils;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -17,7 +16,6 @@ import org.geysermc.floodgate.util.WhitelistUtils;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.command.Command;
 import org.geysermc.geyser.api.command.CommandSource;
-import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
@@ -45,8 +43,6 @@ public class MCXboxBroadcastExtension implements Extension {
     SessionManager sessionManager;
     SessionInfo sessionInfo;
     ExtensionConfig config;
-    private ScheduledFuture<?> updateTimerScheduledFuture;
-    private ScheduledFuture<?> friendTimerScheduledFuture;
 
     @Subscribe
     public void onCommandDefine(GeyserDefineCommandsEvent event) {
@@ -60,14 +56,7 @@ public class MCXboxBroadcastExtension implements Extension {
                     return;
                 }
 
-                sessionManager.stopSession();
-
-                if (updateTimerScheduledFuture != null) {
-                    updateTimerScheduledFuture.cancel(true);
-                }
-                if (friendTimerScheduledFuture != null) {
-                    friendTimerScheduledFuture.cancel(true);
-                }
+                sessionManager.shutdown();
 
                 sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
@@ -95,34 +84,8 @@ public class MCXboxBroadcastExtension implements Extension {
         logger = new ExtensionLoggerImpl(this.logger());
         sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
-        File configFile = this.dataFolder().resolve("config.yml").toFile();
-
-        // Create the config file if it doesn't exist
-        if (!configFile.exists()) {
-            try (FileWriter writer = new FileWriter(configFile)) {
-                try (FileSystem fileSystem = FileSystems.newFileSystem(new File(MCXboxBroadcastExtension.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toPath(), Collections.emptyMap())) {
-                    try (InputStream input = Files.newInputStream(fileSystem.getPath("config.yml"))) {
-                        byte[] bytes = new byte[input.available()];
-
-                        input.read(bytes);
-
-                        writer.write(new String(bytes).toCharArray());
-
-                        writer.flush();
-                    }
-                }
-            } catch (IOException | URISyntaxException e) {
-                logger.error("Failed to create config", e);
-                return;
-            }
-        }
-
-        try {
-            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, ExtensionConfig.class);
-        } catch (IOException e) {
-            logger.error("Failed to load config", e);
-            return;
-        }
+        // Load the config file
+        config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
 
         // Pull onto another thread so we don't hang the main thread
         new Thread(() -> {
@@ -172,33 +135,24 @@ public class MCXboxBroadcastExtension implements Extension {
     private void createSession() {
         // Create the Xbox session
         try {
-            logger.info("Setting up Xbox session...");
-            sessionManager.createSession(sessionInfo);
-            sessionManager.updatePresence();
-            logger.info("Created Xbox session!");
+            sessionManager.init(sessionInfo);
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create xbox session!", e);
             return;
         }
 
-        // Start the update timer
-        updateTimerScheduledFuture = GeyserImpl.getInstance().getScheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval(), config.updateInterval(), TimeUnit.SECONDS); // TODO Find API equivalent
+        // Set up the auto friend sync
+        sessionManager.friendManager().initAutoFriend(config.friendSync());
 
-        // Start a timer for the friend sync if enabled
-        if (config.friendSync().autoFollow() || config.friendSync().autoUnfollow()) {
-            friendTimerScheduledFuture = GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> FriendUtils.autoFriend(sessionManager, logger, config.friendSync()), config.friendSync().updateInterval(), config.friendSync().updateInterval(), TimeUnit.SECONDS);
-        }
+        // Start the update timer
+        sessionManager.scheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval(), config.updateInterval(), TimeUnit.SECONDS);
     }
 
     private void tick() {
-        // Make sure the connection is still active
-        sessionManager.checkConnection();
-
         // Update the player count for the session
         try {
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
             sessionManager.updateSession(sessionInfo);
-            sessionManager.updatePresence();
         } catch (SessionUpdateException e) {
             logger.error("Failed to update session information!", e);
         }
@@ -209,7 +163,7 @@ public class MCXboxBroadcastExtension implements Extension {
                 && this.geyserApi().platformType() == PlatformType.SPIGOT // TODO Find API equivalent
                 && config.whitelistFriends()) {
             try {
-                for (FollowerResponse.Person person : sessionManager.getXboxFriends()) {
+                for (FollowerResponse.Person person : sessionManager.friendManager().get()) {
                     if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {
                         logger.info("Added xbox friend " + person.displayName + " to whitelist");
                     }

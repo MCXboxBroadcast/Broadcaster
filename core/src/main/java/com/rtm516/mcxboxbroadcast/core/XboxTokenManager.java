@@ -117,12 +117,12 @@ public class XboxTokenManager {
 
         // Check if the token is null
         if (tokenCache.xstsToken() == null ||
-            tokenCache.xstsToken().expiresOn == null) {
+            tokenCache.xstsToken().expiresOn() == null) {
             return false;
         }
 
         // Check if the XSTS token is valid
-        long xstsExpiry = Instant.parse(tokenCache.xstsToken().expiresOn).toEpochMilli() - Instant.now().toEpochMilli();
+        long xstsExpiry = Instant.parse(tokenCache.xstsToken().expiresOn()).toEpochMilli() - Instant.now().toEpochMilli();
         boolean xstsValid = xstsExpiry > 1000;
 
         return xstsValid;
@@ -218,6 +218,7 @@ public class XboxTokenManager {
             XboxTokenInfo xboxTokenInfo = new XboxTokenInfo(
                 tokenResponse.DisplayClaims.xui.get(0).xid,
                 tokenResponse.DisplayClaims.xui.get(0).uhs,
+                tokenResponse.DisplayClaims.xui.get(0).gtg,
                 tokenResponse.Token,
                 tokenResponse.NotAfter);
 

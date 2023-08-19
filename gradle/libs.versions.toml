@@ -1,5 +1,5 @@
 [versions]
-bedrock-common = "2.9.17-20230217.002312-1"
+bedrock-common = "2.9.17-SNAPSHOT"
 geyser ="2.1.2-SNAPSHOT"
 floodgate ="2.2.2-SNAPSHOT"
 jackson = "2.14.0"
