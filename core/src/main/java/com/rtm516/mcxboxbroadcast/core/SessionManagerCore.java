@@ -179,25 +179,23 @@ public abstract class SessionManagerCore {
         XboxTokenInfo tokenInfo = getXboxToken();
         String token = tokenInfo.tokenHeader();
 
-        // Update the current session infos XUID
+        // We only need a websocket for the primary session manager
         if (this.sessionInfo != null) {
+            // Update the current session XUID
             this.sessionInfo.setXuid(tokenInfo.userXUID());
-        }
 
-        // Create the RTA websocket connection
-        setupWebsocket(token);
+            // Create the RTA websocket connection
+            setupWebsocket(token);
 
-        // Wait and get the connection ID from the websocket
-        String connectionId;
-        try {
-            connectionId = waitForConnectionId().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
-        }
+            try {
+                // Wait and get the connection ID from the websocket
+                String connectionId = waitForConnectionId().get();
 
-        // Update the current session infos connection ID
-        if (this.sessionInfo != null) {
-            this.sessionInfo.setConnectionId(connectionId);
+                // Update the current session connection ID
+                this.sessionInfo.setConnectionId(connectionId);
+            } catch (InterruptedException | ExecutionException e) {
+                throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
+            }
         }
 
         // Push the session information to the session directory
@@ -264,9 +262,6 @@ public abstract class SessionManagerCore {
      * @throws SessionUpdateException If the update fails
      */
     protected void updateSessionInternal(String url, Object data) throws SessionUpdateException {
-        // Make sure the websocket connection is still active
-        checkConnection();
-
         HttpRequest createSessionRequest;
         try {
             createSessionRequest = HttpRequest.newBuilder()
@@ -297,8 +292,8 @@ public abstract class SessionManagerCore {
      * Check the connection to the websocket and if its closed re-open it and re-create the session
      * This should be called before any updates to the session otherwise they might fail
      */
-    public void checkConnection() {
-        if (!rtaWebsocket.isOpen()) {
+    protected void checkConnection() {
+        if (this.rtaWebsocket != null && !rtaWebsocket.isOpen()) {
             try {
                 logger.info("Connection to websocket lost, re-creating session...");
                 createSession();

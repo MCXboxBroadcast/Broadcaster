@@ -78,6 +78,9 @@ public class SessionManager extends SessionManagerCore {
 
     @Override
     protected void updateSession() throws SessionUpdateException {
+        // Make sure the websocket connection is still active
+        checkConnection();
+
         super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo));
     }
 

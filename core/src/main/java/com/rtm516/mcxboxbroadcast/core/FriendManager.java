@@ -154,9 +154,6 @@ public class FriendManager {
     public void initAutoFriend(FriendSyncConfig friendSyncConfig) {
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
-                // Make sure the connection is still active
-                sessionManager.checkConnection();
-
                 // Auto Friend Checker
                 try {
                     for (FollowerResponse.Person person : get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow())) {
