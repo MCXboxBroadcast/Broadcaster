@@ -28,7 +28,7 @@ public class SessionManager extends SessionManagerCore {
      * @param logger The logger to use for outputting messages
      */
     public SessionManager(String cache, Logger logger) {
-        super(cache, logger);
+        super(cache, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
     }
 

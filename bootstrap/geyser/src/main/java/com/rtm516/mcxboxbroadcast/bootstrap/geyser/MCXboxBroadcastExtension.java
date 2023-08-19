@@ -125,7 +125,7 @@ public class MCXboxBroadcastExtension implements Extension {
         try {
             sessionManager.init(sessionInfo);
         } catch (SessionCreationException | SessionUpdateException e) {
-            logger.error("Failed to create xbox session!", e);
+            sessionManager.logger().error("Failed to create xbox session!", e);
             return;
         }
 
@@ -142,7 +142,7 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
             sessionManager.updateSession(sessionInfo);
         } catch (SessionUpdateException e) {
-            logger.error("Failed to update session information!", e);
+            sessionManager.logger().error("Failed to update session information!", e);
         }
 
         // If we are in spigot, using floodgate authentication and have the config option enabled
@@ -153,11 +153,11 @@ public class MCXboxBroadcastExtension implements Extension {
             try {
                 for (FollowerResponse.Person person : sessionManager.friendManager().get()) {
                     if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {
-                        logger.info("Added xbox friend " + person.displayName + " to whitelist");
+                        sessionManager.logger().info("Added xbox friend " + person.displayName + " to whitelist");
                     }
                 }
             } catch (XboxFriendsException e) {
-                logger.error("Failed to fetch xbox friends for whitelist!", e);
+                sessionManager.logger().error("Failed to fetch xbox friends for whitelist!", e);
             }
         }
     }

@@ -45,45 +45,6 @@ public class XboxTokenManager {
     private final Logger logger;
 
     /**
-     * Create an instance of XboxTokenManager using default values
-     */
-    public XboxTokenManager() {
-        this ("./cache");
-    }
-
-    /**
-     * Create an instance of XboxTokenManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     */
-    public XboxTokenManager(String cache) {
-        this("./cache", new GenericLoggerImpl());
-    }
-
-    /**
-     * Create an instance of XboxTokenManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     * @param logger The logger to use for outputting messages
-     */
-    public XboxTokenManager(String cache, Logger logger) {
-        this(cache, HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_1_1)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build(), logger);
-    }
-
-    /**
-     * Create an instance of XboxTokenManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     * @param httpClient The HTTP client to use for all requests
-     */
-    public XboxTokenManager(String cache, HttpClient httpClient) {
-        this(cache, httpClient, new GenericLoggerImpl());
-    }
-
-    /**
      * Create an instance of XboxTokenManager
      *
      * @param cache The directory to store the cached tokens in

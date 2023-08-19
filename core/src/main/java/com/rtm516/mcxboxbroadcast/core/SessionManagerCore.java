@@ -90,6 +90,14 @@ public abstract class SessionManagerCore {
     public abstract String getSessionId();
 
     /**
+     * Get the logger for this session manager
+     * @return The logger
+     */
+    public Logger logger() {
+        return logger;
+    }
+
+    /**
      * Get the MSA token for the cached user or start the authentication process
      *
      * @return The fetched MSA token

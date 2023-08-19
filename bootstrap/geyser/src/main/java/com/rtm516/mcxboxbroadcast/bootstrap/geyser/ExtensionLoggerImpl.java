@@ -5,33 +5,52 @@ import org.geysermc.geyser.api.extension.ExtensionLogger;
 
 public class ExtensionLoggerImpl implements Logger {
     private ExtensionLogger logger;
+    private final String prefixString;
 
     public ExtensionLoggerImpl(ExtensionLogger logger) {
+        this(logger, "");
+    }
+
+    public ExtensionLoggerImpl(ExtensionLogger logger, String prefixString) {
         this.logger = logger;
+        this.prefixString = prefixString;
     }
 
     @Override
     public void info(String message) {
-        logger.info(message);
+        logger.info(prefix(message));
     }
 
     @Override
     public void warning(String message) {
-        logger.warning(message);
+        logger.warning(prefix(message));
     }
 
     @Override
     public void error(String message) {
-        logger.error(message);
+        logger.error(prefix(message));
     }
 
     @Override
     public void error(String message, Throwable ex) {
-        logger.error(message, ex);
+        logger.error(prefix(message), ex);
     }
 
     @Override
     public void debug(String message) {
-        logger.debug(message);
+        logger.debug(prefix(message));
+    }
+
+    @Override
+    public Logger prefixed(String prefixString) {
+        return new ExtensionLoggerImpl(logger, prefixString);
+    }
+
+    private String prefix(String message) {
+        if (prefixString.isEmpty()) {
+            return message;
+        } else {
+            return "[" + prefixString + "] " + message;
+        }
     }
 }

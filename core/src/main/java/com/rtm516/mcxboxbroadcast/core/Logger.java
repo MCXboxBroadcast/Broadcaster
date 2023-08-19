@@ -13,4 +13,6 @@ public interface Logger {
     void error(String message, Throwable ex);
 
     void debug(String message);
+
+    Logger prefixed(String prefixString);
 }

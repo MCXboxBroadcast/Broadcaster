@@ -27,45 +27,6 @@ public class LiveTokenManager {
     private final Logger logger;
 
     /**
-     * Create an instance of LiveTokenManager using default values
-     */
-    public LiveTokenManager() {
-        this ("./cache");
-    }
-
-    /**
-     * Create an instance of LiveTokenManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     */
-    public LiveTokenManager(String cache) {
-        this("./cache", new GenericLoggerImpl());
-    }
-
-    /**
-     * Create an instance of LiveTokenManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     * @param logger The logger to use for outputting messages
-     */
-    public LiveTokenManager(String cache, Logger logger) {
-        this(cache, HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_1_1)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build(), logger);
-    }
-
-    /**
-     * Create an instance of LiveTokenManager using default values
-     *
-     * @param cache The directory to store the cached tokens in
-     * @param httpClient The HTTP client to use for all requests
-     */
-    public LiveTokenManager(String cache, HttpClient httpClient) {
-        this(cache, httpClient, new GenericLoggerImpl());
-    }
-
-    /**
      * Create an instance of LiveTokenManager
      *
      * @param cache The directory to store the cached tokens in

@@ -7,34 +7,53 @@ import org.apache.logging.log4j.core.config.Configurator;
 
 public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logger {
     private final org.slf4j.Logger logger;
+    private final String prefixString;
 
     public StandaloneLoggerImpl(org.slf4j.Logger logger) {
+        this(logger, "");
+    }
+
+    public StandaloneLoggerImpl(org.slf4j.Logger logger, String prefixString) {
         this.logger = logger;
+        this.prefixString = prefixString;
     }
 
     @Override
     public void info(String message) {
-        logger.info(message);
+        logger.info(prefix(message));
     }
 
     @Override
     public void warning(String message) {
-        logger.warn(message);
+        logger.warn(prefix(message));
     }
 
     @Override
     public void error(String message) {
-        logger.error(message);
+        logger.error(prefix(message));
     }
 
     @Override
     public void error(String message, Throwable ex) {
-        logger.error(message, ex);
+        logger.error(prefix(message), ex);
     }
 
     @Override
     public void debug(String message) {
-        logger.debug(message);
+        logger.debug(prefix(message));
+    }
+
+    @Override
+    public Logger prefixed(String prefixString) {
+        return new StandaloneLoggerImpl(logger, prefixString);
+    }
+
+    private String prefix(String message) {
+        if (prefixString.isEmpty()) {
+            return message;
+        } else {
+            return "[" + prefixString + "] " + message;
+        }
     }
 
     public void setDebug(boolean debug) {
@@ -54,10 +73,10 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                 case "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
                 case "dumpsession" -> StandaloneMain.sessionManager.dumpSession();
-                default -> logger.warn("Unknown command: {}", commandNode);
+                default -> warning("Unknown command: " + commandNode);
             }
         } catch (Exception e) {
-            logger.error("Failed to execute command", e);
+            error("Failed to execute command", e);
         }
     }
 

@@ -19,7 +19,7 @@ public class SubSessionManager extends SessionManagerCore {
      * @param logger The logger to use for outputting messages
      */
     public SubSessionManager(SessionManager parent, String cache, Logger logger) {
-        super(cache, logger);
+        super(cache, logger.prefixed("Sub-Session X"));
         this.parent = parent;
     }
 

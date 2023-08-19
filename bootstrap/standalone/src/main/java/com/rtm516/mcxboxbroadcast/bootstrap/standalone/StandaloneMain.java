@@ -93,9 +93,9 @@ public class StandaloneMain {
             try {
                 // Update the session
                 sessionManager.updateSession(sessionInfo);
-                logger.info("Updated session!");
+                sessionManager.logger().info("Updated session!");
             } catch (SessionUpdateException e) {
-                logger.error("Failed to update session", e);
+                sessionManager.logger().error("Failed to update session", e);
             }
         }, config.session().updateInterval(), config.session().updateInterval(), TimeUnit.SECONDS);
     }
@@ -120,7 +120,7 @@ public class StandaloneMain {
                 sessionInfo.setPlayers(pong.getPlayerCount());
                 sessionInfo.setMaxPlayers(pong.getMaximumPlayerCount());
             } catch (InterruptedException | ExecutionException e) {
-                logger.error("Failed to ping server", e);
+                sessionManager.logger().error("Failed to ping server", e);
             } finally {
                 if (client != null) {
                     client.close();
