@@ -14,12 +14,13 @@ public class SubSessionManager extends SessionManagerCore {
     /**
      * Create a new session manager for a sub-session
      *
+     * @param id The id of the sub-session
      * @param parent The parent session manager
      * @param cache The directory to store the cached tokens in
      * @param logger The logger to use for outputting messages
      */
-    public SubSessionManager(SessionManager parent, String cache, Logger logger) {
-        super(cache, logger.prefixed("Sub-Session X"));
+    public SubSessionManager(String id, SessionManager parent, String cache, Logger logger) {
+        super(cache, logger.prefixed("Sub-Session " + id));
         this.parent = parent;
     }
 

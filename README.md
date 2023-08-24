@@ -43,3 +43,16 @@ There is an egg for easy instance creation supplied for [Pterodactyl Panel](http
 5. Login to the account you want to use
 6. Follow the account on Xbox LIVE
 7. Check the friends tab ingame and you should see the server listed
+
+
+## Commands
+For the extension version prefix with `/mcxboxbroadcast`
+
+| Command | Description |
+| --- | --- |
+| `exit` (Standalone Only) | Exits the program |
+| `restart` | Restarts the tool |
+| `dumpsession` | Dumps the current session data to files for debugging |
+| `accounts list` | Lists the accounts that are currently in use and their followers count |
+| `accounts add <sub-session-id>` | Adds an account to the list of accounts to use |
+| `accounts remove <sub-session-id>` | Removes an account from the list of accounts to use |

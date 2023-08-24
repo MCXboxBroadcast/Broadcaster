@@ -5,9 +5,9 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.CreateHandleResponse;
-import com.rtm516.mcxboxbroadcast.core.models.JoinSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.SISUAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.SessionRef;
+import com.rtm516.mcxboxbroadcast.core.models.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
 
 import java.io.File;
@@ -32,6 +32,7 @@ public abstract class SessionManagerCore {
     private final FriendManager friendManager;
     protected final HttpClient httpClient;
     protected final Logger logger;
+    protected final Logger coreLogger;
     protected final String cache;
 
     protected RtaWebsocketClient rtaWebsocket;
@@ -53,6 +54,7 @@ public abstract class SessionManagerCore {
             .build();
 
         this.logger = logger;
+        this.coreLogger = logger.prefixed("");
         this.cache = cache;
 
         this.liveTokenManager = new LiveTokenManager(cache, httpClient, logger);
@@ -283,7 +285,7 @@ public abstract class SessionManagerCore {
         }
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
-            logger.debug("Got join session response: " + createSessionResponse.body());
+            logger.debug("Got update session response: " + createSessionResponse.body());
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
         }
     }
@@ -347,7 +349,9 @@ public abstract class SessionManagerCore {
      * Stop the current session and close the websocket
      */
     public void shutdown() {
-        rtaWebsocket.close();
+        if (rtaWebsocket != null) {
+            rtaWebsocket.close();
+        }
     }
 
     /**
@@ -383,5 +387,26 @@ public abstract class SessionManagerCore {
         // Schedule the next presence update
         logger.debug("Presence update successful, scheduling presence update in " + heartbeatAfter + " seconds");
         scheduledThread().schedule(this::updatePresence, heartbeatAfter, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Get the current follower count for the current user
+     * @return The current follower count
+     */
+    public SocialSummaryResponse socialSummary() {
+        HttpRequest socialSummaryRequest = HttpRequest.newBuilder()
+            .uri(Constants.SOCIAL_SUMMARY)
+            .header("Authorization", getTokenHeader())
+            .GET()
+            .build();
+
+
+        try {
+            return Constants.OBJECT_MAPPER.readValue(httpClient.send(socialSummaryRequest, HttpResponse.BodyHandlers.ofString()).body(), SocialSummaryResponse.class);
+        } catch (IOException | InterruptedException e) {
+            logger.error("Unable to get current friend count", e);
+        }
+
+        return new SocialSummaryResponse(-1, -1, false, false, false, false, "", -1, -1, "");
     }
 }

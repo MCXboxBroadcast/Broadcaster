@@ -1,7 +1,5 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -66,6 +64,41 @@ public class MCXboxBroadcastExtension implements Extension {
                 }
 
                 sessionManager.dumpSession();
+            })
+            .build());
+
+        event.register(Command.builder(this)
+            .source(CommandSource.class)
+            .name("accounts")
+            .description("Manage sub-accounts.")
+            .executor((source, command, args) -> {
+                if (!source.isConsole()) {
+                    source.sendMessage("This command can only be ran from the console.");
+                    return;
+                }
+
+                if (args.length < 3) {
+                    if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
+                        sessionManager.listSessions();
+                        return;
+                    }
+
+                    source.sendMessage("Usage:");
+                    source.sendMessage("accounts list");
+                    source.sendMessage("accounts add/remove <sub-session-id>");
+                    return;
+                }
+
+                switch (args[1].toLowerCase()) {
+                    case "add":
+                        sessionManager.addSubSession(args[2]);
+                        break;
+                    case "remove":
+                        sessionManager.removeSubSession(args[2]);
+                        break;
+                    default:
+                        source.sendMessage("Unknown accounts command: " + args[1]);
+                }
             })
             .build());
     }

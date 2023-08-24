@@ -27,6 +27,8 @@ public class Constants {
     public static final String USER_PRESENCE = "https://userpresence.xboxlive.com/users/xuid(%s)/devices/current/titles/current";
     public static final URI FOLLOWERS = URI.create("https://peoplehub.xboxlive.com/users/me/people/followers");
     public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
+    public static final URI SOCIAL_SUMMARY = URI.create("https://social.xboxlive.com/users/me/summary");
+
     /**
      * From the ConnectionType enum in the game
      * pre 1.19.10 UPNP was 7

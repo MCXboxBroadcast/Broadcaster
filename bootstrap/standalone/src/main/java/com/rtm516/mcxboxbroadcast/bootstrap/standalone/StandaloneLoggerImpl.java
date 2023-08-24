@@ -73,6 +73,26 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                 case "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
                 case "dumpsession" -> StandaloneMain.sessionManager.dumpSession();
+                case "accounts" -> {
+                    String[] args = command.split(" ");
+                    if (args.length < 3) {
+                        if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
+                            StandaloneMain.sessionManager.listSessions();
+                            return;
+                        }
+
+                        warning("Usage:");
+                        warning("accounts list");
+                        warning("accounts add/remove <sub-session-id>");
+                        return;
+                    }
+
+                    switch (args[1].toLowerCase()) {
+                        case "add" -> StandaloneMain.sessionManager.addSubSession(args[2]);
+                        case "remove" -> StandaloneMain.sessionManager.removeSubSession(args[2]);
+                        default -> warning("Unknown accounts command: " + args[1]);
+                    }
+                }
                 default -> warning("Unknown command: " + commandNode);
             }
         } catch (Exception e) {
