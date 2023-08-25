@@ -3,6 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
+import com.rtm516.mcxboxbroadcast.core.player.Player;
 import org.java_websocket.util.NamedThreadFactory;
 
 import java.io.File;
@@ -19,8 +20,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -29,6 +32,7 @@ import java.util.stream.Stream;
 public class SessionManager extends SessionManagerCore {
     private final ScheduledExecutorService scheduledThreadPool;
     private final Map<String, SubSessionManager> subSessionManagers;
+
 
     /**
      * Create an instance of SessionManager

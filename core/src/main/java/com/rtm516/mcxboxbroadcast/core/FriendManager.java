@@ -3,6 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.player.Player;
 
 import java.io.IOException;
 import java.net.URI;
@@ -157,6 +158,21 @@ public class FriendManager {
                 // Auto Friend Checker
                 try {
                     for (FollowerResponse.Person person : get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow())) {
+
+                        Runnable unadd = () -> {
+                            if (remove(person.xuid)) {
+                                logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
+                            } else {
+                                logger.warning("Failed to remove " + person.displayName + " (" + person.xuid + ") as a friend");
+                            }
+                        };
+                        Player player = sessionManager.getPlayer(person.xuid);
+                        long lastLogOff = player.getLastLogOff();
+                        long difference = lastLogOff <= 0 || player.getJoinTimes() >= 3 ? -1 : System.currentTimeMillis() - lastLogOff;
+                        if (difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
+                            unadd.run();
+                            continue;
+                        }
                         // Follow the person back
                         if (friendSyncConfig.autoFollow() && person.isFollowingCaller && !person.isFollowedByCaller) {
                             if (add(person.xuid)) {
@@ -165,15 +181,8 @@ public class FriendManager {
                                 logger.warning("Failed to add " + person.displayName + " (" + person.xuid + ") as a friend");
                             }
                         }
-
                         // Unfollow the person
-                        if (friendSyncConfig.autoUnfollow() && !person.isFollowingCaller && person.isFollowedByCaller) {
-                            if (remove(person.xuid)) {
-                                logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
-                            } else {
-                                logger.warning("Failed to remove " + person.displayName + " (" + person.xuid + ") as a friend");
-                            }
-                        }
+                        if (friendSyncConfig.autoUnfollow() && !person.isFollowingCaller && person.isFollowedByCaller) unadd.run();
                     }
                 } catch (XboxFriendsException e) {
                     logger.error("Failed to sync friends", e);
