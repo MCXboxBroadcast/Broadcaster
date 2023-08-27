@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
@@ -29,6 +30,8 @@ import java.util.stream.Stream;
 public class SessionManager extends SessionManagerCore {
     private final ScheduledExecutorService scheduledThreadPool;
     private final Map<String, SubSessionManager> subSessionManagers;
+
+    private FriendSyncConfig friendSyncConfig;
 
     /**
      * Create an instance of SessionManager
@@ -64,15 +67,20 @@ public class SessionManager extends SessionManagerCore {
     /**
      * Initialize the session manager with the given session information
      *
-     * @param sessionInfo The session information to use
+     * @param sessionInfo      The session information to use
+     * @param friendSyncConfig The friend sync configuration to use
      * @throws SessionCreationException If the session failed to create either because it already exists or some other reason
      * @throws SessionUpdateException   If the session data couldn't be set due to some issue
      */
-    public void init(SessionInfo sessionInfo) throws SessionCreationException, SessionUpdateException {
+    public void init(SessionInfo sessionInfo, FriendSyncConfig friendSyncConfig) throws SessionCreationException, SessionUpdateException {
         // Set the internal session information based on the session info
         this.sessionInfo = new ExpandedSessionInfo("", "", sessionInfo);
 
         super.init();
+
+        // Set up the auto friend sync
+        this.friendSyncConfig = friendSyncConfig;
+        friendManager().initAutoFriend(friendSyncConfig);
 
         // Load sub-sessions from cache
         List<String> subSessions = new ArrayList<>();
@@ -84,6 +92,7 @@ public class SessionManager extends SessionManagerCore {
         for (String subSession : subSessions) {
             SubSessionManager subSessionManager = new SubSessionManager(subSession, this, Paths.get(cache, subSession).toString(), logger);
             subSessionManager.init();
+            subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
             subSessionManagers.put(subSession, subSessionManager);
         }
     }
@@ -171,6 +180,7 @@ public class SessionManager extends SessionManagerCore {
         try {
             SubSessionManager subSessionManager = new SubSessionManager(id, this, Paths.get(cache, id).toString(), logger);
             subSessionManager.init();
+            subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
             subSessionManagers.put(id, subSessionManager);
         } catch (SessionCreationException | SessionUpdateException e) {
             coreLogger.error("Failed to create sub-session", e);
