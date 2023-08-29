@@ -158,8 +158,8 @@ public class FriendManager {
                 // Auto Friend Checker
                 try {
                     List<FollowerResponse.Person> friends = get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
-                    List<FollowerResponse.Person> justFriendsOnly = get(true, false);
-                    logger.info("FRIENDS LIST: " + friends.size() + " | JUST FRIENDS: " + justFriendsOnly.size());
+                    long amount = sessionManager.socialSummary().targetFollowingCount();
+                    logger.info("FRIENDS LIST: " + friends.size() + " | JUST FRIENDS: " + amount);
                     for (FollowerResponse.Person person : friends) {
 
                         Runnable unadd = () -> {
@@ -171,8 +171,8 @@ public class FriendManager {
                         };
                         Player player = sessionManager.getPlayer(person.xuid);
                         long lastLogOff = player.getLastLogOff();
-                        long difference = lastLogOff <= 0 /*|| player.getJoinTimes() >= 3*/ ? -1 : System.currentTimeMillis() - lastLogOff;
-                        if (justFriendsOnly.size() >= 1000) {
+                        long difference = /*lastLogOff <= 0 || player.getJoinTimes() >= 3 ? -1 : */System.currentTimeMillis() - (lastLogOff <= 0 ? 0 : lastLogOff);
+                        if (amount >= 1000) {
                             if (difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
                                 unadd.run();
                                 continue;
@@ -181,10 +181,12 @@ public class FriendManager {
                         }
                         // Follow the person back
                         if (friendSyncConfig.autoFollow() && person.isFollowingCaller && !person.isFollowedByCaller) {
-                            if (add(person.xuid)) {
-                                logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
-                            } else {
-                                logger.warning("Failed to add " + person.displayName + " (" + person.xuid + ") as a friend");
+                            if (!(difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L)) {
+                                if (add(person.xuid)) {
+                                    logger.info("Added " + person.displayName + " (" + person.xuid + ") as a friend");
+                                } else {
+                                    logger.warning("Failed to add " + person.displayName + " (" + person.xuid + ") as a friend");
+                                }
                             }
                         }
                         // Unfollow the person

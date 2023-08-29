@@ -39,6 +39,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -183,6 +184,16 @@ public class MCXboxBroadcastExtension implements Extension, Runnable {
 
             createSession();
         }).start();
+
+        GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> {
+            for (Map.Entry<String, Player> players : this.sessionManager.getPlayers().entrySet()) {
+                try {
+                    new ObjectMapper(new JsonFactory()).writeValue(new File(playersFolder, players.getKey() + ".json"), players.getValue());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }, 5, 5, TimeUnit.MINUTES);
     }
 
     private void createSession() {
@@ -194,6 +205,7 @@ public class MCXboxBroadcastExtension implements Extension, Runnable {
                 System.out.println("File doesn't exist");
                 EssentialsPlayer essentialsPlayer = this.findEssentialsPlayer(javaUuid);
                 if (essentialsPlayer != null) {
+                    System.out.println("Found essentials player");
                     PlayerImpl player = new PlayerImpl();
                     player.setLastLogOff(essentialsPlayer.getTimestamps().getLogout());
                     this.deleteEssentialsPlayer(javaUuid);
