@@ -82,10 +82,7 @@ public class StandaloneMain {
     }
 
     private static void createSession() throws SessionCreationException, SessionUpdateException {
-        sessionManager.init(sessionInfo);
-
-        // Set up the auto friend sync
-        sessionManager.friendManager().initAutoFriend(config.friendSync());
+        sessionManager.init(sessionInfo, config.friendSync());
 
         sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             updateSessionInfo(sessionInfo);
