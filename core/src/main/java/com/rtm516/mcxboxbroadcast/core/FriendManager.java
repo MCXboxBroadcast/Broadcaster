@@ -165,7 +165,6 @@ public class FriendManager {
                         Runnable unadd = () -> {
                             if (remove(person.xuid)) {
                                 logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
-                                justFriendsOnly.remove(person);
                             } else {
                                 logger.warning("Failed to remove " + person.displayName + " (" + person.xuid + ") as a friend");
                             }
