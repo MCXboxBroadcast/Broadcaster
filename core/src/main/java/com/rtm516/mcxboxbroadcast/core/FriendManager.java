@@ -56,8 +56,7 @@ public class FriendManager {
             // add them to the list to return
             for (FollowerResponse.Person person : xboxFollowerResponse.people) {
                 // Make sure they are full friends
-                if ((person.isFollowedByCaller && person.isFollowingCaller)
-                    || (includeFollowing && person.isFollowingCaller)) {
+                if ((person.isFollowedByCaller && person.isFollowingCaller) || (includeFollowing && person.isFollowingCaller)) {
                     people.add(person);
                 }
             }
@@ -159,7 +158,8 @@ public class FriendManager {
                 // Auto Friend Checker
                 try {
                     List<FollowerResponse.Person> friends = get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
-                    List<FollowerResponse.Person> justFriendsOnly = friends.stream().filter(person -> person.isFollowedByCaller).collect(Collectors.toList());
+                    List<FollowerResponse.Person> justFriendsOnly = get(true, false);
+                    logger.info("FRIENDS LIST: " + friends.size() + " | JUST FRIENDS: " + justFriendsOnly.size());
                     for (FollowerResponse.Person person : friends) {
 
                         Runnable unadd = () -> {
@@ -172,8 +172,11 @@ public class FriendManager {
                         Player player = sessionManager.getPlayer(person.xuid);
                         long lastLogOff = player.getLastLogOff();
                         long difference = lastLogOff <= 0 /*|| player.getJoinTimes() >= 3*/ ? -1 : System.currentTimeMillis() - lastLogOff;
-                        if (justFriendsOnly.size() == 1000 && difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
-                            unadd.run();
+                        if (justFriendsOnly.size() >= 1000) {
+                            if (difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
+                                unadd.run();
+                                continue;
+                            }
                             continue;
                         }
                         // Follow the person back
