@@ -29,6 +29,7 @@ import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
 import org.geysermc.geyser.api.util.PlatformType;
 import org.geysermc.geyser.session.GeyserSession;
+import org.geysermc.platform.standalone.GeyserStandaloneLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,12 +37,14 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MCXboxBroadcastExtension implements Extension {
+public class MCXboxBroadcastExtension implements Extension, Runnable {
     Logger logger;
     SessionManager sessionManager;
     SessionInfo sessionInfo;
@@ -49,6 +52,7 @@ public class MCXboxBroadcastExtension implements Extension {
     private File playersFolder;
     private File essentialsFolder;
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(10);
+    private final List<GeyserSession> sessions = new ArrayList<>();
 
     @Subscribe
     public void onCommandDefine(GeyserDefineCommandsEvent event) {
@@ -124,31 +128,13 @@ public class MCXboxBroadcastExtension implements Extension {
     public void sessionJoinEvent(SessionJoinEvent event) {
         String xuid = event.connection().xuid();
         Player playerImpl = sessionManager.getPlayer(xuid);
-        ((GeyserSession) event.connection()).getDownstream().getSession().addListener(new SessionAdapter() {
-            @Override
-            public void disconnected(DisconnectedEvent event) {
-                System.out.println("Logging off " + xuid);
-                playerImpl.setLastLogOff(System.currentTimeMillis());
-                sessionManager.getPlayers().remove(xuid);
-
-                executor.submit(() -> {
-                    try {
-                        File file = new File(playersFolder, xuid + ".json");
-                        if (!file.exists()) {
-                            file.createNewFile();
-                        }
-                        new ObjectMapper(new JsonFactory()).writeValue(file, playerImpl);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                });
-            }
-        });
+        sessions.add((GeyserSession) event.connection());
         playerImpl.setJoinTimes(playerImpl.getJoinTimes() + 1);
     }
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
+        executor.scheduleAtFixedRate(this, 1, 1, TimeUnit.SECONDS);
         this.playersFolder = new File(this.dataFolder().toFile(), "players");
         this.essentialsFolder = new File(this.dataFolder().toFile(), "essentials");
         logger = new ExtensionLoggerImpl(this.logger());
@@ -286,5 +272,28 @@ public class MCXboxBroadcastExtension implements Extension {
         if (!file.exists()) return;
 
         file.delete();
+    }
+
+    @Override
+    public void run() {
+        for (GeyserSession session : new ArrayList<>(sessions)) {
+            if (GeyserImpl.getInstance().onlineConnections().stream().anyMatch(x -> x.xuid().equals(session.xuid())))
+                continue;
+
+            sessions.remove(session);
+            String xuid = session.xuid();
+            Player playerImpl = sessionManager.getPlayer(xuid);
+            playerImpl.setLastLogOff(System.currentTimeMillis());
+            sessionManager.getPlayers().remove(xuid);
+            try {
+                File file = new File(playersFolder, xuid + ".json");
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                new ObjectMapper(new JsonFactory()).writeValue(file, playerImpl);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 }

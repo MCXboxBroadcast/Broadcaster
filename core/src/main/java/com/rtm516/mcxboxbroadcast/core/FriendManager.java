@@ -13,6 +13,7 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class FriendManager {
     private final HttpClient httpClient;
@@ -157,19 +158,22 @@ public class FriendManager {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
                 // Auto Friend Checker
                 try {
-                    for (FollowerResponse.Person person : get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow())) {
+                    List<FollowerResponse.Person> friends = get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
+                    List<FollowerResponse.Person> justFriendsOnly = friends.stream().filter(person -> person.isFollowedByCaller).collect(Collectors.toList());
+                    for (FollowerResponse.Person person : friends) {
 
                         Runnable unadd = () -> {
                             if (remove(person.xuid)) {
                                 logger.info("Removed " + person.displayName + " (" + person.xuid + ") as a friend");
+                                justFriendsOnly.remove(person);
                             } else {
                                 logger.warning("Failed to remove " + person.displayName + " (" + person.xuid + ") as a friend");
                             }
                         };
                         Player player = sessionManager.getPlayer(person.xuid);
                         long lastLogOff = player.getLastLogOff();
-                        long difference = lastLogOff <= 0 || player.getJoinTimes() >= 3 ? -1 : System.currentTimeMillis() - lastLogOff;
-                        if (difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
+                        long difference = lastLogOff <= 0 /*|| player.getJoinTimes() >= 3*/ ? -1 : System.currentTimeMillis() - lastLogOff;
+                        if (justFriendsOnly.size() == 1000 && difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
                             unadd.run();
                             continue;
                         }
