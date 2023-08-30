@@ -1,9 +1,9 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.rtm516.mcxboxbroadcast.core.exceptions.LiveAuthenticationException;
-import com.rtm516.mcxboxbroadcast.core.models.LiveDeviceCodeResponse;
-import com.rtm516.mcxboxbroadcast.core.models.LiveTokenCache;
-import com.rtm516.mcxboxbroadcast.core.models.LiveTokenResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.LiveDeviceCodeResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.LiveTokenCache;
+import com.rtm516.mcxboxbroadcast.core.models.auth.LiveTokenResponse;
 
 import java.io.FileWriter;
 import java.io.IOException;

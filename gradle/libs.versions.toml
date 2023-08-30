@@ -19,6 +19,7 @@ geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "gey
 jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 jackson-dataformat-yaml = { group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
+jackson-datatype-jsr310 = { group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-jsr310", version.ref = "jackson" }
 
 java-websocket = { group = "org.java-websocket", name = "Java-WebSocket", version.ref = "java-websocket" }
 nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
@@ -36,8 +37,12 @@ jline-reader = { group = "org.jline", name = "jline-reader", version.ref = "jlin
 
 [bundles]
 jackson-yaml = [
-  "jackson-core",
-  "jackson-dataformat-yaml"
+    "jackson-core",
+    "jackson-dataformat-yaml"
+]
+jackson-databind = [
+    "jackson-databind",
+    "jackson-datatype-jsr310"
 ]
 geyser = [
     "geyser-api",

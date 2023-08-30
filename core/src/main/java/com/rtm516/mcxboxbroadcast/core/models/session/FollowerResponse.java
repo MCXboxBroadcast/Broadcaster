@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.core.models;
+package com.rtm516.mcxboxbroadcast.core.models.session;
 
 import java.util.Date;
 import java.util.List;

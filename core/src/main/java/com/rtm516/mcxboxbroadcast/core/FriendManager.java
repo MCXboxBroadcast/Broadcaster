@@ -2,7 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 
 import java.io.IOException;
 import java.net.URI;

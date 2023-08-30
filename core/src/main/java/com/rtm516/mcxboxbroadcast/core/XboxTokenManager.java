@@ -6,12 +6,12 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationRequest;
-import com.rtm516.mcxboxbroadcast.core.models.GenericAuthenticationResponse;
-import com.rtm516.mcxboxbroadcast.core.models.JsonJWK;
-import com.rtm516.mcxboxbroadcast.core.models.SISUAuthenticationResponse;
-import com.rtm516.mcxboxbroadcast.core.models.XboxTokenCache;
-import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
+import com.rtm516.mcxboxbroadcast.core.models.auth.GenericAuthenticationRequest;
+import com.rtm516.mcxboxbroadcast.core.models.auth.GenericAuthenticationResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.JsonJWK;
+import com.rtm516.mcxboxbroadcast.core.models.auth.SISUAuthenticationResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenCache;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 
 import java.io.FileWriter;
 import java.io.IOException;
