@@ -1,6 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.mizosoft.methanol.Methanol;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
@@ -48,7 +49,7 @@ public abstract class SessionManagerCore {
      * @param logger The logger to use for outputting messages
      */
     public SessionManagerCore(String cache, Logger logger) {
-        this.httpClient = HttpClient.newBuilder()
+        this.httpClient = Methanol.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();

@@ -9,6 +9,7 @@ shadow = "8.1.1"
 log4j = "2.20.0"
 jline = "3.23.0"
 terminalconsoleappender = "1.3.0"
+methanol = "1.7.0"
 
 [libraries]
 bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
@@ -34,6 +35,8 @@ log4j-slf4j2-impl = { group = "org.apache.logging.log4j", name = "log4j-slf4j2-i
 jline-terminal = { group = "org.jline", name = "jline-terminal", version.ref = "jline" }
 jline-terminal-jna = { group = "org.jline", name = "jline-terminal-jna", version.ref = "jline" }
 jline-reader = { group = "org.jline", name = "jline-reader", version.ref = "jline" }
+
+methanol = { group = "com.github.mizosoft.methanol", name = "methanol", version.ref = "methanol" }
 
 [bundles]
 jackson-yaml = [
