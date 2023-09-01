@@ -14,7 +14,7 @@ import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 import com.rtm516.mcxboxbroadcast.core.player.Player;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;

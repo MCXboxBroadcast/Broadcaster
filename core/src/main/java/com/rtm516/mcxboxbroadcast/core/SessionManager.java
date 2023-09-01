@@ -1,9 +1,11 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.models.CreateSessionRequest;
+import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
+import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
 import org.java_websocket.util.NamedThreadFactory;
 
 import java.io.File;
@@ -109,7 +111,24 @@ public class SessionManager extends SessionManagerCore {
         // Make sure the websocket connection is still active
         checkConnection();
 
-        super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo));
+        String responseBody = super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo));
+        try {
+            CreateSessionResponse sessionResponse = Constants.OBJECT_MAPPER.readValue(responseBody, CreateSessionResponse.class);
+
+            // Restart if we have 28/30 session members
+            int players = sessionResponse.members().size();
+            if (players >= 28) {
+                logger.info("Restarting session due to " + players + "/30 players");
+                try {
+                    shutdown();
+                    init(sessionInfo, friendSyncConfig);
+                } catch (SessionCreationException e) {
+                    throw new SessionUpdateException(e.getMessage());
+                }
+            }
+        } catch (JsonProcessingException e) {
+            throw new SessionUpdateException("Failed to parse session response: " + e.getMessage());
+        }
     }
 
     /**

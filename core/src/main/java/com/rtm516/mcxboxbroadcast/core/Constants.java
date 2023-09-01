@@ -1,12 +1,17 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.net.URI;
 
 public class Constants {
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+        .registerModule(new JavaTimeModule());
 
     public static final String AUTH_TITLE = "0000000048183522"; // 00000000441cc96b Nintendo Switch, 0000000048183522 Android
     public static final String SCOPE = "service::user.auth.xboxlive.com::MBI_SSL";

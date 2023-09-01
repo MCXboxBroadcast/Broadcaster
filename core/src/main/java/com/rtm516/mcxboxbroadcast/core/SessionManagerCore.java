@@ -1,14 +1,15 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.mizosoft.methanol.Methanol;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.models.CreateHandleRequest;
-import com.rtm516.mcxboxbroadcast.core.models.CreateHandleResponse;
-import com.rtm516.mcxboxbroadcast.core.models.SISUAuthenticationResponse;
-import com.rtm516.mcxboxbroadcast.core.models.SessionRef;
-import com.rtm516.mcxboxbroadcast.core.models.SocialSummaryResponse;
-import com.rtm516.mcxboxbroadcast.core.models.XboxTokenInfo;
+import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
+import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.SISUAuthenticationResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
+import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.player.Player;
 
 import java.io.File;
@@ -40,7 +41,7 @@ public abstract class SessionManagerCore {
     private Function<String, Player> getPlayerFunction;
 
 
-    private boolean initialized = false;
+    protected boolean initialized = false;
 
     /**
      * Create an instance of SessionManager
@@ -49,7 +50,7 @@ public abstract class SessionManagerCore {
      * @param logger The logger to use for outputting messages
      */
     public SessionManagerCore(String cache, Logger logger) {
-        this.httpClient = HttpClient.newBuilder()
+        this.httpClient = Methanol.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
@@ -263,9 +264,10 @@ public abstract class SessionManagerCore {
      *
      * @param url The url to send the PUT request containing the session data
      * @param data The data to update the session with
+     * @return The response body from the request
      * @throws SessionUpdateException If the update fails
      */
-    protected void updateSessionInternal(String url, Object data) throws SessionUpdateException {
+    protected String updateSessionInternal(String url, Object data) throws SessionUpdateException {
         HttpRequest createSessionRequest;
         try {
             createSessionRequest = HttpRequest.newBuilder()
@@ -290,6 +292,8 @@ public abstract class SessionManagerCore {
             logger.debug("Got update session response: " + createSessionResponse.body());
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
         }
+
+        return createSessionResponse.body();
     }
 
     /**
@@ -354,6 +358,7 @@ public abstract class SessionManagerCore {
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
         }
+        this.initialized = false;
     }
 
     /**

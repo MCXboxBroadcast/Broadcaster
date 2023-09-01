@@ -1,7 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.models.JoinSessionRequest;
+import com.rtm516.mcxboxbroadcast.core.models.session.JoinSessionRequest;
 
 import java.util.concurrent.ScheduledExecutorService;
 
