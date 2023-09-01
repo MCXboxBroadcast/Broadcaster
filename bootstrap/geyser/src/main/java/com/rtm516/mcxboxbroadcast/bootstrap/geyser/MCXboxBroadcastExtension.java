@@ -1,5 +1,12 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.github.steveice10.packetlib.event.session.DisconnectedEvent;
+import com.github.steveice10.packetlib.event.session.SessionAdapter;
+import com.rtm516.mcxboxbroadcast.bootstrap.geyser.player.PlayerImpl;
+import com.rtm516.mcxboxbroadcast.bootstrap.geyser.player.converter.EssentialsPlayer;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -8,103 +15,129 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.player.Player;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.floodgate.util.Utils;
 import org.geysermc.floodgate.util.WhitelistUtils;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.command.Command;
 import org.geysermc.geyser.api.command.CommandSource;
+import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.network.AuthType;
 import org.geysermc.geyser.api.util.PlatformType;
+import org.geysermc.geyser.session.GeyserSession;
+import org.geysermc.platform.standalone.GeyserStandaloneLogger;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MCXboxBroadcastExtension implements Extension {
+public class MCXboxBroadcastExtension implements Extension, Runnable {
     Logger logger;
     SessionManager sessionManager;
     SessionInfo sessionInfo;
     ExtensionConfig config;
+    private File playersFolder;
+    private File essentialsFolder;
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(10);
+    private final List<GeyserSession> sessions = new ArrayList<>();
 
     @Subscribe
     public void onCommandDefine(GeyserDefineCommandsEvent event) {
         event.register(Command.builder(this)
-            .source(CommandSource.class)
-            .name("restart")
-            .description("Restart the connection to Xbox Live.")
-            .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
-                sessionManager.shutdown();
-
-                sessionManager = new SessionManager(this.dataFolder().toString(), logger);
-
-                createSession();
-            })
-            .build());
-
-        event.register(Command.builder(this)
-            .source(CommandSource.class)
-            .name("dumpsession")
-            .description("Dump the current session to json files.")
-            .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
-                sessionManager.dumpSession();
-            })
-            .build());
-
-        event.register(Command.builder(this)
-            .source(CommandSource.class)
-            .name("accounts")
-            .description("Manage sub-accounts.")
-            .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
-                if (args.length < 3) {
-                    if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
-                        sessionManager.listSessions();
+                .source(CommandSource.class)
+                .name("restart")
+                .description("Restart the connection to Xbox Live.")
+                .executor((source, command, args) -> {
+                    if (!source.isConsole()) {
+                        source.sendMessage("This command can only be ran from the console.");
                         return;
                     }
 
-                    source.sendMessage("Usage:");
-                    source.sendMessage("accounts list");
-                    source.sendMessage("accounts add/remove <sub-session-id>");
-                    return;
-                }
+                    sessionManager.shutdown();
 
-                switch (args[1].toLowerCase()) {
-                    case "add":
-                        sessionManager.addSubSession(args[2]);
-                        break;
-                    case "remove":
-                        sessionManager.removeSubSession(args[2]);
-                        break;
-                    default:
-                        source.sendMessage("Unknown accounts command: " + args[1]);
-                }
-            })
-            .build());
+                    sessionManager = new SessionManager(this.dataFolder().toString(), logger);
+
+                    createSession();
+                })
+                .build());
+
+        event.register(Command.builder(this)
+                .source(CommandSource.class)
+                .name("dumpsession")
+                .description("Dump the current session to json files.")
+                .executor((source, command, args) -> {
+                    if (!source.isConsole()) {
+                        source.sendMessage("This command can only be ran from the console.");
+                        return;
+                    }
+
+                    sessionManager.dumpSession();
+                })
+                .build());
+
+        event.register(Command.builder(this)
+                .source(CommandSource.class)
+                .name("accounts")
+                .description("Manage sub-accounts.")
+                .executor((source, command, args) -> {
+                    if (!source.isConsole()) {
+                        source.sendMessage("This command can only be ran from the console.");
+                        return;
+                    }
+
+                    if (args.length < 3) {
+                        if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
+                            sessionManager.listSessions();
+                            return;
+                        }
+
+                        source.sendMessage("Usage:");
+                        source.sendMessage("accounts list");
+                        source.sendMessage("accounts add/remove <sub-session-id>");
+                        return;
+                    }
+
+                    switch (args[1].toLowerCase()) {
+                        case "add":
+                            sessionManager.addSubSession(args[2]);
+                            break;
+                        case "remove":
+                            sessionManager.removeSubSession(args[2]);
+                            break;
+                        default:
+                            source.sendMessage("Unknown accounts command: " + args[1]);
+                    }
+                })
+                .build());
+    }
+
+    @Subscribe
+    public void sessionJoinEvent(SessionJoinEvent event) {
+        String xuid = event.connection().xuid();
+        Player playerImpl = sessionManager.getPlayer(xuid);
+        sessions.add((GeyserSession) event.connection());
+        playerImpl.setJoinTimes(playerImpl.getJoinTimes() + 1);
     }
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
+        executor.scheduleAtFixedRate(this, 1, 1, TimeUnit.SECONDS);
+        this.playersFolder = new File(this.dataFolder().toFile(), "players");
+        this.essentialsFolder = new File(this.dataFolder().toFile(), "essentials");
         logger = new ExtensionLoggerImpl(this.logger());
         sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
@@ -151,10 +184,40 @@ public class MCXboxBroadcastExtension implements Extension {
 
             createSession();
         }).start();
+
+        GeyserImpl.getInstance().getScheduledThread().scheduleAtFixedRate(() -> {
+            for (Map.Entry<String, Player> players : this.sessionManager.getPlayers().entrySet()) {
+                try {
+                    new ObjectMapper(new JsonFactory()).writeValue(new File(playersFolder, players.getKey() + ".json"), players.getValue());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }, 5, 5, TimeUnit.MINUTES);
     }
 
     private void createSession() {
         // Create the Xbox session
+        sessionManager.setGetPlayerFunction(uuid -> {
+            String javaUuid = getJavaUuid(uuid).toString();
+            File file = new File(this.playersFolder, uuid + ".json");
+            if (!file.exists()) {
+                System.out.println("File doesn't exist");
+                EssentialsPlayer essentialsPlayer = this.findEssentialsPlayer(javaUuid);
+                if (essentialsPlayer != null) {
+                    System.out.println("Found essentials player");
+                    PlayerImpl player = new PlayerImpl();
+                    player.setLastLogOff(essentialsPlayer.getTimestamps().getLogout());
+                    this.deleteEssentialsPlayer(javaUuid);
+                    return player;
+                }
+            }
+            try {
+                return new ObjectMapper(new JsonFactory()).readValue(new File(this.playersFolder, uuid + ".json"), PlayerImpl.class);
+            } catch (IOException e) {
+                return new PlayerImpl();
+            }
+        });
         try {
             sessionManager.init(sessionInfo, config.friendSync());
         } catch (SessionCreationException | SessionUpdateException e) {
@@ -191,6 +254,57 @@ public class MCXboxBroadcastExtension implements Extension {
                 }
             } catch (XboxFriendsException e) {
                 sessionManager.logger().error("Failed to fetch xbox friends for whitelist!", e);
+            }
+        }
+    }
+
+    public static UUID getJavaUuid(long xuid) {
+        return new UUID(0, xuid);
+    }
+
+    public static UUID getJavaUuid(String xuid) {
+        return getJavaUuid(Long.parseLong(xuid));
+    }
+
+    public EssentialsPlayer findEssentialsPlayer(String minecraftUUID) {
+        File file = new File(this.essentialsFolder, minecraftUUID + ".yml");
+        if (!file.exists()) return null;
+
+        try {
+            return new ObjectMapper(new YAMLFactory()).readValue(file, EssentialsPlayer.class);
+        } catch (IOException ignored) {
+            ignored.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public void deleteEssentialsPlayer(String minecraftUUID) {
+        File file = new File(this.essentialsFolder, minecraftUUID + ".yml");
+        if (!file.exists()) return;
+
+        file.delete();
+    }
+
+    @Override
+    public void run() {
+        for (GeyserSession session : new ArrayList<>(sessions)) {
+            if (GeyserImpl.getInstance().onlineConnections().stream().anyMatch(x -> x.xuid().equals(session.xuid())))
+                continue;
+
+            sessions.remove(session);
+            String xuid = session.xuid();
+            Player playerImpl = sessionManager.getPlayer(xuid);
+            playerImpl.setLastLogOff(System.currentTimeMillis());
+            sessionManager.getPlayers().remove(xuid);
+            try {
+                File file = new File(playersFolder, xuid + ".json");
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                new ObjectMapper(new JsonFactory()).writeValue(file, playerImpl);
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
     }
