@@ -1,8 +1,11 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FriendModifyResponse;
+import com.rtm516.mcxboxbroadcast.core.models.FriendStatusResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 import com.rtm516.mcxboxbroadcast.core.player.Player;
 
@@ -119,6 +122,7 @@ public class FriendManager {
      * Add a friend from xbox live
      *
      * @param xuid The XUID of the friend to add
+     * @param gamertag The gamertag of the friend to add
      */
     public void add(String xuid, String gamertag) {
         // Remove the user from the remove list (if they are on it)
@@ -132,9 +136,46 @@ public class FriendManager {
     }
 
     /**
+     * Add a friend from xbox live if they aren't already a friend
+     *
+     * @param xuid The XUID of the friend to add
+     * @param gamertag The gamertag of the friend to add
+     * @return True if the friend was added, false if they are already a friend
+     */
+    public boolean addIfRequired(String xuid, String gamertag) {
+        // Check if they are already in the list to be added
+        if (toAdd.containsKey(xuid)) {
+            return false;
+        }
+
+        // Check if we are already friends
+        HttpRequest xboxFriendStatus = HttpRequest.newBuilder()
+            .uri(URI.create(Constants.PEOPLE.formatted(xuid)))
+            .header("Authorization", sessionManager.getTokenHeader())
+            .GET()
+            .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(xboxFriendStatus, HttpResponse.BodyHandlers.ofString());
+            FriendStatusResponse modifyResponse = Constants.OBJECT_MAPPER.readValue(response.body(), FriendStatusResponse.class);
+
+            if (modifyResponse.isFollowingCaller() && modifyResponse.isFollowedByCaller()) {
+                return false;
+            }
+        } catch (InterruptedException | IOException e) {
+            // Debug log it failed and assume we aren't friends
+            logger.debug("Failed to check if " + gamertag + " (" + xuid + ") is a friend: " + e.getMessage());
+        }
+
+        add(xuid, gamertag);
+        return true;
+    }
+
+    /**
      * Remove a friend from xbox live
      *
      * @param xuid The XUID of the friend to remove
+     * @param gamertag The gamertag of the friend to remove
      */
     public void remove(String xuid, String gamertag) {
         // Remove the user from the add list (if they are on it)

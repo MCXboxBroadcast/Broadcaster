@@ -93,36 +93,36 @@ public class MCXboxBroadcastExtension implements Extension, Runnable {
                 .source(CommandSource.class)
                 .name("accounts")
                 .description("Manage sub-accounts.")
-                .executor((source, command, args) -> {
-                    if (!source.isConsole()) {
-                        source.sendMessage("This command can only be ran from the console.");
+            .executor((source, command, args) -> {
+                if (!source.isConsole()) {
+                    source.sendMessage("This command can only be ran from the console.");
+                    return;
+                }
+
+                if (args.length < 2) {
+                    if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
+                        sessionManager.listSessions();
                         return;
                     }
 
-                    if (args.length < 3) {
-                        if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
-                            sessionManager.listSessions();
-                            return;
-                        }
+                    source.sendMessage("Usage:");
+                    source.sendMessage("accounts list");
+                    source.sendMessage("accounts add/remove <sub-session-id>");
+                    return;
+                }
 
-                        source.sendMessage("Usage:");
-                        source.sendMessage("accounts list");
-                        source.sendMessage("accounts add/remove <sub-session-id>");
-                        return;
-                    }
-
-                    switch (args[1].toLowerCase()) {
-                        case "add":
-                            sessionManager.addSubSession(args[2]);
-                            break;
-                        case "remove":
-                            sessionManager.removeSubSession(args[2]);
-                            break;
-                        default:
-                            source.sendMessage("Unknown accounts command: " + args[1]);
-                    }
-                })
-                .build());
+                switch (args[0].toLowerCase()) {
+                    case "add":
+                        sessionManager.addSubSession(args[2]);
+                        break;
+                    case "remove":
+                        sessionManager.removeSubSession(args[2]);
+                        break;
+                    default:
+                        source.sendMessage("Unknown accounts command: " + args[0]);
+                }
+            })
+            .build());
     }
 
     @Subscribe

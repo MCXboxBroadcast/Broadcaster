@@ -159,6 +159,15 @@ public abstract class SessionManagerCore {
         XboxTokenInfo tokenInfo = getXboxToken();
         logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ")");
 
+        if (handleFriendship()) {
+            logger.info("Waiting for friendship to be processed...");
+            try {
+                Thread.sleep(5000); // TODO Do a real callback not just wait
+            } catch (InterruptedException e) {
+                logger.error("Failed to wait for friendship to be processed", e);
+            }
+        }
+
         logger.info("Creating Xbox LIVE session...");
 
         // Create the session
@@ -172,6 +181,13 @@ public abstract class SessionManagerCore {
 
         initialized = true;
     }
+
+    /**
+     * Handle the friendship of the current user to the main session if needed
+     *
+     * @return True if the friendship is being handled, false otherwise
+     */
+    protected abstract boolean handleFriendship();
 
     /**
      * Setup a new session and its prerequisites

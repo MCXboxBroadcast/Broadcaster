@@ -35,6 +35,19 @@ public class SubSessionManager extends SessionManagerCore {
     }
 
     @Override
+    protected boolean handleFriendship() {
+        // TODO Some form of force flag just in case the master friends list is full
+
+        // Add the main account
+        boolean subAdd = friendManager().addIfRequired(parent.getXboxToken().userXUID(), parent.getXboxToken().gamertag());
+
+        // Get the main account to add us
+        boolean mainAdd = parent.friendManager().addIfRequired(getXboxToken().userXUID(), getXboxToken().gamertag());
+
+        return subAdd || mainAdd;
+    }
+
+    @Override
     protected void updateSession() throws SessionUpdateException {
         super.updateSessionInternal(Constants.JOIN_SESSION.formatted(parent.sessionInfo().getHandleId()), new JoinSessionRequest(parent.sessionInfo()));
     }
