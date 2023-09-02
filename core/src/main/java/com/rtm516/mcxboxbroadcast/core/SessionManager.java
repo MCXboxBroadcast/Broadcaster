@@ -99,6 +99,12 @@ public class SessionManager extends SessionManagerCore {
         }
     }
 
+    @Override
+    protected boolean handleFriendship() {
+        // Don't do anything as we are the main session
+        return false;
+    }
+
     /**
      * Update the current session with new information
      *
@@ -260,7 +266,7 @@ public class SessionManager extends SessionManagerCore {
         messages.add(" - Gamertag: " + getXboxToken().gamertag());
         messages.add("   Following: " + socialSummary().targetFollowingCount() + "/1000");
 
-        if (subSessionManagers.isEmpty()) {
+        if (!subSessionManagers.isEmpty()) {
             messages.add("Sub-sessions:");
             for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
                 messages.add(" - ID: " + subSession.getKey());
