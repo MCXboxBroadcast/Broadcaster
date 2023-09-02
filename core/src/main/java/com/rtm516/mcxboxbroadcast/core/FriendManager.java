@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FriendModifyResponse;
 import com.rtm516.mcxboxbroadcast.core.models.FriendStatusResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.player.Player;
 
 import java.io.IOException;
 import java.net.URI;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class FriendManager {
     private final HttpClient httpClient;
@@ -69,8 +71,7 @@ public class FriendManager {
             // add them to the list to return
             for (FollowerResponse.Person person : xboxFollowerResponse.people) {
                 // Make sure they are full friends
-                if ((person.isFollowedByCaller && person.isFollowingCaller)
-                    || (includeFollowing && person.isFollowingCaller)) {
+                if ((person.isFollowedByCaller && person.isFollowingCaller) || (includeFollowing && person.isFollowingCaller)) {
                     people.add(person);
                 }
             }
@@ -197,16 +198,27 @@ public class FriendManager {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
                 // Auto Friend Checker
                 try {
-                    for (FollowerResponse.Person person : get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow())) {
+                    List<FollowerResponse.Person> friends = get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
+                    long amount = sessionManager.socialSummary().targetFollowingCount();
+                    logger.info("FRIENDS LIST: " + friends.size() + " | JUST FRIENDS: " + amount);
+                    for (FollowerResponse.Person person : friends) {
+                        Player player = sessionManager.getPlayer(person.xuid);
+                        long lastLogOff = player.getLastLogOff();
+                        long difference = /*lastLogOff <= 0 || player.getJoinTimes() >= 3 ? -1 : */System.currentTimeMillis() - (lastLogOff <= 0 ? 0 : lastLogOff);
+                        if (amount >= 1000) {
+                            if (difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L) {
+                                remove(person.xuid, person.displayName);
+                            }
+                            continue;
+                        }
                         // Follow the person back
                         if (friendSyncConfig.autoFollow() && person.isFollowingCaller && !person.isFollowedByCaller) {
-                            add(person.xuid, person.displayName);
+                            if (!(difference != -1 && friendSyncConfig.unfollowTimeInDays() != -1 && difference > friendSyncConfig.unfollowTimeInDays() * 24L * 60L * 60L * 1000L)) {
+                               add(person.xuid, person.displayName);
+                            }
                         }
-
                         // Unfollow the person
-                        if (friendSyncConfig.autoUnfollow() && !person.isFollowingCaller && person.isFollowedByCaller) {
-                            remove(person.xuid, person.displayName);
-                        }
+                        if (friendSyncConfig.autoUnfollow() && !person.isFollowingCaller && person.isFollowedByCaller) remove(person.xuid, person.displayName);
                     }
                 } catch (XboxFriendsException e) {
                     logger.error("Failed to sync friends", e);
