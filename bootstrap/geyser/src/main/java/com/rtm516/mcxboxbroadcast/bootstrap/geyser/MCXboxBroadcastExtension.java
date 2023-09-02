@@ -77,8 +77,8 @@ public class MCXboxBroadcastExtension implements Extension {
                     return;
                 }
 
-                if (args.length < 3) {
-                    if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
+                if (args.length < 2) {
+                    if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
                         sessionManager.listSessions();
                         return;
                     }
@@ -89,7 +89,7 @@ public class MCXboxBroadcastExtension implements Extension {
                     return;
                 }
 
-                switch (args[1].toLowerCase()) {
+                switch (args[0].toLowerCase()) {
                     case "add":
                         sessionManager.addSubSession(args[2]);
                         break;
@@ -97,7 +97,7 @@ public class MCXboxBroadcastExtension implements Extension {
                         sessionManager.removeSubSession(args[2]);
                         break;
                     default:
-                        source.sendMessage("Unknown accounts command: " + args[1]);
+                        source.sendMessage("Unknown accounts command: " + args[0]);
                 }
             })
             .build());
