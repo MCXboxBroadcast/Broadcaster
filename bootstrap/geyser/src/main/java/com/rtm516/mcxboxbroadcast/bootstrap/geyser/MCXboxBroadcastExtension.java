@@ -113,10 +113,10 @@ public class MCXboxBroadcastExtension implements Extension, Runnable {
 
                 switch (args[0].toLowerCase()) {
                     case "add":
-                        sessionManager.addSubSession(args[2]);
+                        sessionManager.addSubSession(args[1]);
                         break;
                     case "remove":
-                        sessionManager.removeSubSession(args[2]);
+                        sessionManager.removeSubSession(args[1]);
                         break;
                     default:
                         source.sendMessage("Unknown accounts command: " + args[0]);
