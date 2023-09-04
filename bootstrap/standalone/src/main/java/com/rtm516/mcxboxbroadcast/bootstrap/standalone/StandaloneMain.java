@@ -73,15 +73,20 @@ public class StandaloneMain {
         logger.start();
     }
 
-    public static void restart() throws SessionUpdateException, SessionCreationException {
-        sessionManager.shutdown();
+    public static void restart() {
+        try {
+            sessionManager.shutdown();
 
-        sessionManager = new SessionManager("./cache", logger);
+            sessionManager = new SessionManager("./cache", logger);
 
-        createSession();
+            createSession();
+        } catch (SessionCreationException | SessionUpdateException e) {
+            logger.error("Failed to restart session", e);
+        }
     }
 
     private static void createSession() throws SessionCreationException, SessionUpdateException {
+        sessionManager.restartCallback(StandaloneMain::restart);
         sessionManager.init(sessionInfo, config.friendSync());
 
         sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {

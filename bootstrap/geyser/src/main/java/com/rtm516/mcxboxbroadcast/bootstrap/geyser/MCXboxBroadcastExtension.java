@@ -45,11 +45,7 @@ public class MCXboxBroadcastExtension implements Extension {
                     return;
                 }
 
-                sessionManager.shutdown();
-
-                sessionManager = new SessionManager(this.dataFolder().toString(), logger);
-
-                createSession();
+                restart();
             })
             .build());
 
@@ -101,6 +97,14 @@ public class MCXboxBroadcastExtension implements Extension {
                 }
             })
             .build());
+    }
+
+    private void restart() {
+        sessionManager.shutdown();
+
+        sessionManager = new SessionManager(this.dataFolder().toString(), logger);
+
+        createSession();
     }
 
     @Subscribe
@@ -155,6 +159,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
     private void createSession() {
         // Create the Xbox session
+        sessionManager.restartCallback(this::restart);
         try {
             sessionManager.init(sessionInfo, config.friendSync());
         } catch (SessionCreationException | SessionUpdateException e) {

@@ -34,6 +34,7 @@ public class SessionManager extends SessionManagerCore {
     private final Map<String, SubSessionManager> subSessionManagers;
 
     private FriendSyncConfig friendSyncConfig;
+    private Runnable restartCallback;
 
     /**
      * Create an instance of SessionManager
@@ -92,10 +93,15 @@ public class SessionManager extends SessionManagerCore {
 
         // Create the sub-session manager for each sub-session
         for (String subSession : subSessions) {
-            SubSessionManager subSessionManager = new SubSessionManager(subSession, this, Paths.get(cache, subSession).toString(), logger);
-            subSessionManager.init();
-            subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
-            subSessionManagers.put(subSession, subSessionManager);
+            try {
+                SubSessionManager subSessionManager = new SubSessionManager(subSession, this, Paths.get(cache, subSession).toString(), logger);
+                subSessionManager.init();
+                subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
+                subSessionManagers.put(subSession, subSessionManager);
+            } catch (SessionCreationException | SessionUpdateException e) {
+                logger.error("Failed to create sub-session " + subSession, e);
+                // TODO Retry creation after 30s or so
+            }
         }
     }
 
@@ -129,12 +135,7 @@ public class SessionManager extends SessionManagerCore {
             int players = sessionResponse.members().size();
             if (players >= 28) {
                 logger.info("Restarting session due to " + players + "/30 players");
-                try {
-                    shutdown();
-                    init(sessionInfo, friendSyncConfig);
-                } catch (SessionCreationException e) {
-                    throw new SessionUpdateException(e.getMessage());
-                }
+                restart();
             }
         } catch (JsonProcessingException e) {
             throw new SessionUpdateException("Failed to parse session response: " + e.getMessage());
@@ -279,6 +280,26 @@ public class SessionManager extends SessionManagerCore {
 
         for (String message : messages) {
             coreLogger.info(message);
+        }
+    }
+
+    /**
+     * Set the callback to run when the session manager needs to be restarted
+     *
+     * @param restart The callback to run
+     */
+    public void restartCallback(Runnable restart) {
+        this.restartCallback = restart;
+    }
+
+    /**
+     * Restart the session manager
+     */
+    public void restart() {
+        if (restartCallback != null) {
+            restartCallback.run();
+        } else {
+            logger.error("No restart callback set");
         }
     }
 }
