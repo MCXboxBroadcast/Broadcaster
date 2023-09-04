@@ -1,7 +1,5 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FriendModifyResponse;
@@ -198,6 +196,11 @@ public class FriendManager {
                 // Auto Friend Checker
                 try {
                     for (FollowerResponse.Person person : get(friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow())) {
+                        // Make sure we are not targeting a subaccount (eg: split screen)
+                        if (isSubAccount(person.xuid)) {
+                            continue;
+                        }
+
                         // Follow the person back
                         if (friendSyncConfig.autoFollow() && person.isFollowingCaller && !person.isFollowedByCaller) {
                             add(person.xuid, person.displayName);
@@ -212,6 +215,26 @@ public class FriendManager {
                     logger.error("Failed to sync friends", e);
                 }
             }, friendSyncConfig.updateInterval(), friendSyncConfig.updateInterval(), TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * Internal function to check if the XUID is a subaccount (used by split screen)
+     *
+     * @return True if the XUID is a sub account
+     */
+    private boolean isSubAccount(long xuid) {
+        return xuid >> 52 == 1;
+    }
+
+    /**
+     * @see #isSubAccount(long)
+     */
+    private boolean isSubAccount(String xuid) {
+        try {
+            return isSubAccount(Long.parseLong(xuid));
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 
