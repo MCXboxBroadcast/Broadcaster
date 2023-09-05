@@ -1,6 +1,7 @@
 [versions]
 bedrock-common = "2.9.17-SNAPSHOT"
 geyser ="2.1.2-SNAPSHOT"
+geyser-standalone = "1.4.2-SNAPSHOT"
 floodgate ="2.2.2-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
@@ -10,12 +11,15 @@ log4j = "2.20.0"
 jline = "3.23.0"
 terminalconsoleappender = "1.3.0"
 methanol = "1.7.0"
+lombok = "1.18.22"
 
 [libraries]
 bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
 floodgate-spigot = { group = "org.geysermc.floodgate", name = "spigot", version.ref = "floodgate" }
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
+geyser-bootstrap = { group = "org.geysermc", name = "bootstrap-standalone", version.ref = "geyser-standalone" }
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
 
 jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
@@ -49,7 +53,9 @@ jackson-databind = [
 ]
 geyser = [
     "geyser-api",
-    "geyser-core"
+    "geyser-core",
+    "geyser-bootstrap",
+    "lombok",
 ]
 log4j = [
     "log4j-api",

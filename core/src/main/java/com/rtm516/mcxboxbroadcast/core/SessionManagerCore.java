@@ -10,6 +10,7 @@ import com.rtm516.mcxboxbroadcast.core.models.auth.SISUAuthenticationResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
+import com.rtm516.mcxboxbroadcast.core.player.Player;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +25,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.function.Function;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -40,6 +44,9 @@ public abstract class SessionManagerCore {
     protected RtaWebsocketClient rtaWebsocket;
     protected ExpandedSessionInfo sessionInfo;
     protected String lastSessionResponse;
+    private final Map<String, Player> players;
+    private Function<String, Player> getPlayerFunction;
+
 
     protected boolean initialized = false;
 
@@ -69,6 +76,7 @@ public abstract class SessionManagerCore {
         if (!directory.exists()) {
             directory.mkdirs();
         }
+        this.players = new ConcurrentHashMap<>();
     }
 
     /**
@@ -431,5 +439,22 @@ public abstract class SessionManagerCore {
         }
 
         return new SocialSummaryResponse(-1, -1, false, false, false, false, "", -1, -1, "");
+    }
+
+    public void setGetPlayerFunction(Function<String, Player> getPlayerFunction) {
+        this.getPlayerFunction = getPlayerFunction;
+    }
+
+    public Map<String, Player> getPlayers() {
+        return this.players;
+    }
+
+    public Player getPlayer(String uuid) {
+        if (this.players.containsKey(uuid)) {
+            return this.players.get(uuid);
+        }
+        Player player = getPlayerFunction.apply(uuid);
+        this.players.put(uuid, player);
+        return player;
     }
 }
