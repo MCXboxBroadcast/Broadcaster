@@ -11,7 +11,7 @@ This shows up to the authenticated accounts friends in-game as a joinable sessio
 ![Example screenshot](https://user-images.githubusercontent.com/5401186/159083033-b965bfba-de17-4708-8979-1f33bfd5fa28.png)
 
 # DISCLAIMER
-You use this project at your own risk, the contributors are not responsible for any damage or loss caused by the software. We suggest you use an alt account for running the tool incase the account it banned as we emulate some features of a client which may or may not be against TOS.
+You use this project at your own risk, the contributors are not responsible for any damage or loss caused by the software. We suggest you use an alt account for running the tool in case the account is banned as we emulate some features of a client which may or may not be against TOS.
 
 ## Features
  - Syncing of MOTD and other server details
