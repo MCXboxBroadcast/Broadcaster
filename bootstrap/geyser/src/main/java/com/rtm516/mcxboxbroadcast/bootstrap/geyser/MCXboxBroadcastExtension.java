@@ -245,19 +245,20 @@ public class MCXboxBroadcastExtension implements Extension, Runnable {
 
         // If we are in spigot, using floodgate authentication and have the config option enabled
         // get the users friends and whitelist them
-        if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
-                && this.geyserApi().platformType() == PlatformType.SPIGOT // TODO Find API equivalent
-                && config.whitelistFriends()) {
-            try {
-                for (FollowerResponse.Person person : sessionManager.friendManager().get()) {
-                    if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {
-                        sessionManager.logger().info("Added xbox friend " + person.displayName + " to whitelist");
-                    }
-                }
-            } catch (XboxFriendsException e) {
-                sessionManager.logger().error("Failed to fetch xbox friends for whitelist!", e);
-            }
-        }
+//        if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
+//                && this.geyserApi().platformType() == PlatformType.SPIGOT // TODO Find API equivalent
+//                && config.whitelistFriends()) {
+//            try {
+//                SpigotPlugin spigotPlugin =
+//                for (FollowerResponse.Person person : sessionManager.friendManager().get()) {
+//                    if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown", new SpigotVersionSpecificMethods())) {
+//                        sessionManager.logger().info("Added xbox friend " + person.displayName + " to whitelist");
+//                    }
+//                }
+//            } catch (XboxFriendsException e) {
+//                sessionManager.logger().error("Failed to fetch xbox friends for whitelist!", e);
+//            }
+//        }
     }
 
     public static UUID getJavaUuid(long xuid) {
