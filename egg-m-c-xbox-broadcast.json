@@ -16,7 +16,7 @@
     "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
     "config": {
         "files": "{}",
-        "startup": "{\r\n    \"done\": \"Created session!\"\r\n}",
+        "startup": "{\r\n    \"done\": \"Creation of Xbox LIVE session was successful!\"\r\n}",
         "logs": "{}",
         "stop": "exit"
     },
