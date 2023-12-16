@@ -13,7 +13,6 @@ methanol = "1.7.0"
 
 [libraries]
 bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
-floodgate-spigot = { group = "org.geysermc.floodgate", name = "spigot", version.ref = "floodgate" }
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
 

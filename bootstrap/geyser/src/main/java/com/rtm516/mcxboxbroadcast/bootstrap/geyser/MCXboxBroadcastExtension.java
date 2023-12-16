@@ -6,19 +6,13 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 import org.geysermc.event.subscribe.Subscribe;
-import org.geysermc.floodgate.util.Utils;
-import org.geysermc.floodgate.util.WhitelistUtils;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.command.Command;
 import org.geysermc.geyser.api.command.CommandSource;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
-import org.geysermc.geyser.api.network.AuthType;
-import org.geysermc.geyser.api.util.PlatformType;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -181,22 +175,6 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionManager.updateSession(sessionInfo);
         } catch (SessionUpdateException e) {
             sessionManager.logger().error("Failed to update session information!", e);
-        }
-
-        // If we are in spigot, using floodgate authentication and have the config option enabled
-        // get the users friends and whitelist them
-        if (this.geyserApi().defaultRemoteServer().authType() == AuthType.FLOODGATE
-                && this.geyserApi().platformType() == PlatformType.SPIGOT // TODO Find API equivalent
-                && config.whitelistFriends()) {
-            try {
-                for (FollowerResponse.Person person : sessionManager.friendManager().get()) {
-                    if (WhitelistUtils.addPlayer(Utils.getJavaUuid(person.xuid), "unknown")) {
-                        sessionManager.logger().info("Added xbox friend " + person.displayName + " to whitelist");
-                    }
-                }
-            } catch (XboxFriendsException e) {
-                sessionManager.logger().error("Failed to fetch xbox friends for whitelist!", e);
-            }
         }
     }
 }

@@ -6,6 +6,5 @@ public record ExtensionConfig(
     @JsonProperty("remote-address") String remoteAddress,
     @JsonProperty("remote-port") String remotePort,
     @JsonProperty("update-interval") int updateInterval,
-    @JsonProperty("whitelist-friends") boolean whitelistFriends,
     @JsonProperty("friend-sync") FriendSyncConfig friendSync) {
 }

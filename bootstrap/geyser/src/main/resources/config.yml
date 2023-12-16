@@ -11,9 +11,6 @@ remote-port: auto
 # Warning: This can be no lower than 20 due to xbox rate limits
 update-interval: 30
 
-# Should Xbox Live friends automatically be whitelisted
-whitelist-friends: false
-
 # Friend/follower list sync settings
 friend-sync:
   # The amount of time in seconds to check for follower changes
