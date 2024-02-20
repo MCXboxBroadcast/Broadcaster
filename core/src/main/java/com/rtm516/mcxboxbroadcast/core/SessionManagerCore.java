@@ -114,7 +114,8 @@ public abstract class SessionManagerCore {
             try {
                 return liveTokenManager.authDeviceCode().get();
             } catch (InterruptedException | ExecutionException e) {
-                logger.error("Failed to get authentication token from device code", e);
+                logger.error("Failed to get authentication token from device code: " + e.getMessage());
+                logger.debug(Utils.getStackTrace(e));
                 return "";
             }
         }
@@ -131,15 +132,21 @@ public abstract class SessionManagerCore {
             return xboxTokenManager.getCachedXstsToken();
         } else {
             String msaToken = getMsaToken();
-            String deviceToken = xboxTokenManager.getDeviceToken();
-            SISUAuthenticationResponse sisuAuthenticationResponse =  xboxTokenManager.getSISUToken(msaToken, deviceToken);
-            if (sisuAuthenticationResponse == null) {
-                logger.info("SISU authentication response is null, please login again");
-                liveTokenManager.clearTokenCache();
-                return getXboxToken();
+            if (!msaToken.isEmpty()) {
+                String deviceToken = xboxTokenManager.getDeviceToken();
+                SISUAuthenticationResponse sisuAuthenticationResponse =  xboxTokenManager.getSISUToken(msaToken, deviceToken);
+                if (sisuAuthenticationResponse != null) {
+                    return xboxTokenManager.getXSTSToken(sisuAuthenticationResponse);
+                } else {
+                    logger.info("SISU authentication response is null, please login again");
+                }
+            } else {
+                logger.info("MSA authentication response is null, please login again");
             }
-            return xboxTokenManager.getXSTSToken(sisuAuthenticationResponse);
         }
+
+        liveTokenManager.clearTokenCache();
+        return getXboxToken();
     }
 
     /**
