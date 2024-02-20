@@ -98,7 +98,8 @@ public class MCXboxBroadcastExtension implements Extension {
 
         sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
-        createSession();
+        // Pull onto another thread so we don't hang the main thread
+        new Thread(this::createSession);
     }
 
     @Subscribe
