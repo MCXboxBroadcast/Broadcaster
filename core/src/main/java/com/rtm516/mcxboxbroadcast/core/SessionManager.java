@@ -91,18 +91,22 @@ public class SessionManager extends SessionManagerCore {
             subSessions = Arrays.asList(Constants.OBJECT_MAPPER.readValue(Paths.get(cache, "sub_sessions.json").toFile(), String[].class));
         } catch (IOException ignored) { }
 
-        // Create the sub-session manager for each sub-session
-        for (String subSession : subSessions) {
-            try {
-                SubSessionManager subSessionManager = new SubSessionManager(subSession, this, Paths.get(cache, subSession).toString(), logger);
-                subSessionManager.init();
-                subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
-                subSessionManagers.put(subSession, subSessionManager);
-            } catch (SessionCreationException | SessionUpdateException e) {
-                logger.error("Failed to create sub-session " + subSession, e);
-                // TODO Retry creation after 30s or so
+        // Create the sub-sessions in a new thread so we don't block the main thread
+        List<String> finalSubSessions = subSessions;
+        new Thread(() -> {
+            // Create the sub-session manager for each sub-session
+            for (String subSession : finalSubSessions) {
+                try {
+                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, Paths.get(cache, subSession).toString(), logger);
+                    subSessionManager.init();
+                    subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
+                    subSessionManagers.put(subSession, subSessionManager);
+                } catch (SessionCreationException | SessionUpdateException e) {
+                    logger.error("Failed to create sub-session " + subSession, e);
+                    // TODO Retry creation after 30s or so
+                }
             }
-        }
+        }).start();
     }
 
     @Override
