@@ -61,15 +61,19 @@ public class FriendManager {
         try {
             // Get the list of friends from the api
             lastResponse = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body();
-            FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
 
-            // Parse through the returned list to make sure we are friends and
-            // add them to the list to return
-            for (FollowerResponse.Person person : xboxFollowerResponse.people) {
-                // Make sure they are full friends
-                if ((person.isFollowedByCaller && person.isFollowingCaller)
-                    || (includeFollowing && person.isFollowingCaller)) {
-                    people.add(person);
+            // We sometimes get an empty response so don't try and parse it
+            if (!lastResponse.isEmpty()) {
+                FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
+
+                // Parse through the returned list to make sure we are friends and
+                // add them to the list to return
+                for (FollowerResponse.Person person : xboxFollowerResponse.people) {
+                    // Make sure they are full friends
+                    if ((person.isFollowedByCaller && person.isFollowingCaller)
+                        || (includeFollowing && person.isFollowingCaller)) {
+                        people.add(person);
+                    }
                 }
             }
         } catch (IOException | InterruptedException e) {
@@ -89,14 +93,19 @@ public class FriendManager {
 
             try {
                 // Get the list of people we are following from the api
-                FollowerResponse xboxSocialResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString()).body(), FollowerResponse.class);
+                lastResponse = httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString()).body();
 
-                // Parse through the returned list to make sure we are following them and
-                // add them to the list to return
-                for (FollowerResponse.Person person : xboxSocialResponse.people) {
-                    // Make sure we are following them
-                    if (person.isFollowedByCaller) {
-                        people.add(person);
+                // We sometimes get an empty response so don't try and parse it
+                if (!lastResponse.isEmpty()) {
+                    FollowerResponse xboxSocialResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
+
+                    // Parse through the returned list to make sure we are following them and
+                    // add them to the list to return
+                    for (FollowerResponse.Person person : xboxSocialResponse.people) {
+                        // Make sure we are following them
+                        if (person.isFollowedByCaller) {
+                            people.add(person);
+                        }
                     }
                 }
             } catch (IOException | InterruptedException e) {
