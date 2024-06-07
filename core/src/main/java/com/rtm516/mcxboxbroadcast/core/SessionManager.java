@@ -174,7 +174,7 @@ public class SessionManager extends SessionManagerCore {
         }
 
         HttpRequest createSessionRequest = HttpRequest.newBuilder()
-                .uri(URI.create(Constants.CREATE_SESSION + this.sessionInfo.getSessionId()))
+                .uri(URI.create(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId())))
                 .header("Content-Type", "application/json")
                 .header("Authorization", getTokenHeader())
                 .header("x-xbl-contract-version", "107")
