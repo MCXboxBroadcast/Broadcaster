@@ -13,6 +13,7 @@ import org.geysermc.geyser.api.command.CommandSource;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
+import org.geysermc.geyser.api.util.MinecraftVersion;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -136,12 +137,14 @@ public class MCXboxBroadcastExtension implements Extension {
                 port = Integer.parseInt(config.remotePort());
             }
 
+            MinecraftVersion latestVersion = this.geyserApi().supportedBedrockVersions().get(this.geyserApi().supportedBedrockVersions().size() - 1);
+
             // Create the session information based on the Geyser config
             sessionInfo = new SessionInfo();
             sessionInfo.setHostName(this.geyserApi().bedrockListener().primaryMotd());
             sessionInfo.setWorldName(this.geyserApi().bedrockListener().secondaryMotd());
-            sessionInfo.setVersion(this.geyserApi().defaultRemoteServer().minecraftVersion());
-            sessionInfo.setProtocol(this.geyserApi().defaultRemoteServer().protocolVersion());
+            sessionInfo.setVersion(latestVersion.versionString());
+            sessionInfo.setProtocol(latestVersion.protocolVersion());
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
             sessionInfo.setMaxPlayers(GeyserImpl.getInstance().getConfig().getMaxPlayers()); // TODO Find API equivalent
 
