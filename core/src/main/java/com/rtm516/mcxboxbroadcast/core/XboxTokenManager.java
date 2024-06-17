@@ -33,6 +33,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -225,11 +226,23 @@ public class XboxTokenManager {
                 .POST(HttpRequest.BodyPublishers.ofString(requestContentString))
                 .build();
 
-            // Get and parse the response
-            SISUAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString()).body(), SISUAuthenticationResponse.class);
+            // Get
+            HttpResponse<String> httpResponse = httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString());
+
+            if (httpResponse.statusCode() != 200) {
+                Optional<String> errorCode = httpResponse.headers().firstValue("x-err");
+                if (errorCode.isPresent()) {
+                    throw new RuntimeException(errorCode.get() + ": " + Utils.getXboxErrorCode(errorCode.get()));
+                } else {
+                    throw new RuntimeException("Got HTTP status code: " + httpResponse.statusCode());
+                }
+            }
+
+            // Parse the response
+            SISUAuthenticationResponse tokenResponse = Constants.OBJECT_MAPPER.readValue(httpResponse.body(), SISUAuthenticationResponse.class);
 
             return tokenResponse;
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException | InterruptedException | RuntimeException e) {
             logger.error("Failed to get SISU authentication token", e);
             return null;
         }
