@@ -4,6 +4,7 @@ plugins {
 
 relocate("org.yaml.snakeyaml")
 relocate("com.fasterxml.jackson")
+relocate("com.google.gson")
 
 dependencies {
     api(project(":core"))
