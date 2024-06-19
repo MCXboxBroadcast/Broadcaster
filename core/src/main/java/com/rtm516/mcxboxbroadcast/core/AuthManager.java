@@ -50,7 +50,7 @@ public class AuthManager {
 
         MinecraftAuth.LOGGER = logger.prefixed("Auth");
 
-        httpClient = MinecraftAuth.createHttpClient().setIgnoreInvalidSSL(true);
+        httpClient = MinecraftAuth.createHttpClient();
 
         appDetails = new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, null, OAuthEnvironment.LIVE);
         initialAuth = new StepMsaToken(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
