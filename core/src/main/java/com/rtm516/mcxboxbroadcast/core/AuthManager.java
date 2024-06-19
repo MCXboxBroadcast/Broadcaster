@@ -81,7 +81,7 @@ public class AuthManager {
                 empty.addProperty("userHash", "");
 
                 JsonObject msaToken = new JsonObject();
-                msaToken.addProperty("expireTimeMs", 0);//liveToken.get("obtainedOn").getAsLong() + tokenData.get("expires_in").getAsLong() * 1000);
+                msaToken.addProperty("expireTimeMs", 0);
                 msaToken.addProperty("accessToken", tokenData.get("access_token").getAsString());
                 msaToken.addProperty("refreshToken", tokenData.get("refresh_token").getAsString());
 
@@ -105,7 +105,7 @@ public class AuthManager {
                 Files.delete(oldLiveAuth);
                 if (Files.exists(oldXboxAuth)) Files.delete(oldXboxAuth);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to convert old auth token", e);
+                logger.error("Failed to convert old auth token, if this keeps happening please remove " + oldLiveAuth + " and reauthenticate", e);
             }
         }
     }
@@ -120,7 +120,7 @@ public class AuthManager {
         try {
             if (Files.exists(cache)) xstsToken = xstsAuth.fromJson(JsonUtil.parseString(Files.readString(cache)).getAsJsonObject());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load cache.json", e);
+            logger.error("Failed to load cache.json", e);
         }
 
         try {
@@ -139,7 +139,7 @@ public class AuthManager {
             // Construct and store the Xbox token info
             xboxTokenInfo = new XboxTokenInfo(xstsToken.getDisplayClaims().get("xid"), xstsToken.getUserHash(), xstsToken.getDisplayClaims().get("gtg"), xstsToken.getToken(), String.valueOf(xstsToken.getExpireTimeMs()));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to get/refresh auth token", e);
         }
     }
 
