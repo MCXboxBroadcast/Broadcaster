@@ -10,6 +10,7 @@ import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.command.Command;
 import org.geysermc.geyser.api.command.CommandSource;
+import org.geysermc.geyser.api.event.connection.GeyserBedrockPingEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
@@ -154,6 +155,18 @@ public class MCXboxBroadcastExtension implements Extension {
             createSession();
         });
     }
+
+    @Subscribe
+    public void onBedrockPing(GeyserBedrockPingEvent event) {
+        if (sessionInfo == null) {
+            return;
+        }
+
+        // Allows support for motd passthrough
+        sessionInfo.setHostName(event.primaryMotd());
+        sessionInfo.setWorldName(event.secondaryMotd());
+    }
+
 
     private void createSession() {
         // Create the Xbox session
