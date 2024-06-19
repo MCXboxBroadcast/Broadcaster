@@ -93,6 +93,15 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                         default -> warn("Unknown accounts command: " + args[1]);
                     }
                 }
+                case "help" -> {
+                    info("Available commands:");
+                    info("exit - Exit the application");
+                    info("restart - Restart the application");
+                    info("dumpsession - Dump the current session to json files");
+                    info("accounts list - List sub-accounts");
+                    info("accounts add <sub-session-id> - Add a sub-account");
+                    info("accounts remove <sub-session-id> - Remove a sub-account");
+                }
                 default -> warn("Unknown command: " + commandNode);
             }
         } catch (Exception e) {
