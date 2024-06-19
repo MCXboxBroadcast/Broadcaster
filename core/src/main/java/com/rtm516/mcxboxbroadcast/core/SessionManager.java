@@ -94,7 +94,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Create the sub-sessions in a new thread so we don't block the main thread
         List<String> finalSubSessions = subSessions;
-        new Thread(() -> {
+        scheduledThreadPool.execute(() -> {
             // Create the sub-session manager for each sub-session
             for (String subSession : finalSubSessions) {
                 try {
@@ -107,7 +107,7 @@ public class SessionManager extends SessionManagerCore {
                     // TODO Retry creation after 30s or so
                 }
             }
-        }).start();
+        });
     }
 
     @Override

@@ -100,7 +100,7 @@ public class MCXboxBroadcastExtension implements Extension {
         sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
         // Pull onto another thread so we don't hang the main thread
-        new Thread(this::createSession);
+        sessionManager.scheduledThread().execute(this::createSession);
     }
 
     @Subscribe
@@ -112,7 +112,7 @@ public class MCXboxBroadcastExtension implements Extension {
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
 
         // Pull onto another thread so we don't hang the main thread
-        new Thread(() -> {
+        sessionManager.scheduledThread().execute(() -> {
             // Get the ip to broadcast
             String ip = config.remoteAddress();
             if (ip.equals("auto")) {
@@ -152,7 +152,7 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setPort(port);
 
             createSession();
-        }).start();
+        });
     }
 
     private void createSession() {
