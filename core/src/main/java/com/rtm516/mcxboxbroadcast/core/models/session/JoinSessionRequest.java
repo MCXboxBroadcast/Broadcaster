@@ -8,7 +8,6 @@ import com.rtm516.mcxboxbroadcast.core.models.session.member.SessionMember;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public class JoinSessionRequest {
     public Map<String, SessionMember> members;

@@ -14,7 +14,6 @@ import net.raphimc.minecraftauth.step.xbl.session.StepInitialXblSession;
 import net.raphimc.minecraftauth.util.JsonUtil;
 import net.raphimc.minecraftauth.util.MicrosoftConstants;
 import net.raphimc.minecraftauth.util.OAuthEnvironment;
-import net.raphimc.minecraftauth.util.logging.ILogger;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,19 +47,21 @@ public class AuthManager {
         this.oldXboxAuth = Paths.get(cache, "xbox_token.json");
         this.logger = logger;
 
+        // Replace the default logger with one we control
         MinecraftAuth.LOGGER = logger.prefixed("Auth");
 
-        httpClient = MinecraftAuth.createHttpClient();
+        this.httpClient = MinecraftAuth.createHttpClient();
 
-        appDetails = new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, null, OAuthEnvironment.LIVE);
-        initialAuth = new StepMsaToken(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
-        stepDeviceToken = new StepXblDeviceToken("Android");
+        // Setup the authentication steps
+        this.appDetails = new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, null, OAuthEnvironment.LIVE);
+        this.initialAuth = new StepMsaToken(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(this.appDetails), 120 * 1000));
+        this.stepDeviceToken = new StepXblDeviceToken("Android");
 
-        StepInitialXblSession xblAuth = new StepInitialXblSession(initialAuth, new StepXblDeviceToken("Android"));
+        StepInitialXblSession xblAuth = new StepInitialXblSession(this.initialAuth, new StepXblDeviceToken("Android"));
 
-        xstsAuth = new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
+        this.xstsAuth = new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
 
-        xstsToken = null;
+        this.xstsToken = null;
     }
 
     /**
@@ -109,6 +110,9 @@ public class AuthManager {
         }
     }
 
+    /**
+     * Follow the auth flow to get the Xbox token and store it
+     */
     private void initialise() {
         importLiveTokens();
 
@@ -120,6 +124,7 @@ public class AuthManager {
         }
 
         try {
+            // Get the XSTS token or refresh it if it's expired
             if (xstsToken == null) {
                 xstsToken = xstsAuth.getFromInput(httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(msaDeviceCode -> {
                     logger.info("To sign in, use a web browser to open the page " + msaDeviceCode.getVerificationUri() + " and enter the code " + msaDeviceCode.getUserCode() + " to authenticate.");
@@ -131,13 +136,19 @@ public class AuthManager {
             // Save to cache.json
             Files.writeString(cache, JsonUtil.GSON.toJson(xstsAuth.toJson(xstsToken)));
 
+            // Construct and store the Xbox token info
             xboxTokenInfo = new XboxTokenInfo(xstsToken.getDisplayClaims().get("xid"), xstsToken.getUserHash(), xstsToken.getDisplayClaims().get("gtg"), xstsToken.getToken(), String.valueOf(xstsToken.getExpireTimeMs()));
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    /**
+     * Get the Xbox token info
+     * If the token is expired or missing then refresh it
+     *
+     * @return The Xbox token info
+     */
     public XboxTokenInfo getXboxToken() {
         if (xstsToken == null || xboxTokenInfo == null || xstsToken.isExpired()) {
             initialise();
