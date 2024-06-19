@@ -1,6 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.gson.stream.JsonReader;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
@@ -9,6 +9,7 @@ import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
 import org.java_websocket.util.NamedThreadFactory;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
@@ -88,7 +89,7 @@ public class SessionManager extends SessionManagerCore {
         // Load sub-sessions from cache
         List<String> subSessions = new ArrayList<>();
         try {
-            subSessions = Arrays.asList(Constants.OBJECT_MAPPER.readValue(Paths.get(cache, "sub_sessions.json").toFile(), String[].class));
+            subSessions = Arrays.asList(Constants.GSON.fromJson(new JsonReader(new FileReader(Paths.get(cache, "sub_sessions.json").toFile())), String[].class));
         } catch (IOException ignored) { }
 
         // Create the sub-sessions in a new thread so we don't block the main thread
@@ -132,17 +133,13 @@ public class SessionManager extends SessionManagerCore {
         checkConnection();
 
         String responseBody = super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo));
-        try {
-            CreateSessionResponse sessionResponse = Constants.OBJECT_MAPPER.readValue(responseBody, CreateSessionResponse.class);
+        CreateSessionResponse sessionResponse = Constants.GSON.fromJson(responseBody, CreateSessionResponse.class);
 
-            // Restart if we have 28/30 session members
-            int players = sessionResponse.members().size();
-            if (players >= 28) {
-                logger.info("Restarting session due to " + players + "/30 players");
-                restart();
-            }
-        } catch (JsonProcessingException e) {
-            throw new SessionUpdateException("Failed to parse session response: " + e.getMessage());
+        // Restart if we have 28/30 session members
+        int players = sessionResponse.members().size();
+        if (players >= 28) {
+            logger.info("Restarting session due to " + players + "/30 players");
+            restart();
         }
     }
 
@@ -219,7 +216,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Update the list of sub-sessions
         try {
-            Files.write(Paths.get(cache, "sub_sessions.json"), Constants.OBJECT_MAPPER.writeValueAsBytes(subSessionManagers.keySet()));
+            Files.writeString(Paths.get(cache, "sub_sessions.json"), Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }
@@ -252,7 +249,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Update the list of sub-sessions
         try {
-            Files.write(Paths.get(cache, "sub_sessions.json"), Constants.OBJECT_MAPPER.writeValueAsBytes(subSessionManagers.keySet()));
+            Files.writeString(Paths.get(cache, "sub_sessions.json"), Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }

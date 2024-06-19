@@ -7,7 +7,7 @@ relocate("com.fasterxml.jackson")
 
 dependencies {
     api(project(":core"))
-    api(libs.bundles.jackson.yaml)
+    api(libs.bundles.jackson)
     compileOnly(libs.bundles.geyser)
 }
 

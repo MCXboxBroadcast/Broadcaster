@@ -7,7 +7,7 @@ plugins {
 
 dependencies {
     api(project(":core"))
-    api(libs.bundles.jackson.yaml)
+    api(libs.bundles.jackson)
     api(libs.bedrock.common)
 
     api(libs.terminalconsoleappender) {

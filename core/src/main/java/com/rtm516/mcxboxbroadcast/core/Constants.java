@@ -1,17 +1,13 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.net.URI;
+import java.time.Instant;
 
 public class Constants {
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        .registerModule(new JavaTimeModule());
+    public static final Gson GSON = new GsonBuilder().registerTypeAdapter(Instant.class, new InstantConverter()).create();
 
     public static final String AUTH_TITLE = "0000000048183522"; // 00000000441cc96b Nintendo Switch, 0000000048183522 Android
     public static final String SCOPE = "service::user.auth.xboxlive.com::MBI_SSL";

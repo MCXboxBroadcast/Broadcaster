@@ -64,7 +64,7 @@ public class FriendManager {
 
             // We sometimes get an empty response so don't try and parse it
             if (!lastResponse.isEmpty()) {
-                FollowerResponse xboxFollowerResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
+                FollowerResponse xboxFollowerResponse = Constants.GSON.fromJson(lastResponse, FollowerResponse.class);
 
                 // Parse through the returned list to make sure we are friends and
                 // add them to the list to return
@@ -97,7 +97,7 @@ public class FriendManager {
 
                 // We sometimes get an empty response so don't try and parse it
                 if (!lastResponse.isEmpty()) {
-                    FollowerResponse xboxSocialResponse = Constants.OBJECT_MAPPER.readValue(lastResponse, FollowerResponse.class);
+                    FollowerResponse xboxSocialResponse = Constants.GSON.fromJson(lastResponse, FollowerResponse.class);
 
                     // Parse through the returned list to make sure we are following them and
                     // add them to the list to return
@@ -163,7 +163,7 @@ public class FriendManager {
 
         try {
             HttpResponse<String> response = httpClient.send(xboxFriendStatus, HttpResponse.BodyHandlers.ofString());
-            FriendStatusResponse modifyResponse = Constants.OBJECT_MAPPER.readValue(response.body(), FriendStatusResponse.class);
+            FriendStatusResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendStatusResponse.class);
 
             if (modifyResponse.isFollowingCaller() && modifyResponse.isFollowedByCaller()) {
                 return false;
@@ -293,7 +293,7 @@ public class FriendManager {
                             // Break out of the loop, so we don't try to add more friends
                             break;
                         } else if (response.statusCode() == 400) {
-                            FriendModifyResponse modifyResponse = Constants.OBJECT_MAPPER.readValue(response.body(), FriendModifyResponse.class);
+                            FriendModifyResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendModifyResponse.class);
                             if (modifyResponse.code() == 1028) {
                                 logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
                                 break;
@@ -301,25 +301,21 @@ public class FriendManager {
 
                             logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                         } else {
-                            try {
-                                FriendModifyResponse modifyResponse = Constants.OBJECT_MAPPER.readValue(response.body(), FriendModifyResponse.class);
+                            FriendModifyResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendModifyResponse.class);
 
-                                // 1011 - The requested friend operation was forbidden.
-                                // 1015 - An invalid request was attempted.
-                                // 1028 - The attempted People request was rejected because it would exceed the People list limit.
-                                // 1039 - Request could not be completed due to another request taking precedence.
+                            // 1011 - The requested friend operation was forbidden.
+                            // 1015 - An invalid request was attempted.
+                            // 1028 - The attempted People request was rejected because it would exceed the People list limit.
+                            // 1039 - Request could not be completed due to another request taking precedence.
 
-                                if (modifyResponse.code() == 1028) {
-                                    logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
-                                    break;
-                                } else if (modifyResponse.code() == 1011) {
-                                    // The friend wasn't added successfully so remove them from the list
-                                    // This seems to happen in some cases, I assume from the user blocking us or having account restrictions
-                                    toAdd.remove(entry.getKey());
-                                    // TODO Remove these people from following us (block and unblock)
-                                }
-                            } catch (IOException e) {
-                                // Ignore this error as it is just a fallback
+                            if (modifyResponse.code() == 1028) {
+                                logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
+                                break;
+                            } else if (modifyResponse.code() == 1011) {
+                                // The friend wasn't added successfully so remove them from the list
+                                // This seems to happen in some cases, I assume from the user blocking us or having account restrictions
+                                toAdd.remove(entry.getKey());
+                                // TODO Remove these people from following us (block and unblock)
                             }
 
                             logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
