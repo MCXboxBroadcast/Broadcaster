@@ -99,25 +99,6 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Get the MSA token for the cached user or start the authentication process
-     *
-     * @return The fetched MSA token
-     */
-//    protected String getMsaToken() {
-//        if (liveTokenManager.verifyTokens()) {
-//            return liveTokenManager.getAccessToken();
-//        } else {
-//            try {
-//                return liveTokenManager.authDeviceCode().get();
-//            } catch (InterruptedException | ExecutionException e) {
-//                logger.error("Failed to get authentication token from device code: " + e.getMessage());
-//                logger.debug(Utils.getStackTrace(e));
-//                return "";
-//            }
-//        }
-//    }
-
-    /**
      * Get the Xbox token information for the current user
      * If there is no current user then the auto process is started
      *
@@ -125,34 +106,6 @@ public abstract class SessionManagerCore {
      */
     protected XboxTokenInfo getXboxToken() {
         return authManager.getXboxToken();
-//        return new XboxTokenInfo(
-//            "2535469836726755",
-//            "6965302177470921877",
-//            "CrimpyLace85127",
-//            "eyJlbmMiOiJBMTI4Q0JDK0hTMjU2IiwiYWxnIjoiUlNBLU9BRVAiLCJjdHkiOiJKV1QiLCJ6aXAiOiJERUYiLCJ4NXQiOiIxZlVBejExYmtpWklFaE5KSVZnSDFTdTVzX2cifQ.ID9pO8aekb2kb2Kp_6vkoWNYz7PuiAIVVy5lYtb_0AjlEFOeh-bSmPdrnOtMMSV1OaJqvcXiIJi7vCieIhK2-5Q3ZsXsEsmUKwEJPZ1KFCHjGDaW9HNE6BzXqDVKgXxdFiEpmVFvLQaoQXTjpHgSYhjEmrRp4rIcwW_A1fI9YCw.bq83770cQwwfFCWsTw02rA.UBBFcCWaKyAy2JbO2Ao7ZvPv0n1LIIQpnDkRNm0iyJ8HequClOJMf550VIrz1aQ2pKjelUkws4B8o3CWotyoAXaE4piKtB1JUuV4IK5AaBErLhRiRfI4tEw9gg1EHAXks6U1iH6llaFoj89eoB1LLUOMx70UG_A8nGTIosUdgO2dXoEnxIJuM9Zi8IXw315dZ1doJypULRXuBPdlKYVtEQLiW_veCDe_Mg4ROSb31kPAg3Th0POOnHLGxSZkdlzbYIsoX7zwrsnC6ZDQMeNYhTfnZle7wVOHLXpuv-9SCeZiqVgV7dq72mAD9vSrYKBY2_ux6kx2m25d6-1tuBw6Kh9DHNBkfgqzwpTTc6FVNNHOX-bmRHEzCZu88YV1xdt3zg6U8oQmzT3Mcg62QzfPrHX_C6bMshlJlTSMf59nPUDcdbHVgGWtw4dSeTnRuTNUnRBaFpEZDPW1NwhN2dNf-KsfrAqZIgcZMI_jmtfuCDGW8CxlVOK-usPn-ulP6TWMJaxRD39MZvCHrqmBdvfsWN6XvUfI06-jSYvHWlLy7o6F2ia1FOfDSbB5_GBL5XiyPD4QDEyVZ4WADlYVZDOswzuGjHzVFiXBoNqK5-9PtbLosgUqlpdRU_1FBdiQcVa3gbOIx8b4GeLbCDrYNbQWY13wYM5Qj_niCq8Jn0zFmI5efC2FCPDhPjBr2Gx3ekrq0ghTJ6_q9_Wmdr-4UIu2YPSk9UPbMarem3v-Nedl_Fg93DgX4Xzt1MUsOBHK-L0bYqxSBBxu0WGxF6-yMkCxIIJcXy5tr1jiqg12OLTI6bJ9sk97HY9IV6Yn9ycszNLNJPKTGFbAeBkpROp7EHAKkr2YfDEYJ-N_Ha06nlMu810aOl2XqDDAKJJrHt-nAK48fpcJevvy3Y7ZvTyqn1gqMQK9_iGzH1gP8qhePhA9FlL5C6fE13QYcGRu76b671ivZ-VpOmOAWY01z2kCMlJCEa3M7SdCJy14zRZx8kXvJEVFwOVyJ-Lc2OE4xnxGtmTqHTZLaASeoeiFzspkrnKqTd9soAKoUo_SQsiJ-QBQ8bRtranB-Wxnk56Lhq-BOUu7nLg2NsKGuSCYZ2v46Dp45EX3Ug1R9DOThlLz0uMiozq3FoPlXu79-VtidB1FBnfQxeSy8YgA-cfQ2XboV7DjA-HQu1JjTdB7faXStkTbIQ9XPhy4HmMsfBT5ka1KnjF2IWX3KKHqwly-c_ZSjULy6HIsvtNVQSHmHH7ipse2VJwzfgHCgy_btM2fQjNZiAXCinQy5Nnw0BYUJMRkZGtti7oQXOCBxE1dRp4nlURts1tJc6Z39Zz7NGYniazEmAdFmGJZHubnrLedjAQyv2g9xRpqgC4jB9qVS4ZySBmoYmkP1xhUP5BEBBq3NQK5dvpX74XAmu6pptZH9lucv2Nz-6Pfe_5yZYnus4_sQT4RrynZXiVeoNw_ZhkiclOBq6YMEI2nFqUh51yuitXXo3ygQbGGHLsfNzoDMrJGpGv9BoY8wHdVJ1jHRFqGteBX6Pevb2YrPjPiPdrzXkYovmGrrsGcAztOJM8BJnJb19AJaYeHBgGOl5WhtcoGSTGJ3veQO9ywzk8brbxFkDu5h2G8ZNmZ_vQksha8CBCVwakt6XL5W6NYNFt6J658BYzSyqtLis9VtM_gXV3pSOocy-fP00oGEFknRNlFcH7r7uOL8t62XHAIwjEnRDtkYkGFZyDCmTmK8rHsAVrRkL68iyyRaRHE5h2lTMVQqnTzzdLDkpqOO35k_jHHmd09i4BMeYyV7DGIoXyIC0gB3h8QFTJyvAytVOzUKofw2MvYB-IiITqRLZNOvuW35ibpA0zq-THA7DAV2ltVXBB2jp8QL9Q_BUsVNx75o13kBoZ4yM9GyHEhtXHEV9jYxJnRccgwR4Gw38d3LE34PVZnBWzxwrZRtA1ZSJJZC5E8v7Rd4rYyV1OaUW5sb7aKMsz0xSsVplScG9ztFr94-DgxQ353MG61IlkaNoolzHRW_NbDuXoHk0c.jeCstwzB47UNdvANw6Byl6KzddGzd-cpkvLHzYzapnc",
-//            "1718858479816");
-
-
-
-//        if (xboxTokenManager.verifyTokens()) {
-//            return xboxTokenManager.getCachedXstsToken();
-//        } else {
-//            String msaToken = getMsaToken();
-//            if (!msaToken.isEmpty()) {
-//                String deviceToken = xboxTokenManager.getDeviceToken();
-//                SISUAuthenticationResponse sisuAuthenticationResponse =  xboxTokenManager.getSISUToken(msaToken, deviceToken);
-//                if (sisuAuthenticationResponse != null) {
-//                    return xboxTokenManager.getXSTSToken(sisuAuthenticationResponse);
-//                } else {
-//                    logger.info("SISU authentication response is null, please login again");
-//                }
-//            } else {
-//                logger.info("MSA authentication response is null, please login again");
-//            }
-//        }
-//
-//        liveTokenManager.clearTokenCache();
-//        return getXboxToken();
     }
 
     /**
