@@ -9,6 +9,7 @@ log4j = "2.20.0"
 jline = "3.23.0"
 terminalconsoleappender = "1.3.0"
 methanol = "1.7.0"
+minecraftauth = "4.0.3-SNAPSHOT"
 
 [libraries]
 bedrock-common = { group = "com.nukkitx.protocol", name = "bedrock-common", version.ref = "bedrock-common" }
@@ -35,6 +36,8 @@ jline-terminal-jna = { group = "org.jline", name = "jline-terminal-jna", version
 jline-reader = { group = "org.jline", name = "jline-reader", version.ref = "jline" }
 
 methanol = { group = "com.github.mizosoft.methanol", name = "methanol", version.ref = "methanol" }
+
+minecraftauth = { group = "net.raphimc", name = "MinecraftAuth", version.ref = "minecraftauth" }
 
 [bundles]
 jackson-yaml = [

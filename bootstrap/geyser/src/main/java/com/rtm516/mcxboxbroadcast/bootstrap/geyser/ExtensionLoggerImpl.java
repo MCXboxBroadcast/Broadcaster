@@ -22,7 +22,7 @@ public class ExtensionLoggerImpl implements Logger {
     }
 
     @Override
-    public void warning(String message) {
+    public void warn(String message) {
         logger.warning(prefix(message));
     }
 

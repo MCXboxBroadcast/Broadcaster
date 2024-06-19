@@ -299,7 +299,7 @@ public class FriendManager {
                                 break;
                             }
 
-                            logger.warning("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                            logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                         } else {
                             try {
                                 FriendModifyResponse modifyResponse = Constants.OBJECT_MAPPER.readValue(response.body(), FriendModifyResponse.class);
@@ -322,7 +322,7 @@ public class FriendManager {
                                 // Ignore this error as it is just a fallback
                             }
 
-                            logger.warning("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                            logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                         }
                     } catch (IOException | InterruptedException e) {
                         logger.error("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());
@@ -365,7 +365,7 @@ public class FriendManager {
                             // Break out of the loop, so we don't try to remove more friends
                             break;
                         } else {
-                            logger.warning("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                            logger.warn("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                         }
                     } catch (IOException | InterruptedException e) {
                         logger.error("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());

@@ -24,7 +24,7 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
     }
 
     @Override
-    public void warning(String message) {
+    public void warn(String message) {
         logger.warn(prefix(message));
     }
 
@@ -81,19 +81,19 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                             return;
                         }
 
-                        warning("Usage:");
-                        warning("accounts list");
-                        warning("accounts add/remove <sub-session-id>");
+                        warn("Usage:");
+                        warn("accounts list");
+                        warn("accounts add/remove <sub-session-id>");
                         return;
                     }
 
                     switch (args[1].toLowerCase()) {
                         case "add" -> StandaloneMain.sessionManager.addSubSession(args[2]);
                         case "remove" -> StandaloneMain.sessionManager.removeSubSession(args[2]);
-                        default -> warning("Unknown accounts command: " + args[1]);
+                        default -> warn("Unknown accounts command: " + args[1]);
                     }
                 }
-                default -> warning("Unknown command: " + commandNode);
+                default -> warn("Unknown command: " + commandNode);
             }
         } catch (Exception e) {
             error("Failed to execute command", e);
