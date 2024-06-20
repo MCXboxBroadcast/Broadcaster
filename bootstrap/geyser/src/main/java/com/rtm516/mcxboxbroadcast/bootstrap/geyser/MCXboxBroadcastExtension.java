@@ -18,9 +18,10 @@ import org.geysermc.geyser.api.util.MinecraftVersion;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -119,16 +120,20 @@ public class MCXboxBroadcastExtension implements Extension {
             if (ip.equals("auto")) {
                 ip = this.geyserApi().bedrockListener().address();
 
-                // This is the most reliable for getting the main local IP
-                try (Socket socket = new Socket()) {
-                    socket.connect(new InetSocketAddress("geysermc.org", 80));
-                    ip = socket.getLocalAddress().getHostAddress();
-                } catch (IOException e1) {
-                    try {
-                        // Fallback to the normal way of getting the local IP
-                        ip = InetAddress.getLocalHost().getHostAddress();
-                    } catch (UnknownHostException ignored) {
+                try {
+                    InetAddress address = InetAddress.getByName(ip);
+
+                    // Get the public IP if the config ip is a non-public address
+                    if (address.isSiteLocalAddress() || address.isAnyLocalAddress() || address.isLoopbackAddress()) {
+                        HttpRequest ipRequest = HttpRequest.newBuilder()
+                            .uri(URI.create("https://ipv4.icanhazip.com"))
+                            .GET()
+                            .build();
+
+                        ip = HttpClient.newHttpClient().send(ipRequest, HttpResponse.BodyHandlers.ofString()).body().trim();
                     }
+                } catch (IOException | InterruptedException e) {
+                    // Silently ignore
                 }
             }
 
