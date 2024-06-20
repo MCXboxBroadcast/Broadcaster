@@ -9,6 +9,11 @@ on:
       - 'LICENSE'
       - 'README.md'
 
+env:
+  DOCKER_OWNER: ${{ github.repository_owner }}
+  DOCKER_CONTAINER: mcxboxbroadcast
+  DOCKER_TAG: ${{ github.ref_name }}
+  
 jobs:
     build:
       runs-on: ubuntu-latest
@@ -77,3 +82,28 @@ jobs:
           name: Build ${{ steps.getCurrentBuild.outputs.result }} (${{ github.ref_name }})
           tag: ${{ steps.getCurrentBuild.outputs.result }}
           token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Docker image build
+      - name: Fix Docker environment variables
+        run: |
+          # Make lowercase
+          echo "DOCKER_OWNER=$(echo $DOCKER_OWNER | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
+          echo "DOCKER_CONTAINER=$(echo $DOCKER_CONTAINER | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
+          echo "DOCKER_TAG=$(echo $DOCKER_TAG | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
+
+          # Replace / with _
+          echo "DOCKER_TAG=$(echo $DOCKER_TAG | sed -e 's/\//_/g')" >> $GITHUB_ENV
+
+      - name: Build the Docker image
+        run: |
+          docker build . --file Dockerfile --tag $DOCKER_CONTAINER:$DOCKER_TAG
+          [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker tag $DOCKER_CONTAINER:$DOCKER_TAG ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:latest
+          docker tag $DOCKER_CONTAINER:$DOCKER_TAG ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:$DOCKER_TAG
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+
+      - name: Push to GHCR
+        run: |
+          [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:latest
+          docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:$DOCKER_TAG

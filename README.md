@@ -23,6 +23,13 @@ You use this project at your own risk, the contributors are not responsible for 
 ## Pterodactyl Panel
 There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`
 
+## Docker
+There is a docker image available for the standalone version of the tool, this can be found at `ghcr.io/rtm516/mcxboxbroadcast:latest`
+
+```bash
+docker run -it -v /path/to/config:/opt/app/config ghcr.io/rtm516/mcxboxbroadcast:latest
+```
+
 ## Installation
 ### Extension
 1. Download the latest release file `MCXboxBroadcastExtension.jar`
