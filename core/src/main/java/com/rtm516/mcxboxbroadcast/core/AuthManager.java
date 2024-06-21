@@ -8,6 +8,7 @@ import net.raphimc.minecraftauth.step.msa.MsaCodeStep;
 import net.raphimc.minecraftauth.step.msa.StepMsaDeviceCode;
 import net.raphimc.minecraftauth.step.msa.StepMsaDeviceCodeMsaCode;
 import net.raphimc.minecraftauth.step.msa.StepMsaToken;
+import net.raphimc.minecraftauth.step.msa.StepRefreshTokenMsaCode;
 import net.raphimc.minecraftauth.step.xbl.StepXblDeviceToken;
 import net.raphimc.minecraftauth.step.xbl.StepXblSisuAuthentication;
 import net.raphimc.minecraftauth.step.xbl.session.StepInitialXblSession;
@@ -25,12 +26,6 @@ public class AuthManager {
     private final Path oldLiveAuth;
     private final Path oldXboxAuth;
     private final Logger logger;
-
-    private final HttpClient httpClient;
-    private final MsaCodeStep.ApplicationDetails appDetails;
-    private final StepMsaToken initialAuth;
-    private final StepXblDeviceToken stepDeviceToken;
-    private final StepXblSisuAuthentication xstsAuth;
 
     private StepXblSisuAuthentication.XblSisuTokens xstsToken;
     private XboxTokenInfo xboxTokenInfo;
@@ -50,75 +45,42 @@ public class AuthManager {
         // Replace the default logger with one we control
         MinecraftAuth.LOGGER = logger.prefixed("Auth");
 
-        this.httpClient = MinecraftAuth.createHttpClient();
-
-        // Setup the authentication steps
-        this.appDetails = new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, null, OAuthEnvironment.LIVE);
-        this.initialAuth = new StepMsaToken(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(this.appDetails), 120 * 1000));
-        this.stepDeviceToken = new StepXblDeviceToken("Android");
-
-        StepInitialXblSession xblAuth = new StepInitialXblSession(this.initialAuth, new StepXblDeviceToken("Android"));
-
-        this.xstsAuth = new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
-
         this.xstsToken = null;
     }
-
     /**
-     * Convert old auth token to new format if it exists
+     * Follow the auth flow to get the Xbox token and store it
      */
-    private void importLiveTokens() {
+    private void initialise() {
+        // Setup the authentication steps
+        HttpClient httpClient = MinecraftAuth.createHttpClient();
+        MsaCodeStep.ApplicationDetails appDetails = new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, null, OAuthEnvironment.LIVE);
+        StepMsaToken initialAuth = new StepMsaToken(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
+        StepInitialXblSession xblAuth = new StepInitialXblSession(initialAuth, new StepXblDeviceToken("Android"));
+        StepXblSisuAuthentication xstsAuth = new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
+
+        // Check if we have an old live_token.json file and try to import the refresh token from it
         if (Files.exists(oldLiveAuth)) {
             logger.info("Trying to convert from old live_token.json to new cache.json");
             try {
                 JsonObject liveToken = JsonUtil.parseString(Files.readString(oldLiveAuth)).getAsJsonObject();
                 JsonObject tokenData = liveToken.getAsJsonObject("token");
 
-                JsonObject empty = new JsonObject();
-                empty.addProperty("expireTimeMs", 0);
-                empty.addProperty("token", "");
-                empty.addProperty("titleId", "");
-                empty.addProperty("userHash", "");
+                StepMsaToken convertInitialAuth = new StepMsaToken(new StepRefreshTokenMsaCode(appDetails));
+                StepInitialXblSession convertXblAuth = new StepInitialXblSession(convertInitialAuth, new StepXblDeviceToken("Android"));
+                StepXblSisuAuthentication convertXstsAuth = new StepXblSisuAuthentication(convertXblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
 
-                JsonObject msaToken = new JsonObject();
-                msaToken.addProperty("expireTimeMs", 0);
-                msaToken.addProperty("accessToken", tokenData.get("access_token").getAsString());
-                msaToken.addProperty("refreshToken", tokenData.get("refresh_token").getAsString());
+                xstsToken = convertXstsAuth.getFromInput(httpClient, new StepRefreshTokenMsaCode.RefreshToken(tokenData.get("refresh_token").getAsString()));
 
-                JsonObject msaCodeTemp = new JsonObject();
-                msaCodeTemp.addProperty("clientId", appDetails.getClientId());
-                msaCodeTemp.addProperty("scope", appDetails.getScope());
-                msaCodeTemp.addProperty("oAuthEnvironment", appDetails.getOAuthEnvironment().name());
-                msaToken.add("msaCode", msaCodeTemp);
-
-                JsonObject initialXblSession = new JsonObject();
-                initialXblSession.add("msaToken", initialAuth.toJson(initialAuth.refresh(httpClient, initialAuth.fromJson(msaToken))));
-                initialXblSession.add("xblDeviceToken", stepDeviceToken.toJson(stepDeviceToken.applyStep(httpClient, null)));
-
-                JsonObject convertedLiveToken = new JsonObject();
-                convertedLiveToken.add("initialXblSession", initialXblSession);
-                convertedLiveToken.add("titleToken", empty);
-                convertedLiveToken.add("userToken", empty);
-                convertedLiveToken.add("xstsToken", empty);
-
-                Files.writeString(cache, JsonUtil.GSON.toJson(convertedLiveToken));
                 Files.delete(oldLiveAuth);
                 if (Files.exists(oldXboxAuth)) Files.delete(oldXboxAuth);
             } catch (Exception e) {
                 logger.error("Failed to convert old auth token, if this keeps happening please remove " + oldLiveAuth + " and reauthenticate", e);
             }
         }
-    }
 
-    /**
-     * Follow the auth flow to get the Xbox token and store it
-     */
-    private void initialise() {
-        importLiveTokens();
-
-        // Load in cache.json
+        // Load in cache.json if we haven't loaded one from the old auth token
         try {
-            if (Files.exists(cache)) xstsToken = xstsAuth.fromJson(JsonUtil.parseString(Files.readString(cache)).getAsJsonObject());
+            if (xstsToken == null && Files.exists(cache)) xstsToken = xstsAuth.fromJson(JsonUtil.parseString(Files.readString(cache)).getAsJsonObject());
         } catch (IOException e) {
             logger.error("Failed to load cache.json", e);
         }
