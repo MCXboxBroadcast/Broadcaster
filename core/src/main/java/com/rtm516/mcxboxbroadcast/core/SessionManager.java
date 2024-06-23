@@ -308,4 +308,22 @@ public class SessionManager extends SessionManagerCore {
             logger.error("No restart callback set");
         }
     }
+
+    /**
+     * Get the gamertag of the current session
+     *
+     * @return the gamertag of the current session
+     */
+    public String getGamertag() {
+        return getXboxToken().gamertag();
+    }
+
+    /**
+     * Get the XUID of the current session
+     *
+     * @return the XUID of the current session
+     */
+    public String getXuid() {
+        return getXboxToken().userXUID();
+    }
 }
