@@ -11,6 +11,9 @@ import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
 import java.time.Instant;
 
+/**
+ * A Gson adapter for converting {@link Instant} objects to and from the ISO 8601 format.
+ */
 public class InstantConverter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
     @Override
     public Instant deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {

@@ -5,9 +5,13 @@ import com.google.gson.GsonBuilder;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.Date;
 
 public class Constants {
-    public static final Gson GSON = new GsonBuilder().registerTypeAdapter(Instant.class, new InstantConverter()).create();
+    public static final Gson GSON = new GsonBuilder()
+        .registerTypeAdapter(Instant.class, new InstantConverter())
+        .registerTypeAdapter(Date.class, new DateConverter())
+        .create();
 
     public static final String SERVICE_CONFIG_ID = "4fc10100-5f7a-4470-899b-280835760c07"; // The service config ID for Minecraft
     public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/MinecraftLobby/sessions/%s";
