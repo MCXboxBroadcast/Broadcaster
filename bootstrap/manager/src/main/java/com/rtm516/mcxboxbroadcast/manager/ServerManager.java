@@ -35,7 +35,7 @@ public class ServerManager {
     }
 
     public Server addServer() {
-        Server server = new Server(servers.size(), "", 19132);
+        Server server = new Server(servers.size(), "mc.example.com", 19132);
         servers.put(server.id(), server);
         return server;
     }
