@@ -4,6 +4,7 @@ import Error from './templates/Error'
 import Layout from './templates/Layout'
 
 import Todo from './pages/Todo'
+import Login from './pages/Login'
 import Bots from './pages/Bots'
 import BotDetails from './pages/BotDetails'
 import Servers from './pages/Servers'
@@ -69,7 +70,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'login',
-        element: <Todo />,
+        element: <Login />,
         handle: {
           title: () => 'Login',
           hideHeader: () => true,

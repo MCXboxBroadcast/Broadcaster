@@ -4,6 +4,7 @@ import { DocumentCheckIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Input from '../components/Input'
+import Button from '../components/Button'
 
 import { formatTimestamp } from '../utils'
 
@@ -132,18 +133,18 @@ function ServerDetails () {
               min='1'
               max='65535'
             />
-            <button type='submit' className='flex justify-center items-center gap-1 py-2 px-2 rounded-md text-white font-bold bg-green-700 hover:bg-green-800 transition-colors duration-150'>
+            <Button color='green' type='submit'>
               <div>
                 Save
               </div>
               <DocumentCheckIcon className='size-4' aria-hidden='true' />
-            </button>
-            <button className='flex justify-center items-center gap-1 py-2 px-2 rounded-md text-white font-bold bg-red-700 hover:bg-red-800 transition-colors duration-150' onClick={() => callDelete()}>
+            </Button>
+            <Button color='red' onClick={() => callDelete()}>
               <div>
                 Delete
               </div>
               <TrashIcon className='size-4' aria-hidden='true' />
-            </button>
+            </Button>
           </form>
         </div>
       </div>

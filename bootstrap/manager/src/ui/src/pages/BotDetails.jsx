@@ -4,6 +4,7 @@ import { DocumentCheckIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Select from '../components/Select'
+import Button from '../components/Button'
 
 function BotDetails () {
   const { botId } = useParams()
@@ -159,18 +160,18 @@ function BotDetails () {
               required
               options={servers.map((server) => ({ value: server.id, label: server.hostname + ':' + server.port}))}
             />
-            <button type='submit' className='flex justify-center items-center gap-1 py-2 px-2 rounded-md text-white font-bold bg-green-700 hover:bg-green-800 transition-colors duration-150'>
+            <Button color='green' type='submit'>
               <div>
                 Save
               </div>
               <DocumentCheckIcon className='size-4' aria-hidden='true' />
-            </button>
-            <button className='flex justify-center items-center gap-1 py-2 px-2 rounded-md text-white font-bold bg-red-700 hover:bg-red-800 transition-colors duration-150' onClick={() => callDelete()}>
+            </Button>
+            <Button color='red' onClick={() => callDelete()}>
               <div>
                 Delete
               </div>
               <TrashIcon className='size-4' aria-hidden='true' />
-            </button>
+            </Button>
           </form>
         </div>
       </div>
