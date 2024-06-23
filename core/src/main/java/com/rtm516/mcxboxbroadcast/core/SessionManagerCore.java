@@ -1,6 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.github.mizosoft.methanol.Methanol;
+import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
@@ -200,13 +201,18 @@ public abstract class SessionManagerCore {
         );
 
         // Make the request to create the session handle
-        HttpRequest createHandleRequest = HttpRequest.newBuilder()
-            .uri(Constants.CREATE_HANDLE)
-            .header("Content-Type", "application/json")
-            .header("Authorization", token)
-            .header("x-xbl-contract-version", "107")
-            .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createHandleContent)))
-            .build();
+        HttpRequest createHandleRequest;
+        try {
+            createHandleRequest = HttpRequest.newBuilder()
+                .uri(Constants.CREATE_HANDLE)
+                .header("Content-Type", "application/json")
+                .header("Authorization", token)
+                .header("x-xbl-contract-version", "107")
+                .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createHandleContent)))
+                .build();
+        } catch (JsonParseException e) {
+            throw new SessionCreationException("Unable to create session handle, error parsing json: " + e.getMessage());
+        }
 
         // Read the handle response
         HttpResponse<String> createHandleResponse;
@@ -216,7 +222,7 @@ public abstract class SessionManagerCore {
                 CreateHandleResponse parsedResponse = Constants.GSON.fromJson(createHandleResponse.body(), CreateHandleResponse.class);
                 sessionInfo.setHandleId(parsedResponse.id());
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (JsonParseException | IOException | InterruptedException e) {
             throw new SessionCreationException(e.getMessage());
         }
 
@@ -245,13 +251,18 @@ public abstract class SessionManagerCore {
      * @throws SessionUpdateException If the update fails
      */
     protected String updateSessionInternal(String url, Object data) throws SessionUpdateException {
-        HttpRequest createSessionRequest = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .header("Content-Type", "application/json")
-            .header("Authorization", getTokenHeader())
-            .header("x-xbl-contract-version", "107")
-            .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(data)))
-            .build();
+        HttpRequest createSessionRequest;
+        try {
+            createSessionRequest = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .header("Authorization", getTokenHeader())
+                .header("x-xbl-contract-version", "107")
+                .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(data)))
+                .build();
+        } catch (JsonParseException e) {
+            throw new SessionUpdateException("Unable to update session information, error parsing json: " + e.getMessage());
+        }
 
         HttpResponse<String> createSessionResponse;
         try {
@@ -382,7 +393,7 @@ public abstract class SessionManagerCore {
 
         try {
             return Constants.GSON.fromJson(httpClient.send(socialSummaryRequest, HttpResponse.BodyHandlers.ofString()).body(), SocialSummaryResponse.class);
-        } catch (IOException | InterruptedException e) {
+        } catch (JsonParseException | IOException | InterruptedException e) {
             logger.error("Unable to get current friend count", e);
         }
 

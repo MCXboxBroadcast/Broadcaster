@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.FriendModifyResponse;
@@ -76,7 +77,7 @@ public class FriendManager {
                     }
                 }
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (JsonParseException | IOException | InterruptedException e) {
             logger.debug("Follower request response: " + lastResponse);
             throw new XboxFriendsException(e.getMessage());
         }
@@ -108,7 +109,7 @@ public class FriendManager {
                         }
                     }
                 }
-            } catch (IOException | InterruptedException e) {
+            } catch (JsonParseException | IOException | InterruptedException e) {
                 logger.debug("Social request response: " + lastResponse);
                 throw new XboxFriendsException(e.getMessage());
             }
@@ -168,7 +169,7 @@ public class FriendManager {
             if (modifyResponse.isFollowingCaller() && modifyResponse.isFollowedByCaller()) {
                 return false;
             }
-        } catch (InterruptedException | IOException e) {
+        } catch (JsonParseException | InterruptedException | IOException e) {
             // Debug log it failed and assume we aren't friends
             logger.debug("Failed to check if " + gamertag + " (" + xuid + ") is a friend: " + e.getMessage());
         }

@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
@@ -133,13 +134,17 @@ public class SessionManager extends SessionManagerCore {
         checkConnection();
 
         String responseBody = super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo));
-        CreateSessionResponse sessionResponse = Constants.GSON.fromJson(responseBody, CreateSessionResponse.class);
+        try {
+            CreateSessionResponse sessionResponse = Constants.GSON.fromJson(responseBody, CreateSessionResponse.class);
 
-        // Restart if we have 28/30 session members
-        int players = sessionResponse.members().size();
-        if (players >= 28) {
-            logger.info("Restarting session due to " + players + "/30 players");
-            restart();
+            // Restart if we have 28/30 session members
+            int players = sessionResponse.members().size();
+            if (players >= 28) {
+                logger.info("Restarting session due to " + players + "/30 players");
+                restart();
+            }
+        } catch (JsonParseException e) {
+            throw new SessionUpdateException("Failed to parse session response: " + e.getMessage());
         }
     }
 
@@ -217,7 +222,7 @@ public class SessionManager extends SessionManagerCore {
         // Update the list of sub-sessions
         try {
             Files.writeString(Paths.get(cache, "sub_sessions.json"), Constants.GSON.toJson(subSessionManagers.keySet()));
-        } catch (IOException e) {
+        } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }
     }
@@ -250,7 +255,7 @@ public class SessionManager extends SessionManagerCore {
         // Update the list of sub-sessions
         try {
             Files.writeString(Paths.get(cache, "sub_sessions.json"), Constants.GSON.toJson(subSessionManagers.keySet()));
-        } catch (IOException e) {
+        } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }
 
