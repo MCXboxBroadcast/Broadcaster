@@ -102,7 +102,8 @@ public class MCXboxBroadcastExtension implements Extension {
             .description("Get the version of the extension.")
             .executor((source, command, args) -> {
                 source.sendMessage("MCXboxBroadcast Extension " + BuildData.VERSION);
-            });
+            })
+            .build());
     }
 
     private void restart() {
