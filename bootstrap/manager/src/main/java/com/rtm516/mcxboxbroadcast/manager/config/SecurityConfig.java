@@ -1,15 +1,12 @@
 package com.rtm516.mcxboxbroadcast.manager.config;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import com.rtm516.mcxboxbroadcast.manager.BackendManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @EnableWebSecurity
@@ -17,11 +14,12 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Autowired
+    public SecurityFilterChain filterChain(HttpSecurity http, BackendManager backendManager) throws Exception {
         http
             .csrf(csrf -> csrf.disable()); // Disable CSRF - TODO Make this work with the start/stop/restart endpoints?
 
-        if (System.getenv("SECURITY") == null || System.getenv("SECURITY").equals("true")) {
+        if (backendManager.authEnabled()) {
             http
                 .authorizeHttpRequests(authorize ->
                     authorize
@@ -49,15 +47,6 @@ public class SecurityConfig {
         }
 
         return http.build();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(UserDetailsService.class)
-    InMemoryUserDetailsManager inMemoryUserDetailsManager() {
-        return new InMemoryUserDetailsManager(User.builder()
-                .username("admin")
-                .password(passwordEncoder().encode("password"))
-            .build());
     }
 
     @Bean

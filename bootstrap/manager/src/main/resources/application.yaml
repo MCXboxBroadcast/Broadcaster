@@ -3,7 +3,11 @@ spring:
         name: "bootstrap-manager"
     data:
         mongodb:
-            database: "mcxbmanager"
+            host: 127.0.0.1
+            authentication-database: admin
+            database: mcxbmanager
+            username: mcxbmanager
+            password: mcxbmanager
 
 server:
     port: 8082

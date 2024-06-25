@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { useNavigate } from 'react-router-dom'
@@ -13,6 +13,7 @@ function Login () {
     color: '',
     message: ''
   })
+  const submitRef = useRef(null)
 
   useEffect(() => {
     if (window.location.search === '?logout') {
@@ -33,6 +34,7 @@ function Login () {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    submitRef.current.disabled = true
 
     fetch('/login', { method: 'POST', body: new URLSearchParams(formData) }).then((res) => res.json()).then((data) => {
       if (data.success) {
@@ -42,12 +44,22 @@ function Login () {
           color: 'red',
           message: 'Invalid username or password'
         })
+        setFormData({
+          username: formData.username,
+          password: ''
+        })
+        submitRef.current.disabled = false
       }
     }).catch((err) => {
       setMessage({
         color: 'red',
         message: err.message
       })
+      setFormData({
+        username: formData.username,
+        password: ''
+      })
+      submitRef.current.disabled = false
     })
   }
 
@@ -66,7 +78,6 @@ function Login () {
               value={formData.username}
               onChange={handleChange}
               required
-              placeholder='admin'
             />
             <Input
               label='Password'
@@ -76,9 +87,8 @@ function Login () {
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder='&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;'
             />
-            <Button type='submit' color='green'>Login</Button>
+            <Button type='submit' color='green' className='disabled:cursor-wait' ref={submitRef}>Login</Button>
           </form>
         </div>
       </div>
