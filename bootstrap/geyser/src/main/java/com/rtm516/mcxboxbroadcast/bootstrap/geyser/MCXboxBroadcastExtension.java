@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
+import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -94,6 +95,14 @@ public class MCXboxBroadcastExtension implements Extension {
                 }
             })
             .build());
+
+        event.register(Command.builder(this)
+            .source(CommandSource.class)
+            .name("version")
+            .description("Get the version of the extension.")
+            .executor((source, command, args) -> {
+                source.sendMessage("MCXboxBroadcast Extension " + BuildData.VERSION);
+            });
     }
 
     private void restart() {
@@ -108,6 +117,9 @@ public class MCXboxBroadcastExtension implements Extension {
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
         logger = new ExtensionLoggerImpl(this.logger());
+
+        logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION);
+
         sessionManager = new SessionManager(this.dataFolder().toString(), logger);
 
         // Load the config file

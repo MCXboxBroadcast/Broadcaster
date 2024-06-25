@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
+import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
@@ -28,6 +29,8 @@ public class StandaloneMain {
 
     public static void main(String[] args) throws Exception {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
+
+        logger.info("Starting MCXboxBroadcast Standalone " + BuildData.VERSION);
 
         String configFileName = "config.yml";
         File configFile = new File(configFileName);
