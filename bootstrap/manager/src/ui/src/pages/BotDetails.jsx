@@ -11,7 +11,8 @@ function BotDetails () {
   const [info, setInfo] = useState({
     gamertag: '',
     xid: '',
-    status: ''
+    status: '',
+    serverId: ''
   })
   const [currentServer, setCurrentServer] = useState({
     hostname: '',
@@ -22,11 +23,17 @@ function BotDetails () {
   const logsRef = useRef(null)
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
-    serverId: '-1'
+    serverId: ''
   })
 
   const updateData = () => {
-    fetch('/api/bots/' + botId).then((res) => res.json()).then((data) => {
+    fetch('/api/bots/' + botId).then((res) => {
+      if (!res.ok) {
+        // Redirect to the bots page if an error occurs
+        return navigate('/bots', { state: { error: res.statusText } })
+      }
+      return res.json()
+    }).then((data) => {
       setInfo(data)
 
       fetch('/api/servers').then((res) => res.json()).then((serverData) => {
@@ -40,10 +47,10 @@ function BotDetails () {
           })
         }
       })
-    })
 
-    fetch('/api/bots/' + botId + '/logs').then((res) => res.text()).then((data) => {
-      setLogs(data)
+      fetch('/api/bots/' + botId + '/logs').then((res) => res.text()).then((data) => {
+        setLogs(data)
+      })
     })
   }
 
@@ -59,7 +66,7 @@ function BotDetails () {
 
   // Set the form data to the current hostname and port if it's empty
   useEffect(() => {
-    if (formData.serverId === '-1' && info.serverId !== undefined) {
+    if (formData.serverId === '' && info.serverId !== undefined) {
       setFormData({
         serverId: info.serverId
       })

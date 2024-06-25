@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build-prod": "vite build --outDir ..\\main\\resources\\static\\",
+    "build-prod": "vite build --outDir ..\\main\\resources\\static\\ --emptyOutDir",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

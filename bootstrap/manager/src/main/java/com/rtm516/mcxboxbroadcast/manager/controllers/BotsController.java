@@ -52,14 +52,13 @@ public class BotsController {
     }
 
     @GetMapping("/{botId:[a-z0-9]+}")
-    public BotInfoResponse bot(HttpServletResponse response, @PathVariable String botId) {
-        ObjectId botIdObj = new ObjectId(botId);
-        if (!botManager.bots().containsKey(botIdObj)) {
+    public BotInfoResponse bot(HttpServletResponse response, @PathVariable ObjectId botId) {
+        if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return null;
         }
         response.setStatus(200);
-        return botManager.bots().get(botIdObj).toResponse();
+        return botManager.bots().get(botId).toResponse();
     }
 
     @PostMapping("/{botId:[a-z0-9]+}")

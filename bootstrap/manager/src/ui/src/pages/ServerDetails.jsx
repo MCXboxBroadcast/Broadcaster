@@ -30,7 +30,13 @@ function ServerDetails () {
   })
 
   const updateData = () => {
-    fetch('/api/servers/' + serverId).then((res) => res.json()).then((data) => {
+    fetch('/api/servers/' + serverId).then((res) => {
+      if (!res.ok) {
+        // Redirect to the bots page if an error occurs
+        return navigate('/servers', { state: { error: res.statusText } })
+      }
+      return res.json()
+    }).then((data) => {
       setInfo(data)
     })
   }
