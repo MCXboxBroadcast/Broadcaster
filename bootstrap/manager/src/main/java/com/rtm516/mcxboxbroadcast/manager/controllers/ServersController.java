@@ -1,16 +1,13 @@
 package com.rtm516.mcxboxbroadcast.manager.controllers;
 
-import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.ServerManager;
-import com.rtm516.mcxboxbroadcast.manager.models.Bot;
 import com.rtm516.mcxboxbroadcast.manager.models.Server;
-import com.rtm516.mcxboxbroadcast.manager.models.ServerUpdate;
+import com.rtm516.mcxboxbroadcast.manager.models.request.ServerUpdateRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,17 +15,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController()
 @RequestMapping("/api/servers")
-public class ServerController {
+public class ServersController {
 
     private final ServerManager serverManager;
     private final BackendManager backendManager;
 
     @Autowired
-    public ServerController(final ServerManager serverManager, BackendManager backendManager) {
+    public ServersController(ServerManager serverManager, BackendManager backendManager) {
         this.serverManager = serverManager;
         this.backendManager = backendManager;
     }
@@ -57,24 +53,24 @@ public class ServerController {
     }
 
     @PostMapping("/{serverId:[0-9]+}")
-    public void update(HttpServletResponse response, @PathVariable int serverId, @RequestBody ServerUpdate serverUpdate) {
+    public void update(HttpServletResponse response, @PathVariable int serverId, @RequestBody ServerUpdateRequest serverUpdateRequest) {
         if (!serverManager.servers().containsKey(serverId)) {
             response.setStatus(404);
             return;
         }
 
-        if (serverUpdate.hostname() == null || serverUpdate.hostname().isEmpty()) {
+        if (serverUpdateRequest.hostname() == null || serverUpdateRequest.hostname().isEmpty()) {
             response.setStatus(400);
             return;
         }
 
-        if (serverUpdate.port() < 1 || serverUpdate.port() > 65535) {
+        if (serverUpdateRequest.port() < 1 || serverUpdateRequest.port() > 65535) {
             response.setStatus(400);
             return;
         }
 
-        serverManager.servers().get(serverId).hostname(serverUpdate.hostname());
-        serverManager.servers().get(serverId).port(serverUpdate.port());
+        serverManager.servers().get(serverId).hostname(serverUpdateRequest.hostname());
+        serverManager.servers().get(serverId).port(serverUpdateRequest.port());
 
         backendManager.scheduledThreadPool().execute(() -> serverManager.servers().get(serverId).updateSessionInfo()); // Update the session info in a new thread
 

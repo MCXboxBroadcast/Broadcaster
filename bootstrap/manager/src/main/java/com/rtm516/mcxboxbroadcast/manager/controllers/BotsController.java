@@ -3,10 +3,12 @@ package com.rtm516.mcxboxbroadcast.manager.controllers;
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.ServerManager;
-import com.rtm516.mcxboxbroadcast.manager.models.Bot;
-import com.rtm516.mcxboxbroadcast.manager.models.BotUpdate;
-import com.rtm516.mcxboxbroadcast.manager.models.ServerUpdate;
+import com.rtm516.mcxboxbroadcast.manager.database.repository.BotCollection;
+import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
+import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.request.BotUpdateRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,64 +22,70 @@ import java.util.List;
 
 @RestController()
 @RequestMapping("/api/bots")
-public class BotController {
+public class BotsController {
 
     private final BotManager botManager;
     private final ServerManager serverManager;
     private final BackendManager backendManager;
+    private final BotCollection botCollection;
 
     @Autowired
-    public BotController(final BotManager botManager, ServerManager serverManager, BackendManager backendManager) {
+    public BotsController(BotManager botManager, ServerManager serverManager, BackendManager backendManager, BotCollection botCollection) {
         this.botManager = botManager;
         this.serverManager = serverManager;
         this.backendManager = backendManager;
+        this.botCollection = botCollection;
     }
 
     @GetMapping("")
-    public List<Bot.Info> bots(HttpServletResponse response) {
+    public List<BotInfoResponse> bots(HttpServletResponse response) {
         response.setStatus(200);
-        return botManager.bots().values().stream().map(Bot::info).toList();
+        return botManager.bots().values().stream().map(BotContainer::toResponse).toList();
     }
 
     @PostMapping("/create")
-    public int create(HttpServletResponse response) {
+    public ObjectId create(HttpServletResponse response) {
         response.setStatus(200);
-        Bot bot = botManager.addBot();
-        backendManager.scheduledThreadPool().execute(() -> bot.start()); // Start the bot in a new thread
-        return bot.info().id();
+        BotContainer botContainer = botManager.addBot();
+        backendManager.scheduledThreadPool().execute(() -> botContainer.start()); // Start the bot in a new thread
+        return botContainer.bot()._id();
     }
 
-    @GetMapping("/{botId:[0-9]+}")
-    public Bot.Info bot(HttpServletResponse response, @PathVariable int botId) {
-        if (!botManager.bots().containsKey(botId)) {
+    @GetMapping("/{botId:[a-z0-9]+}")
+    public BotInfoResponse bot(HttpServletResponse response, @PathVariable String botId) {
+        ObjectId botIdObj = new ObjectId(botId);
+        if (!botManager.bots().containsKey(botIdObj)) {
             response.setStatus(404);
             return null;
         }
         response.setStatus(200);
-        return botManager.bots().get(botId).info();
+        return botManager.bots().get(botIdObj).toResponse();
     }
 
-    @PostMapping("/{botId:[0-9]+}")
-    public void update(HttpServletResponse response, @PathVariable int botId, @RequestBody BotUpdate botUpdate) {
+    @PostMapping("/{botId:[a-z0-9]+}")
+    public void update(HttpServletResponse response, @PathVariable ObjectId botId, @RequestBody BotUpdateRequest botUpdateRequest) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return;
         }
 
-        if (!serverManager.servers().containsKey(botUpdate.serverId())) {
+        if (!serverManager.servers().containsKey(botUpdateRequest.serverId())) {
             response.setStatus(400);
             return;
         }
 
-        botManager.bots().get(botId).info().serverId(botUpdate.serverId());
+        // Update the server ID and save the bot to the database
+        BotContainer botContainer = botManager.bots().get(botId);
+        botContainer.bot().serverId(botUpdateRequest.serverId());
+        botCollection.save(botContainer.bot());
 
-        backendManager.scheduledThreadPool().execute(() -> botManager.bots().get(botId).updateSessionInfo()); // Update the session info in a new thread
+        backendManager.scheduledThreadPool().execute(() -> botContainer.updateSessionInfo()); // Update the session info in a new thread
 
         response.setStatus(200);
     }
 
-    @PostMapping("/{botId:[0-9]+}/start")
-    public void start(HttpServletResponse response, @PathVariable int botId) {
+    @PostMapping("/{botId:[a-z0-9]+}/start")
+    public void start(HttpServletResponse response, @PathVariable ObjectId botId) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return;
@@ -86,8 +94,8 @@ public class BotController {
         response.setStatus(200);
     }
 
-    @PostMapping("/{botId:[0-9]+}/stop")
-    public void stop(HttpServletResponse response, @PathVariable int botId) {
+    @PostMapping("/{botId:[a-z0-9]+}/stop")
+    public void stop(HttpServletResponse response, @PathVariable ObjectId botId) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return;
@@ -96,8 +104,8 @@ public class BotController {
         response.setStatus(200);
     }
 
-    @PostMapping("/{botId:[0-9]+}/restart")
-    public void restart(HttpServletResponse response, @PathVariable int botId) {
+    @PostMapping("/{botId:[a-z0-9]+}/restart")
+    public void restart(HttpServletResponse response, @PathVariable ObjectId botId) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return;
@@ -106,8 +114,8 @@ public class BotController {
         response.setStatus(200);
     }
 
-    @DeleteMapping("/{botId:[0-9]+}")
-    public void delete(HttpServletResponse response, @PathVariable int botId) {
+    @DeleteMapping("/{botId:[a-z0-9]+}")
+    public void delete(HttpServletResponse response, @PathVariable ObjectId botId) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return;
@@ -116,8 +124,8 @@ public class BotController {
         response.setStatus(200);
     }
 
-    @GetMapping("/{botId:[0-9]+}/logs")
-    public String logs(HttpServletResponse response, @PathVariable int botId) {
+    @GetMapping("/{botId:[a-z0-9]+}/logs")
+    public String logs(HttpServletResponse response, @PathVariable ObjectId botId) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
             return "";

@@ -1,11 +1,12 @@
 package com.rtm516.mcxboxbroadcast.manager.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
+import com.rtm516.mcxboxbroadcast.manager.database.model.Bot;
+import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -13,22 +14,25 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
-public class Bot {
-    private final Info info;
+public class BotContainer {
+    private final Bot bot;
     private final StringBuilder logs = new StringBuilder();
     private final DateTimeFormatter logTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private final BotManager botManager;
 
     private Logger logger;
     private SessionManager sessionManager;
+    private Status status;
 
-    public Bot(BotManager botManager, Info info) {
+    public BotContainer(BotManager botManager, Bot bot) {
         this.botManager = botManager;
-        this.info = info;
+        this.bot = bot;
+
+        status = Status.OFFLINE;
     }
 
-    public Info info() {
-        return info;
+    public Bot bot() {
+        return bot;
     }
 
     public String logs() {
@@ -36,42 +40,46 @@ public class Bot {
     }
 
     protected void log(String level, String message) {
-        // [%d{HH:mm:ss.SSS} %t/%level]
         logs.append("[" + LocalDateTime.now().format(logTimeFormatter) + " " + level + "]").append(message).append("\n");
     }
 
+    public BotInfoResponse toResponse() {
+        return bot.toResponse(status);
+    }
+
     public void start() {
-        info().status(Status.STARTING);
+        status = Status.STARTING;
         logger = new Logger(this); // TODO Move to file based?
-        sessionManager = new SessionManager("./cache/" + info().id(), logger);
+        sessionManager = new SessionManager("./cache/" + bot()._id(), logger);
 
         sessionManager.restartCallback(this::restart);
         try {
-            sessionManager.init(botManager.serverSessionInfo(info().serverId()), new FriendSyncConfig(20, true, true));
-            info().status(Status.ONLINE);
+            sessionManager.init(botManager.serverSessionInfo(bot().serverId()), new FriendSyncConfig(20, true, true));
+            status = Status.ONLINE;
 
-            info().gamertag(sessionManager.getGamertag());
-            info().xid(sessionManager.getXuid());
+            bot().gamertag(sessionManager.getGamertag());
+            bot().xid(sessionManager.getXuid());
+            botManager.botCollection().save(bot());
 
             sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, 30, 30, TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create session", e);
-            info().status(Status.OFFLINE);
+            status = Status.OFFLINE;
         } catch (Exception e) {
             logger.error("An unexpected error occurred", e);
-            info().status(Status.OFFLINE);
+            status = Status.OFFLINE;
         }
     }
 
     public void updateSessionInfo() {
         // If the bot is not online, don't update the session
-        if (info().status() != Status.ONLINE) {
+        if (status != Status.ONLINE) {
             return;
         }
 
         try {
             // Update the session
-            sessionManager.updateSession(botManager.serverSessionInfo(info().serverId()));
+            sessionManager.updateSession(botManager.serverSessionInfo(bot().serverId()));
             sessionManager.logger().info("Updated session!");
         } catch (SessionUpdateException e) {
             sessionManager.logger().error("Failed to update session", e);
@@ -80,7 +88,7 @@ public class Bot {
 
     public void stop() {
         sessionManager.shutdown();
-        info().status(Status.OFFLINE);
+        status = Status.OFFLINE;
     }
 
     public void restart() {
@@ -88,109 +96,47 @@ public class Bot {
         start();
     }
 
-    public static class Info {
-        @JsonProperty
-        private int id;
-        @JsonProperty
-        private String gamertag;
-        @JsonProperty
-        private String xid;
-        @JsonProperty
-        private Status status;
-        @JsonProperty
-        private int serverId;
-
-        public Info(int id) {
-            this(id, "", "", 0);
-        }
-
-        public Info(int id, String gamertag, String xid, int serverId) {
-            this.id = id;
-            this.gamertag = gamertag;
-            this.xid = xid;
-            this.serverId = serverId;
-
-            this.status = Status.OFFLINE;
-        }
-
-        public int id() {
-            return id;
-        }
-
-        public String gamertag() {
-            return gamertag;
-        }
-
-        public void gamertag(String gamertag) {
-            this.gamertag = gamertag;
-        }
-
-        public String xid() {
-            return xid;
-        }
-
-        public void xid(String xid) {
-            this.xid = xid;
-        }
-
-        public Status status() {
-            return status;
-        }
-
-        public void status(Status status) {
-            this.status = status;
-        }
-
-        public int serverId() {
-            return serverId;
-        }
-
-        public void serverId(int serverId) {
-            this.serverId = serverId;
-        }
-    }
-
     public class Logger implements com.rtm516.mcxboxbroadcast.core.Logger {
-        private final Bot bot;
+        private final BotContainer botContainer;
         private final String prefixString;
 
-        public Logger(Bot bot) {
-            this(bot, "");
+        public Logger(BotContainer botContainer) {
+            this(botContainer, "");
         }
 
-        public Logger(Bot bot, String prefixString) {
-            this.bot = bot;
+        public Logger(BotContainer botContainer, String prefixString) {
+            this.botContainer = botContainer;
             this.prefixString = prefixString;
         }
 
         @Override
         public void info(String message) {
-            bot.log("INFO", prefix(message));
+            botContainer.log("INFO", prefix(message));
         }
 
         @Override
         public void warn(String message) {
-            bot.log("WARN", prefix(message));
+            botContainer.log("WARN", prefix(message));
         }
 
         @Override
         public void error(String message) {
-            bot.log("ERROR", prefix(message));
+            botContainer.log("ERROR", prefix(message));
         }
 
         @Override
         public void error(String message, Throwable ex) {
-            bot.log("ERROR", prefix(message) + "\n" + getStackTrace(ex));
+            botContainer.log("ERROR", prefix(message) + "\n" + getStackTrace(ex));
         }
 
         @Override
         public void debug(String message) {
-            bot.log("DEBUG", prefix(message));
+            botContainer.log("DEBUG", prefix(message));
         }
 
         @Override
         public com.rtm516.mcxboxbroadcast.core.Logger prefixed(String prefixString) {
-            return new Logger(bot, prefixString);
+            return new Logger(botContainer, prefixString);
         }
 
         private String prefix(String message) {
