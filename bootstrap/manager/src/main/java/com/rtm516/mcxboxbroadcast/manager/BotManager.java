@@ -46,6 +46,10 @@ public class BotManager {
         return botCollection;
     }
 
+    public BackendManager backendManager() {
+        return backendManager;
+    }
+
     public Map<ObjectId, BotContainer> bots() {
         return bots;
     }

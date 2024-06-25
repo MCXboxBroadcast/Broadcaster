@@ -61,7 +61,7 @@ public class BotContainer {
             bot.xid(sessionManager.getXuid());
             botManager.botCollection().save(bot);
 
-            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, 30, 30, TimeUnit.SECONDS);
+            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime(), botManager.backendManager().updateTime(), TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create session", e);
             status = Status.OFFLINE;

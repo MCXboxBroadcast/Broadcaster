@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Scope
@@ -21,6 +22,7 @@ public class ServerManager {
     @Autowired
     public ServerManager(BackendManager backendManager, ServerCollection serverCollection) {
         this.backendManager = backendManager;
+        this.serverCollection = serverCollection;
 
         // Load all servers from the database
         serverCollection.findAll().forEach(server -> {
@@ -28,12 +30,11 @@ public class ServerManager {
         });
 
         // Start the bots in a new thread so the web server can start
-        backendManager.scheduledThreadPool().execute(() -> {
+        backendManager.scheduledThreadPool().scheduleWithFixedDelay(() -> {
             for (ServerContainer serverContainer : servers.values()) {
                 serverContainer.updateSessionInfo();
             }
-        });
-        this.serverCollection = serverCollection;
+        }, 0, backendManager.updateTime() / 2, TimeUnit.SECONDS);
     }
 
     public Map<ObjectId, ServerContainer> servers() {

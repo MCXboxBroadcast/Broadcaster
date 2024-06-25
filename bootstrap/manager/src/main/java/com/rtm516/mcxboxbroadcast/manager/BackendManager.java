@@ -47,4 +47,17 @@ public class BackendManager {
     public boolean authEnabled() {
         return System.getenv("SECURITY") == null || System.getenv("SECURITY").equals("true");
     }
+
+    /**
+     * Get the time in seconds between each update
+     * Full time is the bot update time
+     * Half time is the server update time
+     * <p>
+     * TODO Make configurable
+     *
+     * @return the time in seconds between each update
+     */
+    public int updateTime() {
+        return 30;
+    }
 }
