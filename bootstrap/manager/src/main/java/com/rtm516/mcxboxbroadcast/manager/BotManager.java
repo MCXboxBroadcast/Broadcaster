@@ -1,9 +1,9 @@
 package com.rtm516.mcxboxbroadcast.manager;
 
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
-import com.rtm516.mcxboxbroadcast.manager.controllers.BotsController;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Bot;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.BotCollection;
+import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +20,10 @@ public class BotManager {
     private final ServerManager serverManager;
     private final BackendManager backendManager;
     private final BotCollection botCollection;
+    private final ServerCollection serverCollection;
 
     @Autowired
-    public BotManager(ServerManager serverManager, BackendManager backendManager, BotCollection botCollection) {
+    public BotManager(ServerManager serverManager, BackendManager backendManager, BotCollection botCollection, ServerCollection serverCollection) {
         this.serverManager = serverManager;
         this.backendManager = backendManager;
         this.botCollection = botCollection;
@@ -38,6 +39,7 @@ public class BotManager {
                 botContainer.start();
             }
         });
+        this.serverCollection = serverCollection;
     }
 
     public BotCollection botCollection() {
@@ -52,12 +54,12 @@ public class BotManager {
         return bots.get(botId).logs();
     }
 
-    public SessionInfo serverSessionInfo(int id) {
+    public SessionInfo serverSessionInfo(ObjectId id) {
         return serverManager.servers().get(id).sessionInfo();
     }
 
     public BotContainer addBot() {
-        Bot bot = botCollection.save(new Bot());
+        Bot bot = botCollection.save(new Bot(serverManager.firstServer()));
 
         BotContainer botContainer = new BotContainer(this, bot);
         bots.put(bot._id(), botContainer);

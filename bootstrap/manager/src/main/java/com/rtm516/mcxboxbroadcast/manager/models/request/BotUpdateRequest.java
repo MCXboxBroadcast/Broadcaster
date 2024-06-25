@@ -1,4 +1,6 @@
 package com.rtm516.mcxboxbroadcast.manager.models.request;
 
-public record BotUpdateRequest(int serverId) {
+import org.bson.types.ObjectId;
+
+public record BotUpdateRequest(ObjectId serverId) {
 }

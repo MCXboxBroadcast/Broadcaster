@@ -1,6 +1,9 @@
 package com.rtm516.mcxboxbroadcast.manager;
 
-import com.rtm516.mcxboxbroadcast.manager.models.Server;
+import com.rtm516.mcxboxbroadcast.manager.database.model.Server;
+import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
+import com.rtm516.mcxboxbroadcast.manager.models.ServerContainer;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -11,36 +14,49 @@ import java.util.Map;
 @Service
 @Scope
 public class ServerManager {
+    private final Map<ObjectId, ServerContainer> servers = new HashMap<>();
     private final BackendManager backendManager;
-
-    private Map<Integer, Server> servers = new HashMap<>();
+    private final ServerCollection serverCollection;
 
     @Autowired
-    public ServerManager(BackendManager backendManager) {
+    public ServerManager(BackendManager backendManager, ServerCollection serverCollection) {
         this.backendManager = backendManager;
 
-        // String hostName, String worldName, String version, int protocol, int players, int maxPlayers, String ip, int port
-        servers.put(0, new Server(0, "test.geysermc.org", 19132));
+        // Load all servers from the database
+        serverCollection.findAll().forEach(server -> {
+            servers.put(server._id(), new ServerContainer(server));
+        });
 
         // Start the bots in a new thread so the web server can start
         backendManager.scheduledThreadPool().execute(() -> {
-            for (Server server : servers.values()) {
-                server.updateSessionInfo();
+            for (ServerContainer serverContainer : servers.values()) {
+                serverContainer.updateSessionInfo();
             }
         });
+        this.serverCollection = serverCollection;
     }
 
-    public Map<Integer, Server> servers() {
+    public Map<ObjectId, ServerContainer> servers() {
         return servers;
     }
 
-    public Server addServer() {
-        Server server = new Server(servers.size(), "mc.example.com", 19132);
-        servers.put(server.id(), server);
-        return server;
+    public ServerContainer addServer() {
+        Server server = serverCollection.save(new Server("mc.example.com", 19132));
+
+        ServerContainer serverContainer = new ServerContainer(server);
+        servers.put(server._id(), serverContainer);
+        return serverContainer;
     }
 
-    public void deleteServer(int serverId) {
+    public void deleteServer(ObjectId serverId) {
         servers.remove(serverId);
+    }
+
+    public ObjectId firstServer() {
+        if (!servers.isEmpty()) {
+            return servers.values().iterator().next().server()._id();
+        }
+
+        return addServer().server()._id();
     }
 }

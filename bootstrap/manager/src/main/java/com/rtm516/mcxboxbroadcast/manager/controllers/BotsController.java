@@ -74,12 +74,13 @@ public class BotsController {
             return;
         }
 
-        // Update the server ID and save the bot to the database
+        // Update the server ID then save the bot to the database
         BotContainer botContainer = botManager.bots().get(botId);
         botContainer.bot().serverId(botUpdateRequest.serverId());
         botCollection.save(botContainer.bot());
 
-        backendManager.scheduledThreadPool().execute(() -> botContainer.updateSessionInfo()); // Update the session info in a new thread
+        // Update the session info in a new thread
+        backendManager.scheduledThreadPool().execute(botContainer::updateSessionInfo);
 
         response.setStatus(200);
     }

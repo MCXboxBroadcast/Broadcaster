@@ -1,52 +1,28 @@
 package com.rtm516.mcxboxbroadcast.manager.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
+import com.rtm516.mcxboxbroadcast.manager.database.model.Server;
+import com.rtm516.mcxboxbroadcast.manager.models.response.ServerInfoResponse;
 
 import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-public class Server {
-    @JsonProperty
-    private final int id;
-    @JsonProperty
-    private String hostname;
-    @JsonProperty
-    private int port;
-    @JsonProperty
+public class ServerContainer {
+    private final Server server;
     private final SessionInfo sessionInfo;
-    @JsonProperty
     private Date lastUpdated;
 
-    public Server(int id, String hostname, int port) {
-        this.id = id;
-        this.hostname = hostname;
-        this.port = port;
-        this.sessionInfo = new SessionInfo("", "", "", 0, 0, 0, hostname, port);
+    public ServerContainer(Server server) {
+        this.server = server;
+        this.sessionInfo = new SessionInfo("", "", "", 0, 0, 0, server.hostname(), server.port());
     }
 
-    public int id() {
-        return id;
-    }
-
-    public String hostname() {
-        return hostname;
-    }
-
-    public void hostname(String hostname) {
-        this.hostname = hostname;
-    }
-
-    public int port() {
-        return port;
-    }
-
-    public void port(int port) {
-        this.port = port;
+    public Server server() {
+        return server;
     }
 
     public SessionInfo sessionInfo() {
@@ -57,6 +33,10 @@ public class Server {
         return lastUpdated;
     }
 
+    public ServerInfoResponse toResponse() {
+        return server.toResponse(sessionInfo, lastUpdated);
+    }
+
     public void updateSessionInfo() {
         BedrockClient client = null;
         try {
@@ -65,7 +45,7 @@ public class Server {
 
             client.bind().join();
 
-            InetSocketAddress addressToPing = new InetSocketAddress(hostname(), port());
+            InetSocketAddress addressToPing = new InetSocketAddress(server.hostname(), server.port());
             BedrockPong pong = client.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
             // Update the session information

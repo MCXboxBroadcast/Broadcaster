@@ -12,13 +12,9 @@ public class Bot {
     private ObjectId _id;
     private String gamertag;
     private String xid;
-    private int serverId;
+    private ObjectId serverId;
 
-    public Bot() {
-        this(0);
-    }
-
-    public Bot(int serverId) {
+    public Bot(ObjectId serverId) {
         this.gamertag = "";
         this.xid = "";
         this.serverId = serverId;
@@ -44,11 +40,11 @@ public class Bot {
         this.xid = xid;
     }
 
-    public int serverId() {
+    public ObjectId serverId() {
         return serverId;
     }
 
-    public void serverId(int serverId) {
+    public void serverId(ObjectId serverId) {
         this.serverId = serverId;
     }
 

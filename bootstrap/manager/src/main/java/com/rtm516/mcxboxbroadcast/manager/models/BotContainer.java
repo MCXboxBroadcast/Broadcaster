@@ -50,16 +50,16 @@ public class BotContainer {
     public void start() {
         status = Status.STARTING;
         logger = new Logger(this); // TODO Move to file based?
-        sessionManager = new SessionManager("./cache/" + bot()._id(), logger);
+        sessionManager = new SessionManager("./cache/" + bot._id(), logger);
 
         sessionManager.restartCallback(this::restart);
         try {
-            sessionManager.init(botManager.serverSessionInfo(bot().serverId()), new FriendSyncConfig(20, true, true));
+            sessionManager.init(botManager.serverSessionInfo(bot.serverId()), new FriendSyncConfig(20, true, true));
             status = Status.ONLINE;
 
-            bot().gamertag(sessionManager.getGamertag());
-            bot().xid(sessionManager.getXuid());
-            botManager.botCollection().save(bot());
+            bot.gamertag(sessionManager.getGamertag());
+            bot.xid(sessionManager.getXuid());
+            botManager.botCollection().save(bot);
 
             sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, 30, 30, TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
@@ -79,7 +79,7 @@ public class BotContainer {
 
         try {
             // Update the session
-            sessionManager.updateSession(botManager.serverSessionInfo(bot().serverId()));
+            sessionManager.updateSession(botManager.serverSessionInfo(bot.serverId()));
             sessionManager.logger().info("Updated session!");
         } catch (SessionUpdateException e) {
             sessionManager.logger().error("Failed to update session", e);
