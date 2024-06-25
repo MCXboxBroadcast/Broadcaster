@@ -1,0 +1,9 @@
+spring:
+    application:
+        name: "bootstrap-manager"
+    data:
+        mongodb:
+            database: "mcxbmanager"
+
+server:
+    port: 8082
