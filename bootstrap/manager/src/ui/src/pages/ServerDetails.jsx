@@ -1,5 +1,3 @@
-/* global fetch */
-
 import { DocumentCheckIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'

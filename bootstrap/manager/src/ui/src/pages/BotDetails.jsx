@@ -1,30 +1,40 @@
-/* global fetch */
-
 import { DocumentCheckIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Select from '../components/Select'
 import Button from '../components/Button'
+import ConfirmModal from '../components/ConfirmModal'
+import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 
 function BotDetails () {
   const { botId } = useParams()
+  const navigate = useNavigate()
+
   const [info, setInfo] = useState({
     gamertag: '',
     xid: '',
     status: '',
     serverId: ''
   })
+
+  const [servers, setServers] = useState([])
   const [currentServer, setCurrentServer] = useState({
     hostname: '',
     port: 0
   })
-  const [servers, setServers] = useState([])
+
   const [logs, setLogs] = useState('')
   const logsRef = useRef(null)
-  const navigate = useNavigate()
+
   const [formData, setFormData] = useState({
     serverId: ''
   })
+
+  // const [seenLoginCode, setSeenLoginCode] = useState(false)
+  const [loginCodeOpen, setLoginCodeOpen] = useState(false)
+  // const [loginCodeCallback, setLoginCodeCallback] = useState(() => {})
+  const loginCodeCallback = useRef(() => {})
+  const seenLoginCode = useRef(false)
 
   const updateData = () => {
     fetch('/api/bots/' + botId).then((res) => {
@@ -49,6 +59,24 @@ function BotDetails () {
       })
 
       fetch('/api/bots/' + botId + '/logs').then((res) => res.text()).then((data) => {
+        if (!seenLoginCode.current) {
+          // Check if the second last line contains a link to login
+          const secondLastLine = data.trim().split('\n').reverse()[1]
+          if (secondLastLine.includes('https://www.microsoft.com/link')) {
+            // Extract the code from the line using regex
+            const code = secondLastLine.match(/ [A-Z0-9]+ /)[0].trim()
+
+            // Ask the user if they want to open the page
+            loginCodeCallback.current = (success) => {
+              if (!success) return
+              window.open('https://www.microsoft.com/link?otc=' + code, '_blank')
+            }
+            setLoginCodeOpen(true)
+
+            seenLoginCode.current = true
+          }
+        }
+
         setLogs(data)
       })
     })
@@ -113,6 +141,18 @@ function BotDetails () {
 
   return (
     <>
+      <ConfirmModal
+        title='Open login'
+        message='A login link has been detected. Do you wish to open it?'
+        confirmText='Open'
+        color='green'
+        Icon={QuestionMarkCircleIcon}
+        open={loginCodeOpen}
+        onClose={(success) => {
+          setLoginCodeOpen(false)
+          loginCodeCallback.current(success)
+        }}
+      />
       <div className='px-8 pb-12 flex items-center flex-col gap-5'>
         <div className='max-w-6xl w-full grid md:grid-cols-2 gap-5'>
           <div className='bg-white rounded shadow-lg p-6 w-full'>

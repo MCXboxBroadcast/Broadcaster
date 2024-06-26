@@ -1,5 +1,3 @@
-/* global fetch */
-
 import { useEffect, useState } from 'react'
 import { PlusIcon } from '@heroicons/react/16/solid'
 import { useLocation, useNavigate } from 'react-router-dom'

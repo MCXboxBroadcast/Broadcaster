@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { PlusIcon } from '@heroicons/react/16/solid'
 
@@ -12,7 +12,7 @@ function UserPanel () {
   const [users, setUsers] = useState([])
 
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleteCallback, setDeleteCallback] = useState(() => {})
+  const deleteCallback = useRef(() => {})
 
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
@@ -41,7 +41,7 @@ function UserPanel () {
         open={deleteOpen}
         onClose={(success) => {
           setDeleteOpen(false)
-          deleteCallback(success)
+          deleteCallback.current(success)
         }}
       />
       <CreateUserModal
@@ -70,7 +70,7 @@ function UserPanel () {
                 setChangePasswordOpen(true)
               }}
               confirmDelete={(callback) => {
-                setDeleteCallback((success) => callback)
+                deleteCallback.current = callback
                 setDeleteOpen(true)
               }}
             />
