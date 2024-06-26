@@ -5,6 +5,8 @@ import com.rtm516.mcxboxbroadcast.manager.database.model.User;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.UserCollection;
 import org.java_websocket.util.NamedThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,8 @@ public class BackendManager {
     private final UserCollection userCollection;
     private final ServerCollection serverCollection;
 
+    public static final Logger LOGGER = LoggerFactory.getLogger("Backend");
+
     @Autowired
     public BackendManager(UserCollection userCollection, PasswordEncoder passwordEncoder, ServerCollection serverCollection) {
         this.userCollection = userCollection;
@@ -27,7 +31,6 @@ public class BackendManager {
 
         // TODO Allow configuration of thread pool size
         this.scheduledThreadPool = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() * 3 / 8), new NamedThreadFactory("MCXboxBroadcast Manager Thread"));
-
 
         // Create the admin user if it doesn't exist
         if (authEnabled() && userCollection.findUserByUsername("admin").isEmpty()) {

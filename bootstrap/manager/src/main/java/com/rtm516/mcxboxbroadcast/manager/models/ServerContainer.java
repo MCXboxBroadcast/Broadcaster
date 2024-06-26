@@ -1,8 +1,8 @@
 package com.rtm516.mcxboxbroadcast.manager.models;
 
-import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPong;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
+import com.rtm516.mcxboxbroadcast.manager.ServerManager;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Server;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ServerInfoResponse;
 
@@ -14,11 +14,14 @@ import java.util.concurrent.TimeUnit;
 public class ServerContainer {
     private final Server server;
     private final SessionInfo sessionInfo;
+    private final ServerManager serverManager;
+
     private Date lastUpdated;
 
-    public ServerContainer(Server server) {
+    public ServerContainer(ServerManager serverManager, Server server) {
         this.server = server;
         this.sessionInfo = new SessionInfo("", "", "", 0, 0, 0, server.hostname(), server.port());
+        this.serverManager = serverManager;
     }
 
     public Server server() {
@@ -38,15 +41,9 @@ public class ServerContainer {
     }
 
     public void updateSessionInfo() {
-        BedrockClient client = null;
         try {
-            InetSocketAddress bindAddress = new InetSocketAddress("0.0.0.0", 0);
-            client = new BedrockClient(bindAddress);
-
-            client.bind().join();
-
             InetSocketAddress addressToPing = new InetSocketAddress(server.hostname(), server.port());
-            BedrockPong pong = client.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
+            BedrockPong pong = serverManager.bedrockClient().ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
             // Update the session information
             sessionInfo.setHostName(pong.getMotd());
@@ -65,10 +62,6 @@ public class ServerContainer {
             sessionInfo.setPlayers(0);
             sessionInfo.setMaxPlayers(0);
         } finally {
-            if (client != null) {
-                client.close();
-            }
-
             // Update the last updated time
             lastUpdated = new Date();
         }

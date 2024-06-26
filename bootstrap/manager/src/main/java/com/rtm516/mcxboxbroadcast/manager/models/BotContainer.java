@@ -96,7 +96,7 @@ public class BotContainer {
         start();
     }
 
-    public class Logger implements com.rtm516.mcxboxbroadcast.core.Logger {
+    public static class Logger implements com.rtm516.mcxboxbroadcast.core.Logger {
         private final BotContainer botContainer;
         private final String prefixString;
 

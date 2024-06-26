@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.manager;
 
+import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Server;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
 import com.rtm516.mcxboxbroadcast.manager.models.ServerContainer;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +21,8 @@ public class ServerManager {
     private final BackendManager backendManager;
     private final ServerCollection serverCollection;
 
+    private BedrockClient client;
+
     @Autowired
     public ServerManager(BackendManager backendManager, ServerCollection serverCollection) {
         this.backendManager = backendManager;
@@ -26,7 +30,7 @@ public class ServerManager {
 
         // Load all servers from the database
         serverCollection.findAll().forEach(server -> {
-            servers.put(server._id(), new ServerContainer(server));
+            servers.put(server._id(), new ServerContainer(this, server));
         });
 
         // Start the bots in a new thread so the web server can start
@@ -44,7 +48,7 @@ public class ServerManager {
     public ServerContainer addServer() {
         Server server = serverCollection.save(new Server("mc.example.com", 19132));
 
-        ServerContainer serverContainer = new ServerContainer(server);
+        ServerContainer serverContainer = new ServerContainer(this, server);
         servers.put(server._id(), serverContainer);
         return serverContainer;
     }
@@ -59,5 +63,24 @@ public class ServerManager {
         }
 
         return addServer().server()._id();
+    }
+
+    public BedrockClient bedrockClient() {
+        if (client != null && !client.getRakNet().isClosed()) {
+            return client;
+        }
+
+        try {
+            InetSocketAddress bindAddress = new InetSocketAddress("0.0.0.0", 0);
+            client = new BedrockClient(bindAddress);
+
+            client.bind().join();
+
+            return client;
+        } catch (Exception e) {
+            BackendManager.LOGGER.error("Error creating bedrock client for ping", e);
+        }
+
+        return null;
     }
 }
