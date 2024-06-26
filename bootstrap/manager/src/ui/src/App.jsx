@@ -9,6 +9,7 @@ import Bots from './pages/Bots'
 import BotDetails from './pages/BotDetails'
 import Servers from './pages/Servers'
 import ServerDetails from './pages/ServerDetails'
+import Settings from './pages/Settings'
 
 const router = createBrowserRouter([
   {
@@ -63,7 +64,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <Todo />,
+        element: <Settings />,
         handle: {
           title: () => 'Settings'
         }
