@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import Bot from '../components/Bot'
 import Banner from '../components/Banner'
+import Button from '../components/Button'
 
 function Bots () {
   const [bots, setBots] = useState([])
@@ -35,9 +36,7 @@ function Bots () {
       {state && state.error && <Banner className='px-8 pb-6' color='red' width='2xl'>Error loading bot: {state.error}</Banner>}
       <div className='px-8 pb-6 flex justify-center'>
         <div className='max-w-2xl w-full flex flex-row-reverse'>
-          <button className='flex justify-center items-center rounded-md py-2 px-2 text-white font-bold bg-green-700 hover:bg-green-800 transition-colors duration-150' onClick={() => addBot()}>
-            <PlusIcon className='size-4' aria-hidden='true' />
-          </button>
+          <Button title='Create bot' color='green' onClick={() => addBot()}><PlusIcon className='size-4' aria-hidden='true' /></Button>
         </div>
       </div>
       {bots.map((bot) => (

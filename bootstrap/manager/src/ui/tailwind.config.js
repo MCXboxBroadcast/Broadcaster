@@ -7,5 +7,11 @@ export default {
   theme: {
     extend: {}
   },
-  plugins: []
+  plugins: [],
+  safelist: [
+    {
+      pattern: /bg-(red|green)-(3|7|8)00/,
+      variants: ['hover']
+    }
+  ]
 }
