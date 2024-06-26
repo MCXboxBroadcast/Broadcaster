@@ -40,10 +40,7 @@ public class AuthManager {
         this.cache = Paths.get(cache, "cache.json");
         this.oldLiveAuth = Paths.get(cache, "live_token.json");
         this.oldXboxAuth = Paths.get(cache, "xbox_token.json");
-        this.logger = logger;
-
-        // Replace the default logger with one we control
-        MinecraftAuth.LOGGER = logger.prefixed("Auth");
+        this.logger = logger.prefixed("Auth");
 
         this.xstsToken = null;
     }
@@ -69,7 +66,7 @@ public class AuthManager {
                 StepInitialXblSession convertXblAuth = new StepInitialXblSession(convertInitialAuth, new StepXblDeviceToken("Android"));
                 StepXblSisuAuthentication convertXstsAuth = new StepXblSisuAuthentication(convertXblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
 
-                xstsToken = convertXstsAuth.getFromInput(httpClient, new StepRefreshTokenMsaCode.RefreshToken(tokenData.get("refresh_token").getAsString()));
+                xstsToken = convertXstsAuth.getFromInput(logger, httpClient, new StepRefreshTokenMsaCode.RefreshToken(tokenData.get("refresh_token").getAsString()));
 
                 Files.delete(oldLiveAuth);
                 if (Files.exists(oldXboxAuth)) Files.delete(oldXboxAuth);
@@ -88,11 +85,11 @@ public class AuthManager {
         try {
             // Get the XSTS token or refresh it if it's expired
             if (xstsToken == null) {
-                xstsToken = xstsAuth.getFromInput(httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(msaDeviceCode -> {
+                xstsToken = xstsAuth.getFromInput(logger, httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(msaDeviceCode -> {
                     logger.info("To sign in, use a web browser to open the page " + msaDeviceCode.getVerificationUri() + " and enter the code " + msaDeviceCode.getUserCode() + " to authenticate.");
                 }));
             } else if (xstsToken.isExpired()) {
-                xstsToken = xstsAuth.refresh(httpClient, xstsToken);
+                xstsToken = xstsAuth.refresh(logger, httpClient, xstsToken);
             }
 
             // Save to cache.json
