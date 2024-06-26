@@ -41,6 +41,6 @@ public class Server {
     }
 
     public ServerInfoResponse toResponse(SessionInfo sessionInfo, Date lastUpdated) {
-        return new ServerInfoResponse(_id.toString(), hostname, port, sessionInfo, lastUpdated);
+        return new ServerInfoResponse(_id, hostname, port, sessionInfo, lastUpdated);
     }
 }

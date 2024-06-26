@@ -49,6 +49,6 @@ public class Bot {
     }
 
     public BotInfoResponse toResponse(BotContainer.Status status) {
-        return new BotInfoResponse(_id.toString(), gamertag, xid, status, serverId);
+        return new BotInfoResponse(_id, gamertag, xid, status, serverId);
     }
 }

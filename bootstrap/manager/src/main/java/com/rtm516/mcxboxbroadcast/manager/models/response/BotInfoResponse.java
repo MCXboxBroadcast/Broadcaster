@@ -6,7 +6,7 @@ import org.bson.types.ObjectId;
 
 public class BotInfoResponse {
     @JsonProperty
-    private String id;
+    private ObjectId id;
     @JsonProperty
     private String gamertag;
     @JsonProperty
@@ -16,7 +16,7 @@ public class BotInfoResponse {
     @JsonProperty
     private ObjectId serverId;
 
-    public BotInfoResponse(String id, String gamertag, String xid, BotContainer.Status status, ObjectId serverId) {
+    public BotInfoResponse(ObjectId id, String gamertag, String xid, BotContainer.Status status, ObjectId serverId) {
         this.id = id;
         this.gamertag = gamertag;
         this.xid = xid;

@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.manager.database.model;
 
+import com.rtm516.mcxboxbroadcast.manager.models.response.UserInfoResponse;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,10 +15,24 @@ public final class User implements UserDetails {
     @Id
     private ObjectId _id;
     private final String username;
-    private final String password;
+    private String password;
 
     public User(String username, String password) {
         this.username = username;
+        this.password = password;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
         this.password = password;
     }
 
@@ -26,18 +41,7 @@ public final class User implements UserDetails {
         return List.of();
     }
 
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    @Override
-    public String getUsername() {
-        return username;
-    }
-
-    @Id
-    public ObjectId _id() {
-        return _id;
+    public UserInfoResponse toResponse() {
+        return new UserInfoResponse(_id, username);
     }
 }
