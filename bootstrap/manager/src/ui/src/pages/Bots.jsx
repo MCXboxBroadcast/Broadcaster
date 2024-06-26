@@ -13,15 +13,22 @@ function Bots () {
   const navigate = useNavigate()
   const { state } = useLocation()
 
-  useEffect(() => {
+  const updateBots = () => {
     fetch('/api/bots').then((res) => res.json()).then((data) => {
       setBots(data)
     })
+  }
+
+  useEffect(() => {
+    updateBots()
 
     // Clear the error state when the component mounts
     if (state && state.error) {
       window.history.replaceState({}, '')
     }
+
+    const interval = setInterval(updateBots, 2500) // Update every 2.5 seconds
+    return () => clearInterval(interval)
   }, [])
 
   const addBot = () => {

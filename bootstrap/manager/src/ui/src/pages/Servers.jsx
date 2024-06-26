@@ -13,15 +13,22 @@ function Servers () {
   const navigate = useNavigate()
   const { state } = useLocation()
 
-  useEffect(() => {
+  const updateServers = () => {
     fetch('/api/servers').then((res) => res.json()).then((data) => {
       setServers(data)
     })
+  }
+
+  useEffect(() => {
+    updateServers()
 
     // Clear the error state when the component mounts
     if (state && state.error) {
       window.history.replaceState({}, '')
     }
+
+    const interval = setInterval(updateServers, 2500) // Update every 2.5 seconds
+    return () => clearInterval(interval)
   }, [])
 
   const addServer = () => {
