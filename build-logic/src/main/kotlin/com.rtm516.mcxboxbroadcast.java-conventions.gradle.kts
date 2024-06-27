@@ -1,6 +1,11 @@
 plugins {
     `java-library`
     `maven-publish`
+
+    // Allow blossom to mark sources root of templates
+    idea
+    id("net.kyori.indra.git")
+    id("net.kyori.blossom")
 }
 
 repositories {

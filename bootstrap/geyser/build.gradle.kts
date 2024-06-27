@@ -12,6 +12,17 @@ dependencies {
     compileOnly(libs.bundles.geyser)
 }
 
+sourceSets {
+    main {
+        blossom {
+            val info = GitInfo(indraGit)
+            resources {
+                property("version", info.version)
+            }
+        }
+    }
+}
+
 nameJar("MCXboxBroadcastExtension")
 
 description = "bootstrap-geyser"

@@ -27,7 +27,11 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson"}
 
 java-websocket = { group = "org.java-websocket", name = "Java-WebSocket", version.ref = "java-websocket" }
 nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
+
+# Plugins
 shadow = { group = "com.github.johnrengelman", name = "shadow", version.ref = "shadow" }
+indra-git = { group = "net.kyori", name = "indra-git", version.ref = "indra" }
+blossom = { group = "net.kyori", name = "blossom", version.ref = "blossom" }
 
 terminalconsoleappender = { group = "net.minecrell", name = "terminalconsoleappender", version.ref = "terminalconsoleappender" }
 
