@@ -3,8 +3,9 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.FriendModifyResponse;
-import com.rtm516.mcxboxbroadcast.core.models.FriendStatusResponse;
+import com.rtm516.mcxboxbroadcast.core.models.friend.BlockRequest;
+import com.rtm516.mcxboxbroadcast.core.models.friend.FriendModifyResponse;
+import com.rtm516.mcxboxbroadcast.core.models.friend.FriendStatusResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 
 import java.io.IOException;
@@ -311,15 +312,18 @@ public class FriendManager {
 
                             if (modifyResponse.code() == 1028) {
                                 logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
-                                break;
                             } else if (modifyResponse.code() == 1011) {
                                 // The friend wasn't added successfully so remove them from the list
                                 // This seems to happen in some cases, I assume from the user blocking us or having account restrictions
                                 toAdd.remove(entry.getKey());
-                                // TODO Remove these people from following us (block and unblock)
-                            }
 
-                            logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                                // Remove these people from following us (block and unblock)
+                                forceUnfollow(entry.getKey());
+
+                                logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to account restrictions");
+                            } else {
+                                logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                            }
                         }
                     } catch (IOException | InterruptedException e) {
                         logger.error("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());
@@ -376,5 +380,39 @@ public class FriendManager {
                 internalScheduledFuture = sessionManager.scheduledThread().schedule(this::internalProcess, retryAfter, TimeUnit.SECONDS);
             }
         });
+    }
+
+    /**
+     * Force a user to unfollow us
+     * This works by blocking and unblocking them
+     *
+     * @param xuid The XUID of the user to target
+     */
+    public void forceUnfollow(String xuid) {
+        HttpRequest blockRequest = HttpRequest.newBuilder()
+            .uri(Constants.BLOCK)
+            .header("Authorization", sessionManager.getTokenHeader())
+            .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(new BlockRequest(xuid))))
+            .build();
+
+        try {
+            HttpResponse<Void> blockResponse = httpClient.send(blockRequest, HttpResponse.BodyHandlers.discarding());
+            if (blockResponse.statusCode() != 200) {
+                throw new RuntimeException("Failed to block user: " + blockResponse.statusCode());
+            }
+
+            HttpRequest unblockRequest = HttpRequest.newBuilder()
+                .uri(Constants.BLOCK)
+                .header("Authorization", sessionManager.getTokenHeader())
+                .method("DELETE", HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(new BlockRequest(xuid))))
+                .build();
+
+            HttpResponse<Void> unblockResponse = httpClient.send(blockRequest, HttpResponse.BodyHandlers.discarding());
+            if (unblockResponse.statusCode() != 200) {
+                throw new RuntimeException("Failed to unblock user: " + blockResponse.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to force unfollow user: " + e.getMessage());
+        }
     }
 }

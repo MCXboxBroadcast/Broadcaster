@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.core.models;
+package com.rtm516.mcxboxbroadcast.core.models.friend;
 
 public record FriendModifyResponse(
     int code,
