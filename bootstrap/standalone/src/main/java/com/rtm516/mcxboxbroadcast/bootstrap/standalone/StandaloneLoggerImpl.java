@@ -72,7 +72,10 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
             switch (commandNode) {
                 case "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
-                case "dumpsession" -> StandaloneMain.sessionManager.dumpSession();
+                case "dumpsession" -> {
+                    info("Dumping session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
+                    StandaloneMain.sessionManager.dumpSession();
+                }
                 case "accounts" -> {
                     String[] args = command.split(" ");
                     if (args.length < 3) {

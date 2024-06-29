@@ -82,14 +82,22 @@ public class BotsImportController {
 
         // Create a bot for the main session
         BotContainer mainBot = botManager.addBot();
-        mainBot.cache(cacheFiles.get("cache.json"));
+        try {
+            mainBot.storageManager().cache(cacheFiles.get("cache.json"));
+        } catch (IOException e) {
+            // Ignored
+        }
         importedBots.add(mainBot);
 
         // For each sub session check for the cache file and create a bot
         for (String subSession : subSessions) {
             if (cacheFiles.containsKey(subSession + "/cache.json")) {
                 BotContainer subBot = botManager.addBot();
-                subBot.cache(cacheFiles.get(subSession + "/cache.json"));
+                try {
+                    subBot.storageManager().cache(cacheFiles.get(subSession + "/cache.json"));
+                } catch (IOException e) {
+                    // Ignored
+                }
                 importedBots.add(subBot);
             }
         }
@@ -135,7 +143,11 @@ public class BotsImportController {
 
             // Create a bot for each credential
             BotContainer bot = botManager.addBot();
-            bot.cache(cacheData);
+            try {
+                bot.storageManager().cache(cacheData);
+            } catch (IOException e) {
+                // Ignored
+            }
             importedBots.add(bot);
         }
 

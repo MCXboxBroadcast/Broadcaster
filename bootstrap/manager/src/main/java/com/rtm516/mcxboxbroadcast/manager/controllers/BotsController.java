@@ -83,7 +83,7 @@ public class BotsController {
         // Update the server ID then save the bot to the database
         BotContainer botContainer = botManager.bots().get(botId);
         botContainer.bot().serverId(botUpdateRequest.serverId());
-        botCollection.save(botContainer.bot());
+        botContainer.save();
 
         // Update the session info in a new thread
         backendManager.scheduledThreadPool().execute(botContainer::updateSessionInfo);
@@ -154,15 +154,9 @@ public class BotsController {
 
         botContainer.dumpSession();
 
-        Path sessionJson = Paths.get(botContainer.cacheFolder(), "currentSessionResponse.json");
-        if (!Files.exists(sessionJson)) {
-            response.setStatus(404);
-            return "";
-        }
-
         String data;
         try {
-            data = Files.readString(sessionJson);
+            data = botContainer.storageManager().currentSessionResponse();
         } catch (IOException e) {
             response.setStatus(500);
             return "";

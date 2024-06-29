@@ -3,6 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.JsonObject;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XstsAuthData;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
+import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import net.lenni0451.commons.httpclient.HttpClient;
 import net.raphimc.minecraftauth.MinecraftAuth;
 import net.raphimc.minecraftauth.step.AbstractStep;
@@ -26,9 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class AuthManager {
-    private final Path cache;
-    private final Path oldLiveAuth;
-    private final Path oldXboxAuth;
+    private final StorageManager storageManager;
     private final Logger logger;
 
     private StepXblSisuAuthentication.XblSisuTokens xstsToken;
@@ -37,13 +36,11 @@ public class AuthManager {
     /**
      * Create an instance of AuthManager
      *
-     * @param cache The directory to store the cached tokens in
+     * @param storageManager The storage manager to use for storing data
      * @param logger The logger to use for outputting messages
      */
-    public AuthManager(String cache, Logger logger) {
-        this.cache = Paths.get(cache, "cache.json");
-        this.oldLiveAuth = Paths.get(cache, "live_token.json");
-        this.oldXboxAuth = Paths.get(cache, "xbox_token.json");
+    public AuthManager(StorageManager storageManager, Logger logger) {
+        this.storageManager = storageManager;
         this.logger = logger.prefixed("Auth");
 
         this.xstsToken = null;
@@ -76,26 +73,32 @@ public class AuthManager {
         StepXblSisuAuthentication xstsAuth = sisuAuthentication(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
 
         // Check if we have an old live_token.json file and try to import the refresh token from it
-        if (Files.exists(oldLiveAuth)) {
+        String liveTokenData = "";
+        try {
+            liveTokenData = storageManager.liveToken();
+        } catch (IOException e) {
+            // Ignore
+        }
+        if (!liveTokenData.isBlank()) {
             logger.info("Trying to convert from old live_token.json to new cache.json");
             try {
-                JsonObject liveToken = JsonUtil.parseString(Files.readString(oldLiveAuth)).getAsJsonObject();
+                JsonObject liveToken = JsonUtil.parseString(liveTokenData).getAsJsonObject();
                 JsonObject tokenData = liveToken.getAsJsonObject("token");
 
                 StepXblSisuAuthentication convertXstsAuth = sisuAuthentication(new StepRefreshTokenMsaCode(appDetails));
 
                 xstsToken = convertXstsAuth.getFromInput(logger, httpClient, new StepRefreshTokenMsaCode.RefreshToken(tokenData.get("refresh_token").getAsString()));
 
-                Files.delete(oldLiveAuth);
-                if (Files.exists(oldXboxAuth)) Files.delete(oldXboxAuth);
+                storageManager.xboxToken("");
             } catch (Exception e) {
-                logger.error("Failed to convert old auth token, if this keeps happening please remove " + oldLiveAuth + " and reauthenticate", e);
+                logger.error("Failed to convert old auth token, if this keeps happening please remove live_token.json and reauthenticate", e);
             }
         }
 
         // Load in cache.json if we haven't loaded one from the old auth token
         try {
-            if (xstsToken == null && Files.exists(cache)) xstsToken = xstsAuth.fromJson(JsonUtil.parseString(Files.readString(cache)).getAsJsonObject());
+            String cacheData = storageManager.cache();
+            if (xstsToken == null && !cacheData.isBlank()) xstsToken = xstsAuth.fromJson(JsonUtil.parseString(cacheData).getAsJsonObject());
         } catch (IOException e) {
             logger.error("Failed to load cache.json", e);
         }
@@ -111,7 +114,7 @@ public class AuthManager {
             }
 
             // Save to cache.json
-            Files.writeString(cache, Constants.GSON.toJson(xstsAuth.toJson(xstsToken)));
+            storageManager.cache(Constants.GSON.toJson(xstsAuth.toJson(xstsToken)));
 
             // Construct and store the Xbox token info
             xboxTokenInfo = new XboxTokenInfo(xstsToken.getDisplayClaims().get("xid"), xstsToken.getUserHash(), xstsToken.getDisplayClaims().get("gtg"), xstsToken.getToken(), String.valueOf(xstsToken.getExpireTimeMs()));

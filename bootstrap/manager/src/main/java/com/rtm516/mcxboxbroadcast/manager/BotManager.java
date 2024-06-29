@@ -20,10 +20,9 @@ public class BotManager {
     private final ServerManager serverManager;
     private final BackendManager backendManager;
     private final BotCollection botCollection;
-    private final ServerCollection serverCollection;
 
     @Autowired
-    public BotManager(ServerManager serverManager, BackendManager backendManager, BotCollection botCollection, ServerCollection serverCollection) {
+    public BotManager(ServerManager serverManager, BackendManager backendManager, BotCollection botCollection) {
         this.serverManager = serverManager;
         this.backendManager = backendManager;
         this.botCollection = botCollection;
@@ -39,7 +38,6 @@ public class BotManager {
                 botContainer.start();
             }
         });
-        this.serverCollection = serverCollection;
     }
 
     public BotCollection botCollection() {

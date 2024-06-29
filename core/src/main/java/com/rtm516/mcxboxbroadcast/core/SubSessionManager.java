@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.JoinSessionRequest;
+import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -16,11 +17,11 @@ public class SubSessionManager extends SessionManagerCore {
      *
      * @param id The id of the sub-session
      * @param parent The parent session manager
-     * @param cache The directory to store the cached tokens in
+     * @param storageManager The storage manager to use for storing data
      * @param logger The logger to use for outputting messages
      */
-    public SubSessionManager(String id, SessionManager parent, String cache, Logger logger) {
-        super(cache, logger.prefixed("Sub-Session " + id));
+    public SubSessionManager(String id, SessionManager parent, StorageManager storageManager, Logger logger) {
+        super(storageManager, logger.prefixed("Sub-Session " + id));
         this.parent = parent;
     }
 

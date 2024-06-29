@@ -4,6 +4,8 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
+import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Bot;
 import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
@@ -23,6 +25,7 @@ public class BotContainer {
     private final StringBuilder logs = new StringBuilder();
     private final DateTimeFormatter logTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private final BotManager botManager;
+    private final StorageManager storageManager;
 
     private Logger logger;
     private SessionManager sessionManager;
@@ -31,6 +34,7 @@ public class BotContainer {
     public BotContainer(BotManager botManager, Bot bot) {
         this.botManager = botManager;
         this.bot = bot;
+        this.storageManager = new MongoStorageManager(this);
 
         status = Status.OFFLINE;
     }
@@ -51,6 +55,10 @@ public class BotContainer {
         return bot.toResponse(status);
     }
 
+    public void save() {
+        botManager.botCollection().save(bot);
+    }
+
     public void start() {
         // If the bot is already online, don't start it again
         if (status != Status.OFFLINE) {
@@ -59,7 +67,7 @@ public class BotContainer {
 
         status = Status.STARTING;
         logger = new Logger(this); // TODO Move to file based?
-        sessionManager = new SessionManager(cacheFolder(), logger);
+        sessionManager = new SessionManager(storageManager, logger);
 
         sessionManager.restartCallback(this::restart);
         try {
@@ -68,7 +76,7 @@ public class BotContainer {
 
             bot.gamertag(sessionManager.getGamertag());
             bot.xid(sessionManager.getXuid());
-            botManager.botCollection().save(bot);
+            save();
 
             sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime(), botManager.backendManager().updateTime(), TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
@@ -116,24 +124,8 @@ public class BotContainer {
         }
     }
 
-    public String cacheFolder() {
-        String cache = "./cache/" + bot._id();
-
-        // Create the cache directory if it doesn't exist
-        File directory = new File(cache);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-
-        return cache;
-    }
-
-    public void cache(String cache) {
-        try {
-            Files.writeString(Path.of(cacheFolder(), "cache.json"), cache);
-        } catch (IOException e) {
-            // Ignore
-        }
+    public StorageManager storageManager() {
+        return storageManager;
     }
 
     public static class Logger implements com.rtm516.mcxboxbroadcast.core.Logger {

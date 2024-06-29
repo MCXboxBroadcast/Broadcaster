@@ -13,11 +13,13 @@ public class Bot {
     private String gamertag;
     private String xid;
     private ObjectId serverId;
+    private String authCache;
 
     public Bot(ObjectId serverId) {
         this.gamertag = "";
         this.xid = "";
         this.serverId = serverId;
+        this.authCache = "";
     }
 
     public ObjectId _id() {
@@ -46,6 +48,14 @@ public class Bot {
 
     public void serverId(ObjectId serverId) {
         this.serverId = serverId;
+    }
+
+    public String authCache() {
+        return authCache;
+    }
+
+    public void authCache(String authCache) {
+        this.authCache = authCache;
     }
 
     public BotInfoResponse toResponse(BotContainer.Status status) {
