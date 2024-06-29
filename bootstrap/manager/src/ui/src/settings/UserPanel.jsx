@@ -60,7 +60,7 @@ function UserPanel () {
           <Button title='Create user' color='green' onClick={() => setCreateUserOpen(true)}><PlusIcon className='size-4' aria-hidden='true' /></Button>
         </div>
         <div className='flex flex-col'>
-          {users.map((user, i) => (
+          {users.map((user) => (
             <User
               key={user.id}
               user={user}

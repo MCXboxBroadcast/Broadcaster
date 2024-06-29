@@ -1,4 +1,4 @@
-import { LockOpenIcon, UserMinusIcon } from '@heroicons/react/16/solid'
+import { KeyIcon, UserMinusIcon } from '@heroicons/react/16/solid'
 
 import Button from './Button'
 
@@ -21,7 +21,7 @@ function User ({ user, refreshUsers, className, confirmDelete, changePassword })
     <>
       <div className={'flex hover:bg-slate-100 rounded p-2 gap-2 ' + className}>
         <div className='grow content-center'>{user.username}</div>
-        <Button title='Change password' color='green' onClick={() => callChangePassword()}><LockOpenIcon className='size-4' aria-hidden='true' /></Button>
+        <Button title='Change password' color='green' onClick={() => callChangePassword()}><KeyIcon className='size-4' aria-hidden='true' /></Button>
         <Button title='Delete' color='red' onClick={() => callDelete()}><UserMinusIcon className='size-4' aria-hidden='true' /></Button>
       </div>
     </>
