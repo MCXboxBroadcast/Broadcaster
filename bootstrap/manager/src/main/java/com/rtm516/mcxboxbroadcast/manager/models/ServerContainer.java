@@ -24,22 +24,36 @@ public class ServerContainer {
         this.serverManager = serverManager;
     }
 
+    /**
+     * Get the server info
+     *
+     * @return the server info
+     */
     public Server server() {
         return server;
     }
 
+    /**
+     * Get the session info
+     *
+     * @return the session info
+     */
     public SessionInfo sessionInfo() {
         return sessionInfo;
     }
 
-    public Date lastUpdated() {
-        return lastUpdated;
-    }
-
+    /**
+     * Convert the server info into a api response
+     *
+     * @return the server info response
+     */
     public ServerInfoResponse toResponse() {
         return server.toResponse(sessionInfo, lastUpdated);
     }
 
+    /**
+     * Ping the server and update the session information
+     */
     public void updateSessionInfo() {
         try {
             InetSocketAddress addressToPing = new InetSocketAddress(server.hostname(), server.port());

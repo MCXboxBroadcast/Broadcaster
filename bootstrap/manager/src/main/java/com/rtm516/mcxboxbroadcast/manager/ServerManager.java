@@ -41,10 +41,20 @@ public class ServerManager {
         }, 0, backendManager.updateTime() / 2, TimeUnit.SECONDS);
     }
 
+    /**
+     * Get the stored servers
+     *
+     * @return the stored servers
+     */
     public Map<ObjectId, ServerContainer> servers() {
         return servers;
     }
 
+    /**
+     * Add a new server
+     *
+     * @return the server container
+     */
     public ServerContainer addServer() {
         Server server = serverCollection.save(new Server("mc.example.com", 19132));
 
@@ -53,11 +63,21 @@ public class ServerManager {
         return serverContainer;
     }
 
+    /**
+     * Delete a server
+     *
+     * @param serverId the server id
+     */
     public void deleteServer(ObjectId serverId) {
         servers.remove(serverId);
         serverCollection.deleteById(serverId);
     }
 
+    /**
+     * Get the first server or create a new one
+     *
+     * @return the first server
+     */
     public ObjectId firstServer() {
         if (!servers.isEmpty()) {
             return servers.values().iterator().next().server()._id();
@@ -66,6 +86,11 @@ public class ServerManager {
         return addServer().server()._id();
     }
 
+    /**
+     * Get the bedrock client for pinging or create a new one
+     *
+     * @return the bedrock client
+     */
     public BedrockClient bedrockClient() {
         if (client != null && !client.getRakNet().isClosed()) {
             return client;

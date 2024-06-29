@@ -40,26 +40,58 @@ public class BotManager {
         });
     }
 
+    /**
+     * Get the bot collection
+     *
+     * @return the bot collection
+     */
     public BotCollection botCollection() {
         return botCollection;
     }
 
+    /**
+     * Get the server manager
+     *
+     * @return the server manager
+     */
     public BackendManager backendManager() {
         return backendManager;
     }
 
+    /**
+     * Get the current bots
+     *
+     * @return the current bots
+     */
     public Map<ObjectId, BotContainer> bots() {
         return bots;
     }
 
+    /**
+     * Get the logs for a bot
+     *
+     * @param botId the bot ID
+     * @return the logs
+     */
     public String logs(ObjectId botId) {
         return bots.get(botId).logs();
     }
 
+    /**
+     * Get the server session info
+     *
+     * @param id the server ID
+     * @return the server session info
+     */
     public SessionInfo serverSessionInfo(ObjectId id) {
         return serverManager.servers().get(id).sessionInfo();
     }
 
+    /**
+     * Add a new bot
+     *
+     * @return the bot container
+     */
     public BotContainer addBot() {
         Bot bot = botCollection.save(new Bot(serverManager.firstServer()));
 
@@ -68,6 +100,11 @@ public class BotManager {
         return botContainer;
     }
 
+    /**
+     * Delete a bot
+     *
+     * @param botId the bot ID
+     */
     public void deleteBot(ObjectId botId) {
         bots.get(botId).stop();
         // TODO Cleanup cache folder

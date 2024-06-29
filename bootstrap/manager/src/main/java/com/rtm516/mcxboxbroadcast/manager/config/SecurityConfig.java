@@ -17,7 +17,7 @@ public class SecurityConfig {
     @Autowired
     public SecurityFilterChain filterChain(HttpSecurity http, BackendManager backendManager) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()); // Disable CSRF - TODO Make this work with the start/stop/restart endpoints?
+            .csrf(csrf -> csrf.disable()); // Disable CSRF - TODO Implement support in the react app
 
         if (backendManager.authEnabled()) {
             http

@@ -44,10 +44,22 @@ public class BackendManager {
         }
     }
 
+    /**
+     * Get the scheduled thread pool
+     *
+     * @return the scheduled thread pool
+     */
     public ScheduledExecutorService scheduledThreadPool() {
         return scheduledThreadPool;
     }
 
+    /**
+     * Check if authentication is enabled
+     * <p>
+     * TODO Make configurable
+     *
+     * @return if authentication is enabled
+     */
     public boolean authEnabled() {
         return System.getenv("SECURITY") == null || System.getenv("SECURITY").equals("true");
     }

@@ -39,26 +39,52 @@ public class BotContainer {
         status = Status.OFFLINE;
     }
 
+    /**
+     * Get the bot info
+     * @return the bot info
+     */
     public Bot bot() {
         return bot;
     }
 
+    /**
+     * Get the bot logs
+     *
+     * @return the bot logs
+     */
     public String logs() {
         return logs.toString();
     }
 
+    /**
+     * Log a message
+     *
+     * @param level the log level
+     * @param message the message
+     */
     protected void log(String level, String message) {
         logs.append("[" + LocalDateTime.now().format(logTimeFormatter) + " " + level + "]").append(message).append("\n");
     }
 
+    /**
+     * Convert the bot info into a api response
+     *
+     * @return the bot info response
+     */
     public BotInfoResponse toResponse() {
         return bot.toResponse(status);
     }
 
+    /**
+     * Save the bot to the database
+     */
     public void save() {
         botManager.botCollection().save(bot);
     }
 
+    /**
+     * Start the bot
+     */
     public void start() {
         // If the bot is already online, don't start it again
         if (status != Status.OFFLINE) {
@@ -88,6 +114,9 @@ public class BotContainer {
         }
     }
 
+    /**
+     * Update the session info based on the selected server
+     */
     public void updateSessionInfo() {
         // If the bot is not online, don't update the session
         if (status != Status.ONLINE) {
@@ -103,6 +132,9 @@ public class BotContainer {
         }
     }
 
+    /**
+     * Stop the bot
+     */
     public void stop() {
         // If the bot is offline, don't try and stop it
         if (status == Status.OFFLINE) {
@@ -113,21 +145,35 @@ public class BotContainer {
         status = Status.OFFLINE;
     }
 
+    /**
+     * Restart the bot
+     */
     public void restart() {
         stop();
         start();
     }
 
+    /**
+     * Dump the session to the current storage manager
+     */
     public void dumpSession() {
         if (sessionManager != null) {
             sessionManager.dumpSession();
         }
     }
 
+    /**
+     * Get the storage manager
+     *
+     * @return the storage manager
+     */
     public StorageManager storageManager() {
         return storageManager;
     }
 
+    /**
+     * Logger proxy for the bot
+     */
     public static class Logger implements com.rtm516.mcxboxbroadcast.core.Logger {
         private final BotContainer botContainer;
         private final String prefixString;
@@ -179,6 +225,12 @@ public class BotContainer {
             }
         }
 
+        /**
+         * Helper to get the stack trace as a string
+         *
+         * @param ex the exception
+         * @return the stack trace as a string
+         */
         private static String getStackTrace(Throwable ex) {
             // Create a PrintWriter to write the stack trace to
             StringWriter sw = new StringWriter();

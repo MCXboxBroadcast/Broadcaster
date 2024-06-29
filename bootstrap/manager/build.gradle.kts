@@ -1,18 +1,14 @@
 plugins {
 	id("com.rtm516.mcxboxbroadcast.shadow-conventions")
-	id("org.springframework.boot") version "3.3.0"
-	id("io.spring.dependency-management") version "1.1.5"
+	alias(libs.plugins.spring.boot)
+	alias(libs.plugins.spring.dependency)
 }
 
 dependencies {
-	implementation("org.springframework.boot:spring-boot-starter")
-	implementation("org.springframework.boot:spring-boot-starter-web")
-	implementation("org.springframework.boot:spring-boot-starter-security")
-	implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
+	implementation(libs.bundles.spring.runtime)
 
-	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("org.springframework.security:spring-security-test")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	testImplementation(libs.bundles.spring.test)
+	testRuntimeOnly(libs.junit.platform.launcher)
 
 	api(project(":core"))
 	api(libs.bedrock.common)

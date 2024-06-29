@@ -22,9 +22,6 @@ import net.raphimc.minecraftauth.util.OAuthEnvironment;
 import net.raphimc.minecraftauth.util.logging.ILogger;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class AuthManager {
     private final StorageManager storageManager;
@@ -56,6 +53,15 @@ public class AuthManager {
         return new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, OAuthEnvironment.LIVE.getNativeClientUrl(), OAuthEnvironment.LIVE);
     }
 
+    /**
+     * Get a xsts token from a given set of credentials
+     *
+     * @param email The email to use for authentication
+     * @param password The password to use for authentication
+     * @param logger The logger to use for outputting messages
+     * @return The XSTS token data
+     * @throws Exception If an error occurs while getting the token
+     */
     public static XstsAuthData fromCredentials(String email, String password, ILogger logger) throws Exception {
         StepXblSisuAuthentication xstsAuth = sisuAuthentication(new StepCredentialsMsaCode(appDetails()));
 
@@ -67,7 +73,7 @@ public class AuthManager {
      * Follow the auth flow to get the Xbox token and store it
      */
     private void initialise() {
-        // Setup the authentication steps
+        // Set up the authentication steps
         HttpClient httpClient = MinecraftAuth.createHttpClient();
         MsaCodeStep.ApplicationDetails appDetails = appDetails();
         StepXblSisuAuthentication xstsAuth = sisuAuthentication(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
