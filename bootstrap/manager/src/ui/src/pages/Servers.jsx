@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
 import { PlusIcon } from '@heroicons/react/16/solid'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import Server from '../components/Server'
-import Banner from '../components/Banner'
 import Button from '../components/Button'
 
 function Servers () {
   const [servers, setServers] = useState([])
   const navigate = useNavigate()
-  const { state } = useLocation()
 
   const updateServers = () => {
     fetch('/api/servers').then((res) => res.json()).then((data) => {
@@ -19,11 +17,6 @@ function Servers () {
 
   useEffect(() => {
     updateServers()
-
-    // Clear the error state when the component mounts
-    if (state && state.error) {
-      window.history.replaceState({}, '')
-    }
 
     const interval = setInterval(updateServers, 2500) // Update every 2.5 seconds
     return () => clearInterval(interval)
@@ -38,7 +31,6 @@ function Servers () {
 
   return (
     <>
-      {state && state.error && <Banner className='px-8 pb-6' color='red' width='2xl'>Error loading server: {state.error}</Banner>}
       <div className='px-8 pb-6 flex justify-center'>
         <div className='max-w-2xl w-full flex flex-row-reverse'>
           <Button title='Create server' color='green' onClick={() => addServer()}><PlusIcon className='size-4' aria-hidden='true' /></Button>

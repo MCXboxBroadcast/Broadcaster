@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/16/solid'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import Bot from '../components/Bot'
-import Banner from '../components/Banner'
 import Button from '../components/Button'
 import Dropdown from '../components/Dropdown'
 import UploadFileModal from '../components/modals/UploadFileModal'
 import TextInputModal from '../components/modals/TextInputModal'
+import { addNotification } from '../components/NotificationContainer'
 
 function Bots () {
   const navigate = useNavigate()
-  const { state } = useLocation()
 
   const [bots, setBots] = useState([])
   const [importLegacyOpen, setImportLegacyOpen] = useState(false)
@@ -25,11 +24,6 @@ function Bots () {
 
   useEffect(() => {
     updateBots()
-
-    // Clear the error state when the component mounts
-    if (state && state.error) {
-      window.history.replaceState({}, '')
-    }
 
     const interval = setInterval(updateBots, 2500) // Update every 2.5 seconds
     return () => clearInterval(interval)
@@ -46,24 +40,35 @@ function Bots () {
     const formData = new FormData()
     formData.append('file', file)
 
-    fetch('/api/bots/import/legacy', { method: 'POST', body: formData }).then((res) => res.json()).then((data) => {
-      console.log(data)
-      updateBots()
-    })
+    addNotification('Importing bots from legacy zip', 'orange')
+    performImport('legacy', formData)
   }
 
   const importCredentials = (data) => {
-    fetch('/api/bots/import/credentials', { method: 'POST', body: data }).then((res) => res.json()).then((data) => {
-      console.log(data)
-      updateBots()
+    addNotification('Importing bots from credentials', 'orange')
+    performImport('credentials', data)
+  }
+
+  const performImport = (type, data) => {
+    fetch('/api/bots/import/' + type, { method: 'POST', body: data }).then((res) => res.json()).then((data) => {
+      if (data.error) {
+        addNotification('Failed to import bots: ' + data.error, 'red')
+      } else if (data.success === 0) {
+        addNotification('All bots failed to import', 'red')
+      } else {
+        addNotification(`Successfully imported ${data.success}/${data.total}`, 'green')
+        updateBots()
+      }
+    }).catch((err) => {
+      console.error(err)
+      addNotification('Failed to import bots', 'red')
     })
   }
 
   return (
     <>
-      {state && state.error && <Banner className='px-8 pb-6' color='red' width='2xl'>Error loading bot: {state.error}</Banner>}
       <UploadFileModal
-        title='Import bots from legacy'
+        title='Import bots from legacy zip'
         message='Select the bots file to import from the legacy system. Must be a .zip file of the cache folder.'
         accept='.zip'
         open={importLegacyOpen}
@@ -80,7 +85,6 @@ function Bots () {
         onClose={(success, data) => {
           setImportCredentialsOpen(false)
           if (!success) return
-          console.log(data)
           importCredentials(data)
         }}
       />

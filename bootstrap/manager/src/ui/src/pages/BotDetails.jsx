@@ -5,6 +5,7 @@ import Select from '../components/Select'
 import Button from '../components/Button'
 import ConfirmModal from '../components/modals/ConfirmModal'
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
+import { addNotification } from '../components/NotificationContainer'
 
 function BotDetails () {
   const { botId } = useParams()
@@ -40,7 +41,8 @@ function BotDetails () {
     fetch('/api/bots/' + botId).then((res) => {
       if (!res.ok) {
         // Redirect to the bots page if an error occurs
-        return navigate('/bots', { state: { error: res.statusText } })
+        addNotification('Error loading bot: ' + res.statusText, 'red')
+        return navigate('/bots')
       }
       return res.json()
     }).then((data) => {

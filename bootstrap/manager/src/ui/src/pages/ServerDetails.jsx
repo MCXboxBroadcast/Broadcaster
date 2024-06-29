@@ -31,7 +31,8 @@ function ServerDetails () {
     fetch('/api/servers/' + serverId).then((res) => {
       if (!res.ok) {
         // Redirect to the bots page if an error occurs
-        return navigate('/servers', { state: { error: res.statusText } })
+        addNotification('Error loading server: ' + res.statusText, 'red')
+        return navigate('/servers')
       }
       return res.json()
     }).then((data) => {

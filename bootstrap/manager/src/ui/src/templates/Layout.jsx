@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useMatches } from 'react-router-dom'
 import { Disclosure, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { NotificationContainer } from '../components/NotificationContainer'
 
 function getNavClass (isMobile, { isActive }) {
   let className = 'rounded-md px-3 py-2 font-medium'
@@ -112,6 +113,7 @@ function Layout () {
     )}
 
       <main className={'flex-1 ' + (!hideHeader ? '-mt-32' : '')}>
+        <NotificationContainer />
         <Outlet />
       </main>
 

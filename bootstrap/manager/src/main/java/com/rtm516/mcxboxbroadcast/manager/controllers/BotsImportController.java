@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ErrorResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.ImportResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import net.raphimc.minecraftauth.MinecraftAuth;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +20,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 @RestController()
@@ -40,7 +39,7 @@ public class BotsImportController {
     }
 
     @PostMapping("/legacy")
-    public ErrorResponse importLegacy(HttpServletResponse response, @RequestParam("file") MultipartFile file) {
+    public Object importLegacy(HttpServletResponse response, @RequestParam("file") MultipartFile file) {
         // Check file format
         if (!file.getOriginalFilename().endsWith(".zip")) {
             response.setStatus(400);
@@ -53,7 +52,7 @@ public class BotsImportController {
         try {
             ZipInputStream zis = new ZipInputStream(file.getInputStream());
 
-            ZipEntry entry = null;
+            ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 // Adjust root if it contains the cache folder and isn't inside
                 String cleanName = entry.getName();
@@ -98,11 +97,11 @@ public class BotsImportController {
         backendManager.scheduledThreadPool().execute(() -> importedBots.forEach(BotContainer::start));
 
         response.setStatus(200);
-        return null;
+        return new ImportResponse(importedBots.size(), Math.max(cacheFiles.size(), subSessions.size()));
     }
 
     @PostMapping("/credentials")
-    public ErrorResponse importCredentials(HttpServletResponse response, @RequestBody String credentialsData) {
+    public Object importCredentials(HttpServletResponse response, @RequestBody String credentialsData) {
         if (credentialsData.isBlank()) {
             response.setStatus(400);
             return new ErrorResponse("No credentials provided");
@@ -115,9 +114,6 @@ public class BotsImportController {
         for (String credential : lines) {
             String[] parts = credential.split(":");
             if (parts.length != 2) {
-                // TODO Count these and let the user know
-//                response.setStatus(400);
-//                return new ErrorResponse("Invalid credentials format");
                 continue;
             }
 
@@ -128,8 +124,7 @@ public class BotsImportController {
                 XstsAuthData xstsAuthData = AuthManager.fromCredentials(parts[0], parts[1], MinecraftAuth.LOGGER);
                 cacheData = Constants.GSON.toJson(xstsAuthData.xstsAuth().toJson(xstsAuthData.xstsToken()));
             } catch (Exception e) {
-                // TODO Catch the exception and let the user know
-                e.printStackTrace();
+                // TODO Catch the exception and let the user know?
             }
 
             // Skip if the cache data is blank
@@ -147,7 +142,7 @@ public class BotsImportController {
         backendManager.scheduledThreadPool().execute(() -> importedBots.forEach(BotContainer::start));
 
         response.setStatus(200);
-        return null;
+        return new ImportResponse(importedBots.size(), lines.length);
     }
 
     /**
