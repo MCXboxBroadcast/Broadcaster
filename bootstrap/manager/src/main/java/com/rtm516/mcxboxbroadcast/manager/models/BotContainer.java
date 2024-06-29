@@ -8,8 +8,12 @@ import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Bot;
 import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
@@ -48,9 +52,14 @@ public class BotContainer {
     }
 
     public void start() {
+        // If the bot is already online, don't start it again
+        if (status != Status.OFFLINE) {
+            return;
+        }
+
         status = Status.STARTING;
         logger = new Logger(this); // TODO Move to file based?
-        sessionManager = new SessionManager("./cache/" + bot._id(), logger);
+        sessionManager = new SessionManager(cacheFolder(), logger);
 
         sessionManager.restartCallback(this::restart);
         try {
@@ -87,6 +96,11 @@ public class BotContainer {
     }
 
     public void stop() {
+        // If the bot is offline, don't try and stop it
+        if (status == Status.OFFLINE) {
+            return;
+        }
+
         sessionManager.shutdown();
         status = Status.OFFLINE;
     }
@@ -94,6 +108,26 @@ public class BotContainer {
     public void restart() {
         stop();
         start();
+    }
+
+    public String cacheFolder() {
+        String cache = "./cache/" + bot._id();
+
+        // Create the cache directory if it doesn't exist
+        File directory = new File(cache);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        return cache;
+    }
+
+    public void cache(String cache) {
+        try {
+            Files.writeString(Path.of(cacheFolder(), "cache.json"), cache);
+        } catch (IOException e) {
+            // Ignore
+        }
     }
 
     public static class Logger implements com.rtm516.mcxboxbroadcast.core.Logger {

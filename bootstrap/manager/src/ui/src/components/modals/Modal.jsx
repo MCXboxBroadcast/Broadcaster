@@ -1,7 +1,6 @@
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
-import Button from './Button'
 
-function Modal ({ title, message, confirmText = 'Confirm', color, Icon, content, open = false, onClose }) {
+function Modal ({ title, confirmText = 'Confirm', color, Icon, content, open = false, onClose }) {
   return (
     <Dialog
       className='relative z-10'

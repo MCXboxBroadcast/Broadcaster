@@ -10,7 +10,7 @@ export default {
   plugins: [],
   safelist: [
     {
-      pattern: /bg-(red|green)-(3|7|8)00/,
+      pattern: /bg-(red|green|blue)-(3|7|8)00/,
       variants: ['hover']
     }
   ]

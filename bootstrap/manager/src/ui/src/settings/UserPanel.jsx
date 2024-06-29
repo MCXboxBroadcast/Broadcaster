@@ -4,9 +4,9 @@ import { PlusIcon } from '@heroicons/react/16/solid'
 
 import User from '../components/User'
 import Button from '../components/Button'
-import ConfirmModal from '../components/ConfirmModal'
-import CreateUserModal from '../components/CreateUserModal'
-import ChangePasswordModal from '../components/ChangePasswordModal'
+import ConfirmModal from '../components/modals/ConfirmModal'
+import CreateUserModal from '../components/modals/CreateUserModal'
+import ChangePasswordModal from '../components/modals/ChangePasswordModal'
 
 function UserPanel () {
   const [users, setUsers] = useState([])

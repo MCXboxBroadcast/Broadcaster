@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Select from '../components/Select'
 import Button from '../components/Button'
-import ConfirmModal from '../components/ConfirmModal'
+import ConfirmModal from '../components/modals/ConfirmModal'
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 
 function BotDetails () {
