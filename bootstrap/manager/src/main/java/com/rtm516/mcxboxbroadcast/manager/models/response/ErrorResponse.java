@@ -1,4 +1,4 @@
 package com.rtm516.mcxboxbroadcast.manager.models.response;
 
-public record ErrorResponse(String error) {
+public record ErrorResponse(String error) implements CustomResponse {
 }

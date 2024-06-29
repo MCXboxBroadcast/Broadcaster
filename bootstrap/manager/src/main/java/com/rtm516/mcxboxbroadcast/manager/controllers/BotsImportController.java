@@ -6,6 +6,7 @@ import com.rtm516.mcxboxbroadcast.core.models.auth.XstsAuthData;
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
+import com.rtm516.mcxboxbroadcast.manager.models.response.CustomResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ErrorResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ImportResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,7 +40,7 @@ public class BotsImportController {
     }
 
     @PostMapping("/legacy")
-    public Object importLegacy(HttpServletResponse response, @RequestParam("file") MultipartFile file) {
+    public CustomResponse importLegacy(HttpServletResponse response, @RequestParam("file") MultipartFile file) {
         // Check file format
         if (!file.getOriginalFilename().endsWith(".zip")) {
             response.setStatus(400);
@@ -101,7 +102,7 @@ public class BotsImportController {
     }
 
     @PostMapping("/credentials")
-    public Object importCredentials(HttpServletResponse response, @RequestBody String credentialsData) {
+    public CustomResponse importCredentials(HttpServletResponse response, @RequestBody String credentialsData) {
         if (credentialsData.isBlank()) {
             response.setStatus(400);
             return new ErrorResponse("No credentials provided");

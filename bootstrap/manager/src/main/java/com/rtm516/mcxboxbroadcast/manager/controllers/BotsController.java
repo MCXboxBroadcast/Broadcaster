@@ -7,6 +7,9 @@ import com.rtm516.mcxboxbroadcast.manager.database.repository.BotCollection;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
 import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.request.BotUpdateRequest;
+import com.rtm516.mcxboxbroadcast.manager.models.response.CustomResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.ErrorResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.SuccessResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,13 +118,15 @@ public class BotsController {
     }
 
     @DeleteMapping("/{botId:[a-z0-9]+}")
-    public void delete(HttpServletResponse response, @PathVariable ObjectId botId) {
+    public CustomResponse delete(HttpServletResponse response, @PathVariable ObjectId botId) {
         if (!botManager.bots().containsKey(botId)) {
             response.setStatus(404);
-            return;
+            return new ErrorResponse("Bot not found");
         }
+
         botManager.deleteBot(botId);
         response.setStatus(200);
+        return new SuccessResponse();
     }
 
     @GetMapping("/{botId:[a-z0-9]+}/logs")

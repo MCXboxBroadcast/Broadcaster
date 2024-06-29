@@ -2,10 +2,14 @@ package com.rtm516.mcxboxbroadcast.manager.controllers;
 
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.ServerManager;
+import com.rtm516.mcxboxbroadcast.manager.database.repository.BotCollection;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
 import com.rtm516.mcxboxbroadcast.manager.models.ServerContainer;
 import com.rtm516.mcxboxbroadcast.manager.models.request.ServerUpdateRequest;
+import com.rtm516.mcxboxbroadcast.manager.models.response.CustomResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.ErrorResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ServerInfoResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.SuccessResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +30,14 @@ public class ServersController {
     private final ServerManager serverManager;
     private final BackendManager backendManager;
     private final ServerCollection serverCollection;
+    private final BotCollection botCollection;
 
     @Autowired
-    public ServersController(ServerManager serverManager, BackendManager backendManager, ServerCollection serverCollection) {
+    public ServersController(ServerManager serverManager, BackendManager backendManager, ServerCollection serverCollection, BotCollection botCollection) {
         this.serverManager = serverManager;
         this.backendManager = backendManager;
         this.serverCollection = serverCollection;
+        this.botCollection = botCollection;
     }
 
     @GetMapping("")
@@ -87,12 +93,19 @@ public class ServersController {
     }
 
     @DeleteMapping("/{serverId:[a-z0-9]+}")
-    public void delete(HttpServletResponse response, @PathVariable ObjectId serverId) {
+    public CustomResponse delete(HttpServletResponse response, @PathVariable ObjectId serverId) {
         if (!serverManager.servers().containsKey(serverId)) {
             response.setStatus(404);
-            return;
+            return new ErrorResponse("Server not found");
         }
+
+        if (botCollection.countByServerId(serverId) > 0) {
+            response.setStatus(400);
+            return new ErrorResponse("Server has bots attached to it");
+        }
+
         serverManager.deleteServer(serverId);
         response.setStatus(200);
+        return new SuccessResponse();
     }
 }

@@ -18,9 +18,10 @@ import java.util.concurrent.ScheduledExecutorService;
 @Service
 @Scope
 public class BackendManager {
-    private final ScheduledExecutorService scheduledThreadPool;
     private final UserCollection userCollection;
     private final ServerCollection serverCollection;
+
+    private final ScheduledExecutorService scheduledThreadPool;
 
     public static final Logger LOGGER = LoggerFactory.getLogger("Backend");
 

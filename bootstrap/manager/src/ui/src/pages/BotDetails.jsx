@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Select from '../components/Select'
 import Button from '../components/Button'
 import ConfirmModal from '../components/modals/ConfirmModal'
-import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
+import { ExclamationTriangleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { addNotification } from '../components/NotificationContainer'
 
 function BotDetails () {
@@ -30,6 +30,9 @@ function BotDetails () {
   const [formData, setFormData] = useState({
     serverId: ''
   })
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const deleteCallback = useRef(() => {})
 
   // const [seenLoginCode, setSeenLoginCode] = useState(false)
   const [loginCodeOpen, setLoginCodeOpen] = useState(false)
@@ -131,12 +134,14 @@ function BotDetails () {
     })
   }
 
-  const callDelete = (action) => {
-    // TODO Add confirmation
-    fetch('/api/bots/' + botId, { method: 'DELETE' }).then((res) => res.text()).then((data) => {
-      if (data !== '') {
-        return console.error(data)
+  const callDelete = () => {
+    fetch('/api/bots/' + botId, { method: 'DELETE' }).then((res) => res.json()).then((data) => {
+      if (data.error) {
+        console.error(data)
+        addNotification('Failed to delete bot: ' + data.error, 'red')
+        return
       }
+      addNotification('Deleted bot', 'green')
       navigate('/bots')
     })
   }
@@ -153,6 +158,18 @@ function BotDetails () {
         onClose={(success) => {
           setLoginCodeOpen(false)
           loginCodeCallback.current(success)
+        }}
+      />
+      <ConfirmModal
+        title='Delete bot'
+        message='Are you sure you want to delete this bot? This action cannot be undone.'
+        confirmText='Delete'
+        color='red'
+        Icon={ExclamationTriangleIcon}
+        open={deleteOpen}
+        onClose={(success) => {
+          setDeleteOpen(false)
+          deleteCallback.current(success)
         }}
       />
       <div className='px-8 pb-12 flex items-center flex-col gap-5'>
@@ -181,11 +198,11 @@ function BotDetails () {
               <button className='flex justify-center items-center grow rounded-md text-white font-bold bg-green-700 hover:bg-green-800 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-150' disabled={info.status.toLowerCase() !== 'offline'} onClick={() => callAction('start')}>
                 Start
               </button>
-              <button className='flex justify-center items-center grow rounded-md text-white font-bold bg-red-700 hover:bg-red-800 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-150' disabled={info.status.toLowerCase() === 'offline'}  onClick={() => callAction('stop')}>
+              <button className='flex justify-center items-center grow rounded-md text-white font-bold bg-red-700 hover:bg-red-800 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors duration-150' disabled={info.status.toLowerCase() === 'offline'} onClick={() => callAction('stop')}>
                 Stop
               </button>
             </div>
-            <button className='flex justify-center items-center md:min-h-0 min-h-12 rounded-md text-white font-bold bg-orange-700 hover:bg-orange-800 transition-colors duration-150' disabled={info.status === ''}  onClick={() => callAction('restart')}>
+            <button className='flex justify-center items-center md:min-h-0 min-h-12 rounded-md text-white font-bold bg-orange-700 hover:bg-orange-800 transition-colors duration-150' disabled={info.status === ''} onClick={() => callAction('restart')}>
               Restart
             </button>
           </div>
@@ -207,7 +224,7 @@ function BotDetails () {
               value={formData.serverId}
               onChange={handleChange}
               required
-              options={servers.map((server) => ({ value: server.id, label: server.hostname + ':' + server.port}))}
+              options={servers.map((server) => ({ value: server.id, label: server.hostname + ':' + server.port }))}
             />
             <Button color='green' type='submit'>
               <div>
@@ -215,7 +232,16 @@ function BotDetails () {
               </div>
               <DocumentCheckIcon className='size-4' aria-hidden='true' />
             </Button>
-            <Button color='red' onClick={() => callDelete()}>
+            <Button
+              color='red'
+              onClick={() => {
+                deleteCallback.current = (success) => {
+                  if (!success) return
+                  callDelete()
+                }
+                setDeleteOpen(true)
+              }}
+            >
               <div>
                 Delete
               </div>

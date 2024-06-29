@@ -1,13 +1,18 @@
 import { DocumentCheckIcon, TrashIcon } from '@heroicons/react/16/solid'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Input from '../components/Input'
 import Button from '../components/Button'
 
 import { formatTimestamp } from '../utils'
+import { addNotification } from '../components/NotificationContainer'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import ConfirmModal from '../components/modals/ConfirmModal'
 
 function ServerDetails () {
   const { serverId } = useParams()
+  const navigate = useNavigate()
+
   const [info, setInfo] = useState({
     lastUpdated: null,
     hostname: '',
@@ -21,11 +26,14 @@ function ServerDetails () {
       'max-players': 0
     }
   })
-  const navigate = useNavigate()
+
   const [formData, setFormData] = useState({
     hostname: '',
     port: 0
   })
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const deleteCallback = useRef(() => {})
 
   const updateData = () => {
     fetch('/api/servers/' + serverId).then((res) => {
@@ -75,12 +83,14 @@ function ServerDetails () {
     })
   }
 
-  const callDelete = (action) => {
-    // TODO Add confirmation
-    fetch('/api/servers/' + serverId, { method: 'DELETE' }).then((res) => res.text()).then((data) => {
-      if (data !== '') {
-        return console.error(data)
+  const callDelete = () => {
+    fetch('/api/servers/' + serverId, { method: 'DELETE' }).then((res) => res.json()).then((data) => {
+      if (data.error) {
+        console.error(data)
+        addNotification('Failed to delete server: ' + data.error, 'red')
+        return
       }
+      addNotification('Deleted server', 'green')
       navigate('/servers')
     })
   }
@@ -89,6 +99,18 @@ function ServerDetails () {
 
   return (
     <>
+      <ConfirmModal
+        title='Delete server'
+        message='Are you sure you want to delete this server? This action cannot be undone.'
+        confirmText='Delete'
+        color='red'
+        Icon={ExclamationTriangleIcon}
+        open={deleteOpen}
+        onClose={(success) => {
+          setDeleteOpen(false)
+          deleteCallback.current(success)
+        }}
+      />
       <div className='px-8 pb-12 flex items-center flex-col gap-5'>
         <div className='bg-white p-6 rounded shadow-lg max-w-6xl w-full'>
           <h3 className='text-3xl text-center pb-4'>Logs</h3>
@@ -144,7 +166,16 @@ function ServerDetails () {
               </div>
               <DocumentCheckIcon className='size-4' aria-hidden='true' />
             </Button>
-            <Button color='red' onClick={() => callDelete()}>
+            <Button
+              color='red'
+              onClick={() => {
+                deleteCallback.current = (success) => {
+                  if (!success) return
+                  callDelete()
+                }
+                setDeleteOpen(true)
+              }}
+            >
               <div>
                 Delete
               </div>

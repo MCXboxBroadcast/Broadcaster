@@ -55,6 +55,7 @@ public class ServerManager {
 
     public void deleteServer(ObjectId serverId) {
         servers.remove(serverId);
+        serverCollection.deleteById(serverId);
     }
 
     public ObjectId firstServer() {

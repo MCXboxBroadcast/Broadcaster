@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BotCollection extends MongoRepository<Bot, ObjectId> {
+    int countByServerId(ObjectId serverId);
 }
