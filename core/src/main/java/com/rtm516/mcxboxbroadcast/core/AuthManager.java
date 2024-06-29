@@ -1,10 +1,13 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.google.gson.JsonObject;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XstsAuthData;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import net.lenni0451.commons.httpclient.HttpClient;
 import net.raphimc.minecraftauth.MinecraftAuth;
+import net.raphimc.minecraftauth.step.AbstractStep;
 import net.raphimc.minecraftauth.step.msa.MsaCodeStep;
+import net.raphimc.minecraftauth.step.msa.StepCredentialsMsaCode;
 import net.raphimc.minecraftauth.step.msa.StepMsaDeviceCode;
 import net.raphimc.minecraftauth.step.msa.StepMsaDeviceCodeMsaCode;
 import net.raphimc.minecraftauth.step.msa.StepMsaToken;
@@ -15,6 +18,7 @@ import net.raphimc.minecraftauth.step.xbl.session.StepInitialXblSession;
 import net.raphimc.minecraftauth.util.JsonUtil;
 import net.raphimc.minecraftauth.util.MicrosoftConstants;
 import net.raphimc.minecraftauth.util.OAuthEnvironment;
+import net.raphimc.minecraftauth.util.logging.ILogger;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,16 +48,32 @@ public class AuthManager {
 
         this.xstsToken = null;
     }
+
+    private static StepXblSisuAuthentication sisuAuthentication(AbstractStep<?, MsaCodeStep.MsaCode> msaInput) {
+        StepMsaToken initialAuth = new StepMsaToken(msaInput);
+        StepInitialXblSession xblAuth = new StepInitialXblSession(initialAuth, new StepXblDeviceToken("Android"));
+        return new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
+    }
+
+    private static MsaCodeStep.ApplicationDetails appDetails() {
+        return new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, OAuthEnvironment.LIVE.getNativeClientUrl(), OAuthEnvironment.LIVE);
+    }
+
+    public static XstsAuthData fromCredentials(String email, String password, ILogger logger) throws Exception {
+        StepXblSisuAuthentication xstsAuth = sisuAuthentication(new StepCredentialsMsaCode(appDetails()));
+
+        HttpClient httpClient = MinecraftAuth.createHttpClient();
+        return new XstsAuthData(xstsAuth.getFromInput(logger, httpClient, new StepCredentialsMsaCode.MsaCredentials(email, password)), xstsAuth);
+    }
+
     /**
      * Follow the auth flow to get the Xbox token and store it
      */
     private void initialise() {
         // Setup the authentication steps
         HttpClient httpClient = MinecraftAuth.createHttpClient();
-        MsaCodeStep.ApplicationDetails appDetails = new MsaCodeStep.ApplicationDetails(MicrosoftConstants.BEDROCK_ANDROID_TITLE_ID, MicrosoftConstants.SCOPE_TITLE_AUTH, null, null, OAuthEnvironment.LIVE);
-        StepMsaToken initialAuth = new StepMsaToken(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
-        StepInitialXblSession xblAuth = new StepInitialXblSession(initialAuth, new StepXblDeviceToken("Android"));
-        StepXblSisuAuthentication xstsAuth = new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
+        MsaCodeStep.ApplicationDetails appDetails = appDetails();
+        StepXblSisuAuthentication xstsAuth = sisuAuthentication(new StepMsaDeviceCodeMsaCode(new StepMsaDeviceCode(appDetails), 120 * 1000));
 
         // Check if we have an old live_token.json file and try to import the refresh token from it
         if (Files.exists(oldLiveAuth)) {
@@ -62,9 +82,7 @@ public class AuthManager {
                 JsonObject liveToken = JsonUtil.parseString(Files.readString(oldLiveAuth)).getAsJsonObject();
                 JsonObject tokenData = liveToken.getAsJsonObject("token");
 
-                StepMsaToken convertInitialAuth = new StepMsaToken(new StepRefreshTokenMsaCode(appDetails));
-                StepInitialXblSession convertXblAuth = new StepInitialXblSession(convertInitialAuth, new StepXblDeviceToken("Android"));
-                StepXblSisuAuthentication convertXstsAuth = new StepXblSisuAuthentication(convertXblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
+                StepXblSisuAuthentication convertXstsAuth = sisuAuthentication(new StepRefreshTokenMsaCode(appDetails));
 
                 xstsToken = convertXstsAuth.getFromInput(logger, httpClient, new StepRefreshTokenMsaCode.RefreshToken(tokenData.get("refresh_token").getAsString()));
 
@@ -93,7 +111,7 @@ public class AuthManager {
             }
 
             // Save to cache.json
-            Files.writeString(cache, JsonUtil.GSON.toJson(xstsAuth.toJson(xstsToken)));
+            Files.writeString(cache, Constants.GSON.toJson(xstsAuth.toJson(xstsToken)));
 
             // Construct and store the Xbox token info
             xboxTokenInfo = new XboxTokenInfo(xstsToken.getDisplayClaims().get("xid"), xstsToken.getUserHash(), xstsToken.getDisplayClaims().get("gtg"), xstsToken.getToken(), String.valueOf(xstsToken.getExpireTimeMs()));

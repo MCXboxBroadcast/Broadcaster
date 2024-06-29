@@ -1,13 +1,17 @@
 package com.rtm516.mcxboxbroadcast.manager.controllers;
 
+import com.rtm516.mcxboxbroadcast.core.AuthManager;
 import com.rtm516.mcxboxbroadcast.core.Constants;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XstsAuthData;
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
+import net.raphimc.minecraftauth.MinecraftAuth;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,8 +39,8 @@ public class BotsImportController {
         this.backendManager = backendManager;
     }
 
-    @PostMapping("")
-    public ErrorResponse bots(HttpServletResponse response, @RequestParam("file") MultipartFile file) {
+    @PostMapping("/legacy")
+    public ErrorResponse importLegacy(HttpServletResponse response, @RequestParam("file") MultipartFile file) {
         // Check file format
         if (!file.getOriginalFilename().endsWith(".zip")) {
             response.setStatus(400);
@@ -88,6 +92,55 @@ public class BotsImportController {
                 subBot.cache(cacheFiles.get(subSession + "/cache.json"));
                 importedBots.add(subBot);
             }
+        }
+
+        // Start all the imported bots
+        backendManager.scheduledThreadPool().execute(() -> importedBots.forEach(BotContainer::start));
+
+        response.setStatus(200);
+        return null;
+    }
+
+    @PostMapping("/credentials")
+    public ErrorResponse importCredentials(HttpServletResponse response, @RequestBody String credentialsData) {
+        if (credentialsData.isBlank()) {
+            response.setStatus(400);
+            return new ErrorResponse("No credentials provided");
+        }
+
+        List<BotContainer> importedBots = new ArrayList<>();
+
+        // Parse the credentials data email:password
+        String[] lines = credentialsData.split("\n");
+        for (String credential : lines) {
+            String[] parts = credential.split(":");
+            if (parts.length != 2) {
+                // TODO Count these and let the user know
+//                response.setStatus(400);
+//                return new ErrorResponse("Invalid credentials format");
+                continue;
+            }
+
+            // Process the credentials
+            String cacheData = "";
+            try {
+                // TODO Use a different logger
+                XstsAuthData xstsAuthData = AuthManager.fromCredentials(parts[0], parts[1], MinecraftAuth.LOGGER);
+                cacheData = Constants.GSON.toJson(xstsAuthData.xstsAuth().toJson(xstsAuthData.xstsToken()));
+            } catch (Exception e) {
+                // TODO Catch the exception and let the user know
+                e.printStackTrace();
+            }
+
+            // Skip if the cache data is blank
+            if (cacheData.isBlank()) {
+                continue;
+            }
+
+            // Create a bot for each credential
+            BotContainer bot = botManager.addBot();
+            bot.cache(cacheData);
+            importedBots.add(bot);
         }
 
         // Start all the imported bots

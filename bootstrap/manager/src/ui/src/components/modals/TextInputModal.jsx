@@ -1,27 +1,26 @@
 import { useEffect, useState } from 'react'
 
 import Modal from './Modal'
-import Banner from '../Banner'
 
-function UploadFileModal ({ title, message, accept = '', open = false, onClose }) {
-  const [fileData, setFileData] = useState(null)
+function TextInputModal ({ title, message, confirmText = 'Submit', rows = 4, cols = 40, open = false, onClose }) {
+  const [textData, setTextData] = useState('')
 
   useEffect(() => {
     if (open) {
-      setFileData(null)
+      setTextData('')
     }
   }, [open])
 
   const handleSubmit = (success) => {
     if (!success) return onClose(success)
 
-    onClose(true, fileData)
+    onClose(true, textData)
   }
 
   return (
     <Modal
       title={title}
-      confirmText='Upload'
+      confirmText={confirmText}
       color='green'
       open={open}
       onClose={handleSubmit}
@@ -32,14 +31,15 @@ function UploadFileModal ({ title, message, accept = '', open = false, onClose }
               {message}
             </p>}
           <form className='flex flex-col gap-4 mt-2'>
-            {/* TODO Style the button */}
-            <input
-              type='file'
-              id='file'
-              name='file'
-              onChange={(e) => setFileData(e.target.files[0])}
+            <textarea
+              id='text'
+              name='text'
+              value={textData}
+              onChange={(e) => setTextData(e.target.value)}
               required
-              accept={accept}
+              rows={rows}
+              cols={cols}
+              className='ring-1 ring-inset ring-gray-300 rounded p-2'
             />
             <input
               type='submit'
@@ -56,4 +56,4 @@ function UploadFileModal ({ title, message, accept = '', open = false, onClose }
   )
 }
 
-export default UploadFileModal
+export default TextInputModal
