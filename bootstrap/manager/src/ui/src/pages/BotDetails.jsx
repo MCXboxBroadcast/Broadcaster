@@ -202,7 +202,7 @@ function BotDetails () {
               <div>{info.gamertag}</div>
             </div>
             <div className='flex justify-between mb-4'>
-              <div className='font-bold'>Xid:</div>
+              <div className='font-bold'>XUID:</div>
               <div>{info.xid}</div>
             </div>
             <div className='flex justify-between mb-4'>
