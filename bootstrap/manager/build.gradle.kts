@@ -22,6 +22,10 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
-nameJar("MCXboxBroadcastManager")
+tasks {
+	bootJar {
+		archiveFileName.set("MCXboxBroadcastManager.${archiveExtension.get()}")
+	}
+}
 
 description = "bootstrap-manager"
