@@ -21,6 +21,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @RestController()
@@ -137,5 +141,34 @@ public class BotsController {
         }
         response.setStatus(200);
         return botManager.logs(botId);
+    }
+
+    @GetMapping("/{botId:[a-z0-9]+}/session")
+    public String session(HttpServletResponse response, @PathVariable ObjectId botId) {
+        if (!botManager.bots().containsKey(botId)) {
+            response.setStatus(404);
+            return "";
+        }
+
+        BotContainer botContainer = botManager.bots().get(botId);
+
+        botContainer.dumpSession();
+
+        Path sessionJson = Paths.get(botContainer.cacheFolder(), "currentSessionResponse.json");
+        if (!Files.exists(sessionJson)) {
+            response.setStatus(404);
+            return "";
+        }
+
+        String data;
+        try {
+            data = Files.readString(sessionJson);
+        } catch (IOException e) {
+            response.setStatus(500);
+            return "";
+        }
+
+        response.setStatus(200);
+        return data;
     }
 }

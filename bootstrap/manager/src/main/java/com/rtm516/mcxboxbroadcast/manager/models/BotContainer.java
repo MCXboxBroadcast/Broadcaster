@@ -110,6 +110,12 @@ public class BotContainer {
         start();
     }
 
+    public void dumpSession() {
+        if (sessionManager != null) {
+            sessionManager.dumpSession();
+        }
+    }
+
     public String cacheFolder() {
         String cache = "./cache/" + bot._id();
 

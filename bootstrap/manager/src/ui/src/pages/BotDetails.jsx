@@ -146,6 +146,28 @@ function BotDetails () {
     })
   }
 
+  const saveLogs = () => {
+    const blob = new Blob([logs], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'latest.log'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadSessionData = () => {
+    fetch('/api/bots/' + botId + '/session').then((res) => res.json()).then((data) => {
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'currentSessionResponse.json'
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+  }
+
   return (
     <>
       <ConfirmModal
@@ -211,6 +233,13 @@ function BotDetails () {
           <h3 className='text-3xl text-center pb-4'>Logs</h3>
           <div className='bg-black text-white overflow-x-auto text-base h-[30rem] font-mono whitespace-pre' ref={logsRef}>
             {logs}
+          </div>
+        </div>
+        <div className='bg-white p-6 rounded shadow-lg max-w-6xl w-full'>
+          <h3 className='text-3xl text-center pb-4'>Downloads</h3>
+          <div className='grid md:grid-cols-2 grid-cols-1 gap-2'>
+            <Button color='green' onClick={() => saveLogs()}>Download logs</Button>
+            <Button color='green' onClick={() => downloadSessionData()}>Download current session data</Button>
           </div>
         </div>
         <div className='bg-white p-6 rounded shadow-lg max-w-6xl w-full'>
