@@ -2,7 +2,9 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useMatches } from 'react-router-dom'
 import { Disclosure, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+
 import { NotificationContainer } from '../components/NotificationContainer'
+import Footer from '../components/Footer'
 
 function getNavClass (isMobile, { isActive }) {
   let className = 'rounded-md px-3 py-2 font-medium'
@@ -118,9 +120,7 @@ function Layout () {
       </main>
 
       {(!hideFooter &&
-        <footer className='bg-gray-800 text-white px-8 py-4'>
-          Copyright &copy; rtm516 2024-{new Date().getFullYear()}
-        </footer>
+        <Footer />
       )}
     </>
   )
