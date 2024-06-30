@@ -1,0 +1,21 @@
+name: mcxbmanager
+
+services:
+  manager:
+    image: ghcr.io/rtm516/mcxboxbroadcast-manager:latest
+    ports:
+      - "8082:8082"
+    volumes:
+      - /path/to/config/:/opt/app/config/
+    depends_on:
+      - mongo
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/mcxboxbroadcast
+
+  mongo:
+    image: mongo:latest
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

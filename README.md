@@ -4,7 +4,7 @@
 [![HitCount](https://hits.dwyl.com/rtm516/MCXboxBroadcast.svg?style=flat)](http://hits.dwyl.com/rtm516/MCXboxBroadcast)
 [![Discord](https://img.shields.io/discord/1139621390908133396?label=discord&color=5865F2)](https://discord.gg/Tp3tA2kdCN)
 
-A simple [Geyser](https://github.com/GeyserMC/Geyser) extension that broadcasts the server over Xbox Live.
+A simple tool that broadcasts an existing [Geyser](https://github.com/GeyserMC/Geyser)/Bedrock server over Xbox Live.
 
 This shows up to the authenticated accounts friends in-game as a joinable session and then anyone thats friends with someone who joined through that method will also see the session as joinable ingame.
 
@@ -19,6 +19,7 @@ You use this project at your own risk, the contributors are not responsible for 
  - Easy Geyser integration (as an extension)
  - Shows as online and playing Minecraft in the Xbox app and website
  - Multi-account support
+ - Web manager for larger networks
 
 ## Pterodactyl Panel
 There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`
@@ -52,6 +53,8 @@ docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/rtm516/mcxboxbroa
 6. Follow the account on Xbox LIVE
 7. Check the friends tab ingame and you should see the server listed
 
+### Manager
+See [manager readme](bootstrap/manager/README.md)
 
 ## Commands
 For the extension version prefix with `/mcxboxbroadcast`
