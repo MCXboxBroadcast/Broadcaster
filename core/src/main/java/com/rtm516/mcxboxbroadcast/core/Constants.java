@@ -25,6 +25,7 @@ public class Constants {
     public static final URI FOLLOWERS = URI.create("https://peoplehub.xboxlive.com/users/me/people/followers");
     public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
     public static final URI SOCIAL_SUMMARY = URI.create("https://social.xboxlive.com/users/me/summary");
+    public static final URI BLOCK = URI.create("https://privacy.xboxlive.com/users/me/people/never");
 
     /**
      * From the ConnectionType enum in the game

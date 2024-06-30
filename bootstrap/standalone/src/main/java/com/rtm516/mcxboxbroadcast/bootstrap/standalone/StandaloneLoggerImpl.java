@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
+import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import net.minecrell.terminalconsole.SimpleTerminalConsole;
 import org.apache.logging.log4j.Level;
@@ -96,6 +97,7 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                         default -> warn("Unknown accounts command: " + args[1]);
                     }
                 }
+                case "version" -> info("MCXboxBroadcast Standalone " + BuildData.VERSION);
                 case "help" -> {
                     info("Available commands:");
                     info("exit - Exit the application");
@@ -104,6 +106,7 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                     info("accounts list - List sub-accounts");
                     info("accounts add <sub-session-id> - Add a sub-account");
                     info("accounts remove <sub-session-id> - Remove a sub-account");
+                    info("version - Display the version");
                 }
                 default -> warn("Unknown command: " + commandNode);
             }
