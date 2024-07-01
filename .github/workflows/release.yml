@@ -50,7 +50,7 @@ jobs:
         name: UI
         path: bootstrap/manager/src/main/resources/static
     - name: Validate Gradle Wrapper
-      uses: gradle/wrapper-validation-action@v3
+      uses: gradle/actions/wrapper-validation@v3
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -68,7 +68,7 @@ jobs:
         PREVIOUS_BUILD: ${{ steps.getPreviousBuild.outputs.result }}
       run: echo result=$((++PREVIOUS_BUILD)) >> $GITHUB_OUTPUT
     - name: Build with Gradle
-      uses: gradle/gradle-build-action@v3
+      uses: gradle/actions/setup-gradle@v3
       with:
         arguments: build
         gradle-home-cache-cleanup: true
