@@ -38,7 +38,7 @@ public class ServerManager {
             for (ServerContainer serverContainer : servers.values()) {
                 serverContainer.updateSessionInfo();
             }
-        }, 0, backendManager.updateTime() / 2, TimeUnit.SECONDS);
+        }, 0, backendManager.updateTime().server(), TimeUnit.SECONDS);
     }
 
     /**

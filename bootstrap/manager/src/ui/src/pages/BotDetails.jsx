@@ -196,16 +196,20 @@ function BotDetails () {
       />
       <div className='px-8 pb-12 flex items-center flex-col gap-5'>
         <div className='max-w-6xl w-full grid md:grid-cols-2 gap-5'>
-          <div className='bg-white rounded shadow-lg p-6 w-full'>
-            <div className='flex justify-between mb-4'>
+          <div className='bg-white rounded shadow-lg p-6 w-full flex flex-col gap-4'>
+            <div className='flex justify-between'>
               <div className='font-bold'>Gamertag:</div>
               <div>{info.gamertag}</div>
             </div>
-            <div className='flex justify-between mb-4'>
+            <div className='flex justify-between'>
               <div className='font-bold'>XUID:</div>
               <div>{info.xid}</div>
             </div>
-            <div className='flex justify-between mb-4'>
+            <div className='flex justify-between'>
+              <div className='font-bold'>Friends:</div>
+              <div>{info.friendCount}/1000</div>
+            </div>
+            <div className='flex justify-between'>
               <div className='font-bold'>Server:</div>
               <div>{currentServer.hostname}:{currentServer.port}</div>
             </div>

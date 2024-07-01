@@ -58,7 +58,7 @@ public class Bot {
         this.authCache = authCache;
     }
 
-    public BotInfoResponse toResponse(BotContainer.Status status) {
-        return new BotInfoResponse(_id, gamertag, xid, status, serverId);
+    public BotInfoResponse toResponse(BotContainer.Status status, int friendCount) {
+        return new BotInfoResponse(_id, gamertag, xid, status, serverId, friendCount);
     }
 }

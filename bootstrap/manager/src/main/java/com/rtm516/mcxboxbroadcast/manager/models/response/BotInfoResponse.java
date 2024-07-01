@@ -15,12 +15,15 @@ public class BotInfoResponse {
     private BotContainer.Status status;
     @JsonProperty
     private ObjectId serverId;
+    @JsonProperty
+    private int friendCount;
 
-    public BotInfoResponse(ObjectId id, String gamertag, String xid, BotContainer.Status status, ObjectId serverId) {
+    public BotInfoResponse(ObjectId id, String gamertag, String xid, BotContainer.Status status, ObjectId serverId, int friendCount) {
         this.id = id;
         this.gamertag = gamertag;
         this.xid = xid;
         this.status = status;
         this.serverId = serverId;
+        this.friendCount = friendCount;
     }
 }

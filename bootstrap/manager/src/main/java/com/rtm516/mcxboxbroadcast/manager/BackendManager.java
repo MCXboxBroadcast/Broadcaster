@@ -66,14 +66,15 @@ public class BackendManager {
 
     /**
      * Get the time in seconds between each update
-     * Full time is the bot update time
-     * Half time is the server update time
      * <p>
      * TODO Make configurable
      *
      * @return the time in seconds between each update
      */
-    public int updateTime() {
-        return 30;
+    public UpdateTime updateTime() {
+        return new UpdateTime(15, 30, 60 * 2);
+    }
+
+    public record UpdateTime(int server, int session, int friend) {
     }
 }

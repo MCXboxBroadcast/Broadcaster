@@ -30,6 +30,7 @@ public class BotContainer {
     private Logger logger;
     private SessionManager sessionManager;
     private Status status;
+    private int friendCount;
 
     public BotContainer(BotManager botManager, Bot bot) {
         this.botManager = botManager;
@@ -72,7 +73,7 @@ public class BotContainer {
      * @return the bot info response
      */
     public BotInfoResponse toResponse() {
-        return bot.toResponse(status);
+        return bot.toResponse(status, friendCount);
     }
 
     /**
@@ -104,7 +105,8 @@ public class BotContainer {
             bot.xid(sessionManager.getXuid());
             save();
 
-            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime(), botManager.backendManager().updateTime(), TimeUnit.SECONDS);
+            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime().session(), botManager.backendManager().updateTime().session(), TimeUnit.SECONDS);
+            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateFriendStats, 0, botManager.backendManager().updateTime().friend(), TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create session", e);
             status = Status.OFFLINE;
@@ -130,6 +132,15 @@ public class BotContainer {
         } catch (SessionUpdateException e) {
             sessionManager.logger().error("Failed to update session", e);
         }
+    }
+
+    public void updateFriendStats() {
+        // If the bot is not online, don't update the session
+        if (status != Status.ONLINE) {
+            return;
+        }
+
+        friendCount = sessionManager.socialSummary().targetFollowingCount();
     }
 
     /**
