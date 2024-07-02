@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.manager;
 
+import com.rtm516.mcxboxbroadcast.manager.config.MainConfig;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Server;
 import com.rtm516.mcxboxbroadcast.manager.database.model.User;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
@@ -20,18 +21,19 @@ import java.util.concurrent.ScheduledExecutorService;
 public class BackendManager {
     private final UserCollection userCollection;
     private final ServerCollection serverCollection;
+    private final MainConfig mainConfig;
 
     private final ScheduledExecutorService scheduledThreadPool;
 
     public static final Logger LOGGER = LoggerFactory.getLogger("Backend");
 
     @Autowired
-    public BackendManager(UserCollection userCollection, PasswordEncoder passwordEncoder, ServerCollection serverCollection) {
+    public BackendManager(UserCollection userCollection, PasswordEncoder passwordEncoder, ServerCollection serverCollection, MainConfig mainConfig) {
         this.userCollection = userCollection;
         this.serverCollection = serverCollection;
+        this.mainConfig = mainConfig;
 
-        // TODO Allow configuration of thread pool size
-        this.scheduledThreadPool = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() * 3 / 8), new NamedThreadFactory("MCXboxBroadcast Manager Thread"));
+        this.scheduledThreadPool = Executors.newScheduledThreadPool(mainConfig.workerThreads(), new NamedThreadFactory("MCXboxBroadcast Manager Thread"));
 
         // Create the admin user if it doesn't exist
         if (authEnabled() && userCollection.findUserByUsername("admin").isEmpty()) {
@@ -55,26 +57,19 @@ public class BackendManager {
 
     /**
      * Check if authentication is enabled
-     * <p>
-     * TODO Make configurable
      *
      * @return if authentication is enabled
      */
     public boolean authEnabled() {
-        return System.getenv("SECURITY") == null || System.getenv("SECURITY").equals("true");
+        return mainConfig.auth();
     }
 
     /**
      * Get the time in seconds between each update
-     * <p>
-     * TODO Make configurable
      *
      * @return the time in seconds between each update
      */
-    public UpdateTime updateTime() {
-        return new UpdateTime(15, 30, 60 * 2);
-    }
-
-    public record UpdateTime(int server, int session, int friend) {
+    public MainConfig.UpdateTime updateTime() {
+        return mainConfig.updateTime();
     }
 }

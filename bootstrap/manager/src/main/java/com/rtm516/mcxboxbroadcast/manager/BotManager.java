@@ -3,7 +3,6 @@ package com.rtm516.mcxboxbroadcast.manager;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Bot;
 import com.rtm516.mcxboxbroadcast.manager.database.repository.BotCollection;
-import com.rtm516.mcxboxbroadcast.manager.database.repository.ServerCollection;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,7 +106,6 @@ public class BotManager {
      */
     public void deleteBot(ObjectId botId) {
         bots.get(botId).stop();
-        // TODO Cleanup cache folder
         bots.remove(botId);
         botCollection.deleteById(botId);
     }

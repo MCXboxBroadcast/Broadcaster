@@ -18,4 +18,4 @@ There is also a prebuilt Docker compose file that can be used to run the manager
 ## Additional Configuration
 Configuration can be made in the `application.yml` mounted into `/opt/app/config` (supports a range of spring properties)
 
-Theres also an environment variable `SECURE` that if set to `false` it will disable the login requirement
+See [application.yml](src/main/resources/application.yml) for the default configuration

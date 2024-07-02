@@ -93,12 +93,12 @@ public class BotContainer {
         }
 
         status = Status.STARTING;
-        logger = new Logger(this); // TODO Move to file based?
+        logger = new Logger(this);
         sessionManager = new SessionManager(storageManager, logger);
 
         sessionManager.restartCallback(this::restart);
         try {
-            sessionManager.init(botManager.serverSessionInfo(bot.serverId()), new FriendSyncConfig(20, true, true));
+            sessionManager.init(botManager.serverSessionInfo(bot.serverId()), new FriendSyncConfig(botManager.backendManager().updateTime().friend(), true, true));
             status = Status.ONLINE;
 
             bot.gamertag(sessionManager.getGamertag());
@@ -106,7 +106,7 @@ public class BotContainer {
             save();
 
             sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime().session(), botManager.backendManager().updateTime().session(), TimeUnit.SECONDS);
-            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateFriendStats, 0, botManager.backendManager().updateTime().friend(), TimeUnit.SECONDS);
+            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateFriendStats, 0, botManager.backendManager().updateTime().stats(), TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create session", e);
             status = Status.OFFLINE;

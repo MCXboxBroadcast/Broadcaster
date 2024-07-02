@@ -55,6 +55,7 @@ spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-
 spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "spring" }
 spring-boot-starter-security = { group = "org.springframework.boot", name = "spring-boot-starter-security", version.ref = "spring" }
 spring-boot-starter-data-mongodb = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb", version.ref = "spring" }
+spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation", version.ref = "spring" }
 
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test", version.ref = "spring" }
 spring-security-test = { group = "org.springframework.security", name = "spring-security-test", version.ref = "spring-security-test" }
@@ -84,7 +85,8 @@ spring-runtime = [
     "spring-boot-starter",
     "spring-boot-starter-web",
     "spring-boot-starter-security",
-    "spring-boot-starter-data-mongodb"
+    "spring-boot-starter-data-mongodb",
+    "spring-boot-starter-validation"
 ]
 spring-test = [
     "spring-boot-starter-test",
