@@ -66,6 +66,10 @@ public class ServerContainer {
             sessionInfo.setProtocol(pong.getProtocolVersion());
             sessionInfo.setPlayers(pong.getPlayerCount());
             sessionInfo.setMaxPlayers(pong.getMaximumPlayerCount());
+
+            // We only want to change this if the ping is successful so users can still join
+            sessionInfo.setIp(server.hostname());
+            sessionInfo.setPort(server.port());
         } catch (InterruptedException | ExecutionException e) {
             // TODO Log this to some backend log?
             // TODO Make this not show unless its the first ping or happened a few times in a row

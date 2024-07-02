@@ -117,6 +117,27 @@ public class BotContainer {
     }
 
     /**
+     * Stop the bot
+     */
+    public void stop() {
+        // If the bot is offline, don't try and stop it
+        if (status == Status.OFFLINE) {
+            return;
+        }
+
+        sessionManager.shutdown();
+        status = Status.OFFLINE;
+    }
+
+    /**
+     * Restart the bot
+     */
+    public void restart() {
+        stop();
+        start();
+    }
+
+    /**
      * Update the session info based on the selected server
      */
     public void updateSessionInfo() {
@@ -141,27 +162,6 @@ public class BotContainer {
         }
 
         friendCount = sessionManager.socialSummary().targetFollowingCount();
-    }
-
-    /**
-     * Stop the bot
-     */
-    public void stop() {
-        // If the bot is offline, don't try and stop it
-        if (status == Status.OFFLINE) {
-            return;
-        }
-
-        sessionManager.shutdown();
-        status = Status.OFFLINE;
-    }
-
-    /**
-     * Restart the bot
-     */
-    public void restart() {
-        stop();
-        start();
     }
 
     /**
