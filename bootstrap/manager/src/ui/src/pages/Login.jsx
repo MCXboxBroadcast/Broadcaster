@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import Input from '../components/Input'
-import Button from '../components/Button'
+import Input from '../components/basic/Input'
+import Button from '../components/basic/Button'
 import { useNavigate } from 'react-router-dom'
 
 function Login () {

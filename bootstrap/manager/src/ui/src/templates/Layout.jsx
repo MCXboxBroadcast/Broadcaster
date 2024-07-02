@@ -3,8 +3,8 @@ import { NavLink, Outlet, useMatches } from 'react-router-dom'
 import { Disclosure, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
-import { NotificationContainer } from '../components/NotificationContainer'
-import Footer from '../components/Footer'
+import { NotificationContainer } from '../components/layout/NotificationContainer'
+import Footer from '../components/layout/Footer'
 
 function getNavClass (isMobile, { isActive }) {
   let className = 'rounded-md px-3 py-2 font-medium'

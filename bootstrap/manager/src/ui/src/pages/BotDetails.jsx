@@ -1,11 +1,11 @@
 import { DocumentCheckIcon, TrashIcon } from '@heroicons/react/16/solid'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import Select from '../components/Select'
-import Button from '../components/Button'
+import Select from '../components/basic/Select'
+import Button from '../components/basic/Button'
 import ConfirmModal from '../components/modals/ConfirmModal'
 import { ExclamationTriangleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
-import { addNotification } from '../components/NotificationContainer'
+import { addNotification } from '../components/layout/NotificationContainer'
 
 function BotDetails () {
   const { botId } = useParams()

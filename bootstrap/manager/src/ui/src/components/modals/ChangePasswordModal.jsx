@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 
 import Modal from './Modal'
-import Input from '../Input'
-import Banner from '../Banner'
+import Input from '../basic/Input'
+import Banner from '../basic/Banner'
 
 function ChangePasswordModal ({ user, open = false, onClose }) {
   const [formData, setFormData] = useState({

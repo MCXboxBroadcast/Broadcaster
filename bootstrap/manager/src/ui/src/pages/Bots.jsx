@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/16/solid'
 import { useNavigate } from 'react-router-dom'
 
-import Bot from '../components/Bot'
-import Button from '../components/Button'
-import Dropdown from '../components/Dropdown'
+import Bot from '../components/specialised/Bot'
+import Button from '../components/basic/Button'
+import Dropdown from '../components/basic/Dropdown'
 import UploadFileModal from '../components/modals/UploadFileModal'
 import TextInputModal from '../components/modals/TextInputModal'
-import { addNotification } from '../components/NotificationContainer'
+import { addNotification } from '../components/layout/NotificationContainer'
 
 function Bots () {
   const navigate = useNavigate()

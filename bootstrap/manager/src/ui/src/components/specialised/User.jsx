@@ -1,6 +1,6 @@
 import { KeyIcon, UserMinusIcon } from '@heroicons/react/16/solid'
 
-import Button from './Button'
+import Button from '../basic/Button'
 
 function User ({ user, refreshUsers, className, confirmDelete, changePassword }) {
   const callDelete = () => {

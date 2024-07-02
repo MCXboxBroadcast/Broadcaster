@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 
 import Modal from './Modal'
-import Banner from '../Banner'
 
 function UploadFileModal ({ title, message, accept = '', open = false, onClose }) {
   const [fileData, setFileData] = useState(null)

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { PlusIcon } from '@heroicons/react/16/solid'
 import { useNavigate } from 'react-router-dom'
 
-import Server from '../components/Server'
-import Button from '../components/Button'
+import Server from '../components/specialised/Server'
+import Button from '../components/basic/Button'
 
 function Servers () {
   const [servers, setServers] = useState([])

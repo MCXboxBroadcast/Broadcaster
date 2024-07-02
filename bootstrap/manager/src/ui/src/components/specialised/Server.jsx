@@ -1,4 +1,4 @@
-import { formatTimestamp } from '../utils'
+import { formatTimestamp } from '../../utils'
 
 function Server ({ server, onClick }) {
   const formattedTimestamp = formatTimestamp(server.lastUpdated)
