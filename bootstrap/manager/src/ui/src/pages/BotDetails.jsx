@@ -6,6 +6,7 @@ import Button from '../components/basic/Button'
 import ConfirmModal from '../components/modals/ConfirmModal'
 import { ExclamationTriangleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { addNotification } from '../components/layout/NotificationContainer'
+import FriendPanel from '../components/specialised/FriendsPanel'
 
 function BotDetails () {
   const { botId } = useParams()
@@ -34,9 +35,7 @@ function BotDetails () {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteCallback = useRef(() => {})
 
-  // const [seenLoginCode, setSeenLoginCode] = useState(false)
   const [loginCodeOpen, setLoginCodeOpen] = useState(false)
-  // const [loginCodeCallback, setLoginCodeCallback] = useState(() => {})
   const loginCodeCallback = useRef(() => {})
   const seenLoginCode = useRef(false)
 
@@ -63,10 +62,10 @@ function BotDetails () {
         }
       })
 
-      fetch('/api/bots/' + botId + '/logs').then((res) => res.text()).then((data) => {
+      fetch('/api/bots/' + botId + '/logs').then((res) => res.text()).then((logsData) => {
         if (!seenLoginCode.current) {
           // Check if the second last line contains a link to login
-          const secondLastLine = data.trim().split('\n').reverse()[1]
+          const secondLastLine = logsData.trim().split('\n').reverse()[1]
           if (secondLastLine.includes('https://www.microsoft.com/link')) {
             // Extract the code from the line using regex
             const code = secondLastLine.match(/ [A-Z0-9]+ /)[0].trim()
@@ -82,7 +81,7 @@ function BotDetails () {
           }
         }
 
-        setLogs(data)
+        setLogs(logsData)
       })
     })
   }
@@ -199,7 +198,7 @@ function BotDetails () {
           <div className='bg-white rounded shadow-lg p-6 w-full flex flex-col gap-4'>
             <div className='flex justify-between'>
               <div className='font-bold'>Gamertag:</div>
-              <div>{info.gamertag}</div>
+              <div><a href={'https://www.xbox.com/play/user/' + encodeURIComponent(info.gamertag)}>{info.gamertag}</a></div>
             </div>
             <div className='flex justify-between'>
               <div className='font-bold'>XUID:</div>
@@ -246,6 +245,7 @@ function BotDetails () {
             <Button color='green' onClick={() => downloadSessionData()}>Download current session data</Button>
           </div>
         </div>
+        <FriendPanel botId={botId} />
         <div className='bg-white p-6 rounded shadow-lg max-w-6xl w-full'>
           <h3 className='text-3xl text-center pb-4'>Settings</h3>
           <form className='flex flex-col gap-4' onSubmit={handleSubmit}>

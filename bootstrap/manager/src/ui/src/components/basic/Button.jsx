@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 
 const Button = forwardRef(function (props, ref) {
   const newProps = { ...props }
-  const { color, children, className } = props
+  const { color = 'green', children, className } = props
   delete newProps.color
   delete newProps.children
   delete newProps.className

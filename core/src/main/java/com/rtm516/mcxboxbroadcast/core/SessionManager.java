@@ -85,8 +85,12 @@ public class SessionManager extends SessionManagerCore {
         super.init();
 
         // Set up the auto friend sync
+        if (friendSyncConfig.updateInterval() < 20) {
+            logger.warn("Friend sync update interval is less than 20 seconds, setting to 20 seconds");
+            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
+        }
         this.friendSyncConfig = friendSyncConfig;
-        friendManager().initAutoFriend(friendSyncConfig);
+        friendManager().initAutoFriend(this.friendSyncConfig);
 
         // Load sub-sessions from cache
         List<String> subSessions = new ArrayList<>();
@@ -105,7 +109,7 @@ public class SessionManager extends SessionManagerCore {
                 try {
                     SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager.subSession(subSession), logger);
                     subSessionManager.init();
-                    subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
+                    subSessionManager.friendManager().initAutoFriend(this.friendSyncConfig);
                     subSessionManagers.put(subSession, subSessionManager);
                 } catch (SessionCreationException | SessionUpdateException e) {
                     logger.error("Failed to create sub-session " + subSession, e);

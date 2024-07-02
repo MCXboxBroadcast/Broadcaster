@@ -1,21 +1,17 @@
 package com.rtm516.mcxboxbroadcast.manager.models;
 
+import com.rtm516.mcxboxbroadcast.core.FriendManager;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Bot;
 import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +34,10 @@ public class BotContainer {
         this.storageManager = new MongoStorageManager(this);
 
         status = Status.OFFLINE;
+    }
+
+    public boolean isRunning() {
+        return status == Status.ONLINE;
     }
 
     /**
@@ -180,6 +180,15 @@ public class BotContainer {
      */
     public StorageManager storageManager() {
         return storageManager;
+    }
+
+    /**
+     * Get the friend manager
+     *
+     * @return the friend manager
+     */
+    public FriendManager friendManager() {
+        return sessionManager.friendManager();
     }
 
     /**

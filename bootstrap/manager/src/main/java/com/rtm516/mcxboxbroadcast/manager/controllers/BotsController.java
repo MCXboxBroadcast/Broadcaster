@@ -3,12 +3,12 @@ package com.rtm516.mcxboxbroadcast.manager.controllers;
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.BotManager;
 import com.rtm516.mcxboxbroadcast.manager.ServerManager;
-import com.rtm516.mcxboxbroadcast.manager.database.repository.BotCollection;
 import com.rtm516.mcxboxbroadcast.manager.models.BotContainer;
 import com.rtm516.mcxboxbroadcast.manager.models.response.BotInfoResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.request.BotUpdateRequest;
 import com.rtm516.mcxboxbroadcast.manager.models.response.CustomResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ErrorResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.FriendResponse;
 import com.rtm516.mcxboxbroadcast.manager.models.response.SuccessResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.bson.types.ObjectId;
@@ -22,9 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 @RestController()
@@ -34,14 +31,12 @@ public class BotsController {
     private final BotManager botManager;
     private final ServerManager serverManager;
     private final BackendManager backendManager;
-    private final BotCollection botCollection;
 
     @Autowired
-    public BotsController(BotManager botManager, ServerManager serverManager, BackendManager backendManager, BotCollection botCollection) {
+    public BotsController(BotManager botManager, ServerManager serverManager, BackendManager backendManager) {
         this.botManager = botManager;
         this.serverManager = serverManager;
         this.backendManager = backendManager;
-        this.botCollection = botCollection;
     }
 
     @GetMapping("")
@@ -164,5 +159,42 @@ public class BotsController {
 
         response.setStatus(200);
         return data;
+    }
+
+    @GetMapping("/{botId:[a-z0-9]+}/friends")
+    public List<FriendResponse> friends(HttpServletResponse response, @PathVariable ObjectId botId) {
+        if (!botManager.bots().containsKey(botId)) {
+            response.setStatus(404);
+            return null;
+        }
+
+        BotContainer botContainer = botManager.bots().get(botId);
+
+        if (!botContainer.isRunning()) {
+            response.setStatus(400);
+            return null;
+        }
+
+        response.setStatus(200);
+        return botContainer.friendManager().lastFriendCache().stream().map(FriendResponse::new).toList();
+    }
+
+    @DeleteMapping("/{botId:[a-z0-9]+}/friends/{xuid:[0-9]{16}}")
+    public void deleteFriend(HttpServletResponse response, @PathVariable ObjectId botId, @PathVariable String xuid) {
+        if (!botManager.bots().containsKey(botId)) {
+            response.setStatus(404);
+            return;
+        }
+
+        BotContainer botContainer = botManager.bots().get(botId);
+
+        if (!botContainer.isRunning()) {
+            response.setStatus(400);
+            return;
+        }
+
+        botContainer.friendManager().forceUnfollow(xuid);
+
+        response.setStatus(200);
     }
 }
