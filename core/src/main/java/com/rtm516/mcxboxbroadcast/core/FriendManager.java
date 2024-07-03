@@ -105,7 +105,14 @@ public class FriendManager {
 
         // Filter out duplicates
         Set<String> seenXuids = new HashSet<>();
+        int count = people.size();
+        List<FollowerResponse.Person> originalPeople = new ArrayList<>(people);
         people.removeIf(person -> !seenXuids.add(person.xuid));
+
+        if (people.isEmpty() && count != 0) {
+            logger.debug("Removed all (" + count + ") friends while filtering duplicates");
+            logger.debug(Constants.GSON.toJson(originalPeople));
+        }
 
         lastFriendCache = people;
 
@@ -190,11 +197,18 @@ public class FriendManager {
     public void initAutoFriend(FriendSyncConfig friendSyncConfig) {
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
+                logger.debug("Doing friend sync");
+
                 // Cleanup any blocked users
                 cleanupBlocked();
 
                 try {
-                    for (FollowerResponse.Person person : get()) {
+                    List<FollowerResponse.Person> friends = get();
+                    if (friends.isEmpty()) {
+                        logger.debug("No friends on account, maybe a bug?");
+                        return;
+                    }
+                    for (FollowerResponse.Person person : friends) {
                         // Make sure we are not targeting a subaccount (eg: split screen)
                         if (isSubAccount(person.xuid)) {
                             continue;
