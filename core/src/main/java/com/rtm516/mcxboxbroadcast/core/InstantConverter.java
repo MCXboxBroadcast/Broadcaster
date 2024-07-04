@@ -17,7 +17,11 @@ import java.time.Instant;
 public class InstantConverter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
     @Override
     public Instant deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-        return Instant.parse(json.getAsString());
+        try {
+            return Instant.parse(json.getAsString());
+        } catch (Exception e) {
+            throw new JsonParseException(e);
+        }
     }
 
     @Override

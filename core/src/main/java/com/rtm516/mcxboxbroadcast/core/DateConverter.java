@@ -30,7 +30,7 @@ public class DateConverter implements JsonSerializer<Date>, JsonDeserializer<Dat
     public Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
         try {
             return dateFormat.parse(json.getAsString());
-        } catch (ParseException e) {
+        } catch (Exception e) {
             throw new JsonParseException(e);
         }
     }
