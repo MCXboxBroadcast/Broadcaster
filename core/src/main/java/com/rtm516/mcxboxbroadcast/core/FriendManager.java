@@ -202,6 +202,8 @@ public class FriendManager {
                 // Cleanup any blocked users
                 cleanupBlocked();
 
+                logger.debug("Cleaned up blocked users");
+
                 try {
                     List<FollowerResponse.Person> friends = get();
                     if (friends.isEmpty()) {
@@ -224,9 +226,10 @@ public class FriendManager {
                             remove(person.xuid, person.displayName);
                         }
                     }
-                } catch (XboxFriendsException e) {
+                } catch (Exception e) {
                     logger.error("Failed to sync friends", e);
                 }
+                logger.debug("Friend sync complete");
             }, friendSyncConfig.updateInterval(), friendSyncConfig.updateInterval(), TimeUnit.SECONDS);
         }
     }
@@ -465,10 +468,12 @@ public class FriendManager {
                     logger.info("Unblocked " + user.xuid() + " as they were blocked previously");
                 } catch (Exception e) {
                     // Silently continue
+                    logger.error("Error while unblocking user " + user.xuid(), e);
                 }
             }
         } catch (IOException | InterruptedException e) {
             // Silently fail as it's not too important if this doesn't work
+            logger.error("Error while cleaning up blocked users", e);
         }
     }
 
