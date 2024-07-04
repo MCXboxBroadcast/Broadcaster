@@ -27,7 +27,7 @@ public class ManagerApplication {
 	@Bean
 	RouterFunction<ServerResponse> spaRouter() {
 		ClassPathResource index = new ClassPathResource("static/index.html");
-		List<String> extensions = Arrays.asList("js", "css", "ico", "png", "jpg", "gif");
+		List<String> extensions = Arrays.asList("js", "css", "ico", "png", "jpg", "svg");
 
 		RequestPredicate spaPredicate = RequestPredicates.path("/api/**")
 			.or(RequestPredicates.pathExtension(extensions::contains))
