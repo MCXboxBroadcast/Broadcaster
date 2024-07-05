@@ -105,14 +105,7 @@ public class FriendManager {
 
         // Filter out duplicates
         Set<String> seenXuids = new HashSet<>();
-        int count = people.size();
-        List<FollowerResponse.Person> originalPeople = new ArrayList<>(people);
         people.removeIf(person -> !seenXuids.add(person.xuid));
-
-        if (people.isEmpty() && count != 0) {
-            logger.debug("Removed all (" + count + ") friends while filtering duplicates");
-            logger.debug(Constants.GSON.toJson(originalPeople));
-        }
 
         lastFriendCache = people;
 
@@ -197,20 +190,11 @@ public class FriendManager {
     public void initAutoFriend(FriendSyncConfig friendSyncConfig) {
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
-                logger.debug("Doing friend sync");
-
                 // Cleanup any blocked users
                 cleanupBlocked();
 
-                logger.debug("Cleaned up blocked users");
-
                 try {
-                    List<FollowerResponse.Person> friends = get();
-                    if (friends.isEmpty()) {
-                        logger.debug("No friends on account, maybe a bug?");
-                        return;
-                    }
-                    for (FollowerResponse.Person person : friends) {
+                    for (FollowerResponse.Person person : get()) {
                         // Make sure we are not targeting a subaccount (eg: split screen)
                         if (isSubAccount(person.xuid)) {
                             continue;
@@ -229,7 +213,6 @@ public class FriendManager {
                 } catch (Exception e) {
                     logger.error("Failed to sync friends", e);
                 }
-                logger.debug("Friend sync complete");
             }, friendSyncConfig.updateInterval(), friendSyncConfig.updateInterval(), TimeUnit.SECONDS);
         }
     }
@@ -468,12 +451,10 @@ public class FriendManager {
                     logger.info("Unblocked " + user.xuid() + " as they were blocked previously");
                 } catch (Exception e) {
                     // Silently continue
-                    logger.error("Error while unblocking user " + user.xuid(), e);
                 }
             }
         } catch (IOException | InterruptedException e) {
             // Silently fail as it's not too important if this doesn't work
-            logger.error("Error while cleaning up blocked users", e);
         }
     }
 
