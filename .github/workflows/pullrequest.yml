@@ -52,11 +52,12 @@ jobs:
         with:
           java-version: 17
           distribution: temurin
-      - name: Build with Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          arguments: build
           gradle-home-cache-cleanup: true
+      - name: Build
+        run: ./gradlew build
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -68,4 +69,10 @@ jobs:
         with:
           name: MCXboxBroadcastStandalone
           path: bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: MCXboxBroadcastManager
+          path: bootstrap/manager/build/libs/MCXboxBroadcastManager.jar
           if-no-files-found: error
