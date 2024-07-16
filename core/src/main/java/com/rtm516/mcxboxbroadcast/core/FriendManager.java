@@ -72,7 +72,9 @@ public class FriendManager {
             if (!lastResponse.isEmpty()) {
                 FollowerResponse xboxFollowerResponse = Constants.GSON.fromJson(lastResponse, FollowerResponse.class);
 
-                people.addAll(xboxFollowerResponse.people);
+                if (xboxFollowerResponse.people != null) {
+                    people.addAll(xboxFollowerResponse.people);
+                }
             }
         } catch (JsonParseException | IOException | InterruptedException e) {
             logger.debug("Follower request response: " + lastResponse);
@@ -96,7 +98,9 @@ public class FriendManager {
             if (!lastResponse.isEmpty()) {
                 FollowerResponse xboxSocialResponse = Constants.GSON.fromJson(lastResponse, FollowerResponse.class);
 
-                people.addAll(xboxSocialResponse.people);
+                if (xboxSocialResponse.people != null) {
+                    people.addAll(xboxSocialResponse.people);
+                }
             }
         } catch (JsonParseException | IOException | InterruptedException e) {
             logger.debug("Social request response: " + lastResponse);
