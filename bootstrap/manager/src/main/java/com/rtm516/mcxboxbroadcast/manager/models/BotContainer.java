@@ -105,6 +105,9 @@ public class BotContainer {
             bot.xid(sessionManager.getXuid());
             save();
 
+            // Force update the friend list so we have it sooner for the UI
+            sessionManager.friendManager().get();
+
             sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime().session(), botManager.backendManager().updateTime().session(), TimeUnit.SECONDS);
             sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateFriendStats, 0, botManager.backendManager().updateTime().stats(), TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
