@@ -12,6 +12,7 @@ dependencies {
 
 	api(project(":core"))
 	api(libs.bedrock.common)
+	api(libs.guava)
 }
 
 tasks.withType<Test> {

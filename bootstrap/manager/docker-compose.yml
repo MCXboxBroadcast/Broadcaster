@@ -6,7 +6,8 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - /path/to/config/:/opt/app/config/
+      - /path/to/application.yaml:/opt/app/config/application.yaml
+      - /path/to/logs/:/opt/app/config/logs/
     depends_on:
       - mongo
     environment:

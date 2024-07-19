@@ -20,3 +20,4 @@ mcxb:
         stats: 120
         friend: 20
     worker-threads: 6
+    log-size: 1024

@@ -39,9 +39,10 @@ public class MiscController {
         MainConfig config = backendManager.config();
 
         return Map.of(
-            "Authentication", String.valueOf(config.auth()),
+            "Authentication", config.auth() ? "Enabled" : "Disabled",
             "Update time (s)", "Server: " + config.updateTime().server() + ", Session: " + config.updateTime().session() + ", Stats: " + config.updateTime().stats() + ", Friend: " + config.updateTime().friend(),
-            "Worker Threads", String.valueOf(config.workerThreads())
+            "Worker Threads", String.valueOf(config.workerThreads()),
+            "Log lines", String.valueOf(config.logSize())
         );
     }
 }

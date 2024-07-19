@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.manager.models;
 
+import com.google.common.collect.EvictingQueue;
 import com.rtm516.mcxboxbroadcast.core.FriendManager;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BotContainer {
     private final Bot bot;
-    private final StringBuilder logs = new StringBuilder();
+    private final EvictingQueue<String> logQueue;
     private final DateTimeFormatter logTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private final BotManager botManager;
     private final StorageManager storageManager;
@@ -32,6 +33,7 @@ public class BotContainer {
         this.botManager = botManager;
         this.bot = bot;
         this.storageManager = new MongoStorageManager(this);
+        this.logQueue = EvictingQueue.create(botManager.backendManager().config().logSize());
 
         status = Status.OFFLINE;
     }
@@ -54,7 +56,7 @@ public class BotContainer {
      * @return the bot logs
      */
     public String logs() {
-        return logs.toString();
+        return String.join("\n", logQueue);
     }
 
     /**
@@ -64,7 +66,7 @@ public class BotContainer {
      * @param message the message
      */
     protected void log(String level, String message) {
-        logs.append("[" + LocalDateTime.now().format(logTimeFormatter) + " " + level + "]").append(message).append("\n");
+        logQueue.add("[" + LocalDateTime.now().format(logTimeFormatter) + " " + level + "]" + message);
     }
 
     /**

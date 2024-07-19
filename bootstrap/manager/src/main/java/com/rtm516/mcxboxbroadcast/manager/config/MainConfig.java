@@ -11,7 +11,9 @@ public record MainConfig (
     boolean auth,
     UpdateTime updateTime,
     @Min(1)
-    int workerThreads
+    int workerThreads,
+    @Min(1)
+    int logSize
 ) {
     @ConstructorBinding
     public MainConfig {
