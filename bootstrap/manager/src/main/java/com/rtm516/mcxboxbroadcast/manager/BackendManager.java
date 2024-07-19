@@ -36,7 +36,7 @@ public class BackendManager {
         this.scheduledThreadPool = Executors.newScheduledThreadPool(mainConfig.workerThreads(), new NamedThreadFactory("MCXboxBroadcast Manager Thread"));
 
         // Create the admin user if it doesn't exist
-        if (authEnabled() && userCollection.findUserByUsername("admin").isEmpty()) {
+        if (mainConfig.auth() && userCollection.findUserByUsername("admin").isEmpty()) {
             userCollection.save(new User("admin", passwordEncoder.encode("password")));
         }
 
@@ -56,20 +56,11 @@ public class BackendManager {
     }
 
     /**
-     * Check if authentication is enabled
+     * Get the main config
      *
-     * @return if authentication is enabled
+     * @return the main config
      */
-    public boolean authEnabled() {
-        return mainConfig.auth();
-    }
-
-    /**
-     * Get the time in seconds between each update
-     *
-     * @return the time in seconds between each update
-     */
-    public MainConfig.UpdateTime updateTime() {
-        return mainConfig.updateTime();
+    public MainConfig config() {
+        return mainConfig;
     }
 }

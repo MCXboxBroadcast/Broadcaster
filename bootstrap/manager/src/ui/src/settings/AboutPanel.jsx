@@ -7,6 +7,15 @@ function AboutPanel () {
     fetch('/api/info').then((res) => res.json()).then((data) => {
       setInfo(data)
     })
+
+    // Update uptime every second
+    const ticker = setInterval(() => {
+      setInfo((prevInfo) => {
+        return { ...prevInfo, uptime: prevInfo.uptime + 1 }
+      })
+    }, 1000)
+
+    return () => clearInterval(ticker)
   }, [])
 
   function formatTime (dateString) {
@@ -23,7 +32,7 @@ function AboutPanel () {
     if (seconds > 0) timeSince.push(`${seconds}s`)
 
     return timeSince.join(' ')
-}
+  }
 
   return (
     <>

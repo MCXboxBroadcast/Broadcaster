@@ -98,7 +98,7 @@ public class BotContainer {
 
         sessionManager.restartCallback(this::restart);
         try {
-            sessionManager.init(botManager.serverSessionInfo(bot.serverId()), new FriendSyncConfig(botManager.backendManager().updateTime().friend(), true, true));
+            sessionManager.init(botManager.serverSessionInfo(bot.serverId()), new FriendSyncConfig(botManager.backendManager().config().updateTime().friend(), true, true));
             status = Status.ONLINE;
 
             bot.gamertag(sessionManager.getGamertag());
@@ -108,8 +108,8 @@ public class BotContainer {
             // Force update the friend list so we have it sooner for the UI
             sessionManager.friendManager().get();
 
-            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().updateTime().session(), botManager.backendManager().updateTime().session(), TimeUnit.SECONDS);
-            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateFriendStats, 0, botManager.backendManager().updateTime().stats(), TimeUnit.SECONDS);
+            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateSessionInfo, botManager.backendManager().config().updateTime().session(), botManager.backendManager().config().updateTime().session(), TimeUnit.SECONDS);
+            sessionManager.scheduledThread().scheduleWithFixedDelay(this::updateFriendStats, 0, botManager.backendManager().config().updateTime().stats(), TimeUnit.SECONDS);
         } catch (SessionCreationException | SessionUpdateException e) {
             logger.error("Failed to create session", e);
             status = Status.OFFLINE;

@@ -19,7 +19,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable()); // Disable CSRF - TODO Implement support in the react app
 
-        if (backendManager.authEnabled()) {
+        if (backendManager.config().auth()) {
             http
                 .authorizeHttpRequests(authorize ->
                     authorize
