@@ -9,8 +9,6 @@ USER app:app
 
 WORKDIR /opt/app/config
 
-VOLUME /opt/app/config/logs
-
 COPY bootstrap/manager/build/libs/MCXboxBroadcastManager.jar /opt/app/MCXboxBroadcastManager.jar
 
 CMD ["java", "-jar", "/opt/app/MCXboxBroadcastManager.jar"]
