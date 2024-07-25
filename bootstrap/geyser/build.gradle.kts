@@ -5,6 +5,7 @@ plugins {
 relocate("org.yaml.snakeyaml")
 relocate("com.fasterxml.jackson")
 relocate("com.google.gson")
+relocate("net.raphimc.minecraftauth")
 
 dependencies {
     api(project(":core"))
