@@ -8,6 +8,9 @@ spring:
             database: mcxbmanager
             username: mcxbmanager
             password: mcxbmanager
+    http:
+        converters:
+            preferred-json-mapper: gson
 
 server:
     port: 8082

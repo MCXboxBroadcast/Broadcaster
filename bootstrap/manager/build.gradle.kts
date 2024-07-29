@@ -5,7 +5,9 @@ plugins {
 }
 
 dependencies {
-	implementation(libs.bundles.spring.runtime)
+	implementation(libs.bundles.spring.runtime) {
+		exclude("org.springframework.boot", "spring-boot-starter-json")
+	}
 
 	testImplementation(libs.bundles.spring.test)
 	testRuntimeOnly(libs.junit.platform.launcher)
