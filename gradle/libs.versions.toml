@@ -1,6 +1,6 @@
 [versions]
 bedrock-common = "2.9.17-SNAPSHOT"
-geyser ="2.3.1-SNAPSHOT"
+geyser ="2.4.1-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"
