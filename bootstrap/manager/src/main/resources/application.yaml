@@ -1,0 +1,26 @@
+spring:
+    application:
+        name: "bootstrap-manager"
+    data:
+        mongodb:
+            host: 127.0.0.1
+            authentication-database: admin
+            database: mcxbmanager
+            username: mcxbmanager
+            password: mcxbmanager
+    http:
+        converters:
+            preferred-json-mapper: gson
+
+server:
+    port: 8082
+
+mcxb:
+    auth: true
+    update-time:
+        server: 15
+        session: 30
+        stats: 120
+        friend: 20
+    worker-threads: 6
+    log-size: 1024

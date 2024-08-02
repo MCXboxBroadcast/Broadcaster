@@ -10,6 +10,7 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -63,7 +64,7 @@ public class StandaloneMain {
 
         logger.setDebug(config.debugLog());
 
-        sessionManager = new SessionManager("./cache", logger);
+        sessionManager = new SessionManager(new FileStorageManager("./cache"), logger);
 
         sessionInfo = config.session().sessionInfo();
 
@@ -79,7 +80,7 @@ public class StandaloneMain {
         try {
             sessionManager.shutdown();
 
-            sessionManager = new SessionManager("./cache", logger);
+            sessionManager = new SessionManager(new FileStorageManager("./cache"), logger);
 
             createSession();
         } catch (SessionCreationException | SessionUpdateException e) {

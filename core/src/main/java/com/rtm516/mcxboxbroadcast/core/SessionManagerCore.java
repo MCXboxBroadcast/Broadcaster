@@ -9,6 +9,7 @@ import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
+import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +34,7 @@ public abstract class SessionManagerCore {
     protected final HttpClient httpClient;
     protected final Logger logger;
     protected final Logger coreLogger;
-    protected final String cache;
+    protected final StorageManager storageManager;
 
     protected RtaWebsocketClient rtaWebsocket;
     protected ExpandedSessionInfo sessionInfo;
@@ -44,10 +45,10 @@ public abstract class SessionManagerCore {
     /**
      * Create an instance of SessionManager
      *
-     * @param cache The directory to store the cached tokens in
+     * @param storageManager The storage manager to use for storing data
      * @param logger The logger to use for outputting messages
      */
-    public SessionManagerCore(String cache, Logger logger) {
+    public SessionManagerCore(StorageManager storageManager, Logger logger) {
         this.httpClient = Methanol.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -56,16 +57,11 @@ public abstract class SessionManagerCore {
 
         this.logger = logger;
         this.coreLogger = logger.prefixed("");
-        this.cache = cache;
+        this.storageManager = storageManager;
 
-        this.authManager = new AuthManager(cache, logger);
+        this.authManager = new AuthManager(storageManager, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
-
-        File directory = new File(cache);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
     }
 
     /**

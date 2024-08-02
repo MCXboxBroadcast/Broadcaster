@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.command.Command;
@@ -56,6 +57,8 @@ public class MCXboxBroadcastExtension implements Extension {
                     source.sendMessage("This command can only be ran from the console.");
                     return;
                 }
+
+                logger.info("Dumping session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
 
                 sessionManager.dumpSession();
             })
@@ -109,7 +112,7 @@ public class MCXboxBroadcastExtension implements Extension {
     private void restart() {
         sessionManager.shutdown();
 
-        sessionManager = new SessionManager(this.dataFolder().toString(), logger);
+        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), logger);
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(this::createSession);
@@ -121,7 +124,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION);
 
-        sessionManager = new SessionManager(this.dataFolder().toString(), logger);
+        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), logger);
 
         // Load the config file
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);

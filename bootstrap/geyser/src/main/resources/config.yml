@@ -15,7 +15,6 @@ update-interval: 30
 friend-sync:
   # The amount of time in seconds to check for follower changes
   # This can be no lower than 20 due to xbox rate limits
-  # unless you turn off auto-unfollow which then you can use 10
   update-interval: 20
 
   # Should we automatically follow people that follow us

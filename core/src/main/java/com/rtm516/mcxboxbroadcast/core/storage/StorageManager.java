@@ -1,0 +1,38 @@
+package com.rtm516.mcxboxbroadcast.core.storage;
+
+import java.io.IOException;
+
+public interface StorageManager {
+    String cache() throws IOException;
+    void cache(String data) throws IOException;
+
+    String subSessions() throws IOException;
+    void subSessions(String data) throws IOException;
+
+    String lastSessionResponse() throws IOException;
+    void lastSessionResponse(String data) throws IOException;
+
+    String currentSessionResponse() throws IOException;
+    void currentSessionResponse(String data) throws IOException;
+
+    StorageManager subSession(String id);
+
+    void cleanup() throws IOException;
+
+    /**
+     * @deprecated Use {@link #cache()} instead
+     */
+    @Deprecated
+    String liveToken() throws IOException;
+    /**
+     * @deprecated Use {@link #cache()} instead
+     */
+    @Deprecated
+    void liveToken(String data) throws IOException;
+
+    /**
+     * @deprecated Use {@link #cache()} instead
+     */
+    @Deprecated
+    void xboxToken(String data) throws IOException;
+}

@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
+import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import org.java_websocket.util.NamedThreadFactory;
 
 import java.io.File;
@@ -41,11 +42,11 @@ public class SessionManager extends SessionManagerCore {
     /**
      * Create an instance of SessionManager
      *
-     * @param cache  The directory to store the cached tokens in
+     * @param storageManager The storage manager to use for storing data
      * @param logger The logger to use for outputting messages
      */
-    public SessionManager(String cache, Logger logger) {
-        super(cache, logger.prefixed("Primary Session"));
+    public SessionManager(StorageManager storageManager, Logger logger) {
+        super(storageManager, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
         this.subSessionManagers = new HashMap<>();
     }
@@ -84,13 +85,20 @@ public class SessionManager extends SessionManagerCore {
         super.init();
 
         // Set up the auto friend sync
+        if (friendSyncConfig.updateInterval() < 20) {
+            logger.warn("Friend sync update interval is less than 20 seconds, setting to 20 seconds");
+            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
+        }
         this.friendSyncConfig = friendSyncConfig;
-        friendManager().initAutoFriend(friendSyncConfig);
+        friendManager().initAutoFriend(this.friendSyncConfig);
 
         // Load sub-sessions from cache
         List<String> subSessions = new ArrayList<>();
         try {
-            subSessions = Arrays.asList(Constants.GSON.fromJson(new JsonReader(new FileReader(Paths.get(cache, "sub_sessions.json").toFile())), String[].class));
+            String subSessionsJson = storageManager.subSessions();
+            if (!subSessionsJson.isBlank()) {
+                subSessions = Arrays.asList(Constants.GSON.fromJson(subSessionsJson, String[].class));
+            }
         } catch (IOException ignored) { }
 
         // Create the sub-sessions in a new thread so we don't block the main thread
@@ -99,9 +107,9 @@ public class SessionManager extends SessionManagerCore {
             // Create the sub-session manager for each sub-session
             for (String subSession : finalSubSessions) {
                 try {
-                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, Paths.get(cache, subSession).toString(), logger);
+                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager.subSession(subSession), logger);
                     subSessionManager.init();
-                    subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
+                    subSessionManager.friendManager().initAutoFriend(this.friendSyncConfig);
                     subSessionManagers.put(subSession, subSessionManager);
                 } catch (SessionCreationException | SessionUpdateException e) {
                     logger.error("Failed to create sub-session " + subSession, e);
@@ -166,11 +174,8 @@ public class SessionManager extends SessionManagerCore {
      * Dump the current and last session responses to json files
      */
     public void dumpSession() {
-        logger.info("Dumping current and last session responses");
         try {
-            FileWriter file = new FileWriter(this.cache + "/lastSessionResponse.json");
-            file.write(lastSessionResponse);
-            file.close();
+            storageManager.lastSessionResponse(lastSessionResponse);
         } catch (IOException e) {
             logger.error("Error dumping last session: " + e.getMessage());
         }
@@ -186,14 +191,10 @@ public class SessionManager extends SessionManagerCore {
         try {
             HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
 
-            FileWriter file = new FileWriter(this.cache + "/currentSessionResponse.json");
-            file.write(createSessionResponse.body());
-            file.close();
+            storageManager.currentSessionResponse(createSessionResponse.body());
         } catch (IOException | InterruptedException e) {
             logger.error("Error dumping current session: " + e.getMessage());
         }
-
-        logger.info("Dumped session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
     }
 
     /**
@@ -210,7 +211,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Create the sub-session manager
         try {
-            SubSessionManager subSessionManager = new SubSessionManager(id, this, Paths.get(cache, id).toString(), logger);
+            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager.subSession(id), logger);
             subSessionManager.init();
             subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
             subSessionManagers.put(id, subSessionManager);
@@ -221,7 +222,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Update the list of sub-sessions
         try {
-            Files.writeString(Paths.get(cache, "sub_sessions.json"), Constants.GSON.toJson(subSessionManagers.keySet()));
+            storageManager.subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }
@@ -243,18 +244,16 @@ public class SessionManager extends SessionManagerCore {
         subSessionManagers.get(id).shutdown();
         subSessionManagers.remove(id);
 
-        // Delete the sub-session cache folder and its contents
-        try (Stream<Path> files = Files.walk(Paths.get(cache, id))) {
-            files.map(Path::toFile)
-                .forEach(File::delete);
-            Paths.get(cache, id).toFile().delete();
+        // Delete the sub-session cache file
+        try {
+            storageManager.subSession(id).cleanup();
         } catch (IOException e) {
-            coreLogger.error("Failed to delete sub-session cache folder", e);
+            coreLogger.error("Failed to delete sub-session cache file", e);
         }
 
         // Update the list of sub-sessions
         try {
-            Files.writeString(Paths.get(cache, "sub_sessions.json"), Constants.GSON.toJson(subSessionManagers.keySet()));
+            storageManager.subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }
@@ -307,5 +306,23 @@ public class SessionManager extends SessionManagerCore {
         } else {
             logger.error("No restart callback set");
         }
+    }
+
+    /**
+     * Get the gamertag of the current session
+     *
+     * @return the gamertag of the current session
+     */
+    public String getGamertag() {
+        return getXboxToken().gamertag();
+    }
+
+    /**
+     * Get the XUID of the current session
+     *
+     * @return the XUID of the current session
+     */
+    public String getXuid() {
+        return getXboxToken().userXUID();
     }
 }
