@@ -21,7 +21,11 @@ public class FileStorageManager implements StorageManager {
     }
 
     private String read(String file) throws IOException {
-        return Files.readString(Paths.get(cacheFolder, file));
+        Path cacheFile = Paths.get(cacheFolder, file);
+        if (!Files.exists(cacheFile)) {
+            return "";
+        }
+        return Files.readString(cacheFile);
     }
 
     private void write(String file, String data) throws IOException {
