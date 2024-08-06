@@ -63,5 +63,33 @@ public class FollowerResponse {
         public String colorTheme;
         public String preferredFlag;
         public List<String> preferredPlatforms;
+
+        /**
+         * Merge some fields from another Person object into this one.
+         *
+         * addedDateTimeUtc, follower, isFollowedByCaller, isFollowingCaller
+         *
+         * @param person The Person object to merge into this one
+         * @return This Person object
+         */
+        public Person merge(Person person) {
+            if (person.addedDateTimeUtc != null) {
+                this.addedDateTimeUtc = person.addedDateTimeUtc;
+            }
+
+            if (person.follower != null) {
+                this.follower = person.follower;
+            }
+
+            if (person.isFollowedByCaller) {
+                this.isFollowedByCaller = person.isFollowedByCaller;
+            }
+
+            if (person.isFollowingCaller) {
+                this.isFollowingCaller = person.isFollowingCaller;
+            }
+
+            return this;
+        }
     }
 }

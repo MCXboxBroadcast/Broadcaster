@@ -107,13 +107,19 @@ public class FriendManager {
             throw new XboxFriendsException(e.getMessage());
         }
 
-        // Filter out duplicates
-        Set<String> seenXuids = new HashSet<>();
-        people.removeIf(person -> !seenXuids.add(person.xuid));
+        // Merge the 2 lists together
+        Map<String, FollowerResponse.Person> outPeople = new HashMap<>();
+        for (FollowerResponse.Person person : people) {
+            if (outPeople.containsKey(person.xuid)) {
+                outPeople.put(person.xuid, outPeople.get(person.xuid).merge(person));
+            } else {
+                outPeople.put(person.xuid, person);
+            }
+        }
 
-        lastFriendCache = people;
-
-        return people;
+        List<FollowerResponse.Person> outPeopleList = outPeople.values().stream().toList();
+        lastFriendCache = outPeopleList;
+        return outPeopleList;
     }
 
     /**
