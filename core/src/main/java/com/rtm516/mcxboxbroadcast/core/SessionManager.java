@@ -167,7 +167,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Shutdown self
         super.shutdown();
-        scheduledThreadPool.shutdown();
+        scheduledThreadPool.shutdownNow();
     }
 
     /**

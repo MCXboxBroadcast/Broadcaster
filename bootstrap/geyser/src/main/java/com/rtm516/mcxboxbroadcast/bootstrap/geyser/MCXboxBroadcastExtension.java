@@ -15,6 +15,7 @@ import org.geysermc.geyser.api.command.CommandSource;
 import org.geysermc.geyser.api.event.connection.GeyserBedrockPingEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.util.MinecraftVersion;
 
@@ -175,6 +176,11 @@ public class MCXboxBroadcastExtension implements Extension {
 
             createSession();
         });
+    }
+
+    @Subscribe
+    public void onShutdown(GeyserShutdownEvent event) {
+        sessionManager.shutdown();
     }
 
     @Subscribe
