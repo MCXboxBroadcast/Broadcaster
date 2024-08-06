@@ -8,8 +8,8 @@ function AboutPanel () {
     fetch('/api/info').then((res) => res.json()).then((data) => {
       setInfo(data)
 
-      const versionNumber = data.version.split(' ')[0]
-      if (versionNumber === 'DEV') return
+      if (!data.version.startsWith('build')) return
+      const versionNumber = data.version.split(' ')[1]
 
       // Check for updates
       fetch('https://api.github.com/repos/rtm516/MCXboxBroadcast/releases?per_page=1').then((res) => res.json()).then((data) => {
