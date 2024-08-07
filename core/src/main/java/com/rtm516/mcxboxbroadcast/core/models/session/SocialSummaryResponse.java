@@ -8,7 +8,7 @@ public record SocialSummaryResponse(
     boolean hasCallerMarkedTargetAsFavorite,
     boolean hasCallerMarkedTargetAsKnown,
     String legacyFriendStatus,
-    int availablePeopleSlots,
+    long availablePeopleSlots,
     int recentChangeCount,
     String watermark
 ) {
