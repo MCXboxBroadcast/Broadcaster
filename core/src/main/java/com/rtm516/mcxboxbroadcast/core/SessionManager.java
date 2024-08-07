@@ -273,7 +273,7 @@ public class SessionManager extends SessionManagerCore {
         messages.add("   Following: " + socialSummary().targetFollowingCount() + "/1000");
 
         if (!subSessionManagers.isEmpty()) {
-            messages.add("Sub-sessions:");
+            messages.add("Sub-sessions: (" + subSessionManagers.size() + ")");
             for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
                 messages.add(" - ID: " + subSession.getKey());
                 messages.add("   Gamertag: " + subSession.getValue().getXboxToken().gamertag());
