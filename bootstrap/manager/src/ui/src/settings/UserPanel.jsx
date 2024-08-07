@@ -28,7 +28,6 @@ function UserPanel () {
 
   const refreshUsers = () => {
     fetch('/api/users').then((res) => res.json()).then((data) => {
-      // setUsers([...data, ...data, ...data])
       setUsers(data)
     })
   }

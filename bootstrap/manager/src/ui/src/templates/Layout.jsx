@@ -29,7 +29,7 @@ function getNav (userInfo, isMobile = false) {
       <NavLink to='/bots' className={(a) => getNavClass(isMobile, a)}>Bots</NavLink>
       <NavLink to='/servers' className={(a) => getNavClass(isMobile, a)}>Servers</NavLink>
       <NavLink to='/settings' className={(a) => getNavClass(isMobile, a)}>Settings</NavLink>
-      {userInfo &&
+      {userInfo && userInfo.id &&
         <>
           {!isMobile && <div className='border-r border-gray-700 w-0'>&nbsp;</div>}
           <Menu as='div' className='relative'>
@@ -68,6 +68,8 @@ function Layout () {
   useEffect(() => {
     fetch('/api/user').then((res) => res.json()).then((data) => {
       setUserInfo(data)
+    }).catch(() => {
+      // Not logged in or auth disabled
     })
   }, [])
 
