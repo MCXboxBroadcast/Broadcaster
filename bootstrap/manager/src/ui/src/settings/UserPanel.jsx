@@ -7,6 +7,7 @@ import Button from '../components/basic/Button'
 import ConfirmModal from '../components/modals/ConfirmModal'
 import CreateUserModal from '../components/modals/CreateUserModal'
 import ChangePasswordModal from '../components/modals/ChangePasswordModal'
+import { useOutletContext } from 'react-router-dom'
 
 function UserPanel () {
   const [users, setUsers] = useState([])
@@ -18,6 +19,8 @@ function UserPanel () {
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [changePasswordUser, setChangePasswordUser] = useState('')
+
+  const { currentUserInfo } = useOutletContext()
 
   useEffect(() => {
     refreshUsers()
@@ -64,6 +67,7 @@ function UserPanel () {
             <User
               key={user.id}
               user={user}
+              disableDelete={currentUserInfo && user.id === currentUserInfo.id}
               refreshUsers={refreshUsers}
               changePassword={(userId) => {
                 setChangePasswordUser(userId)

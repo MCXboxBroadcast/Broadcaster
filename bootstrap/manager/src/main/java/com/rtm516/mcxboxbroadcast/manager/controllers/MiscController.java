@@ -3,9 +3,12 @@ package com.rtm516.mcxboxbroadcast.manager.controllers;
 import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.manager.BackendManager;
 import com.rtm516.mcxboxbroadcast.manager.config.MainConfig;
+import com.rtm516.mcxboxbroadcast.manager.database.model.User;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ManagerInfoResponse;
+import com.rtm516.mcxboxbroadcast.manager.models.response.UserInfoResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,5 +47,17 @@ public class MiscController {
             "Worker Threads", String.valueOf(config.workerThreads()),
             "Log lines", String.valueOf(config.logSize())
         );
+    }
+
+    @GetMapping("/api/user")
+    public UserInfoResponse user(HttpServletResponse response) {
+        if (!backendManager.config().auth()) {
+            response.setStatus(404);
+            return null;
+        }
+
+        response.setStatus(200);
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return new UserInfoResponse(user.getId(), user.getUsername());
     }
 }

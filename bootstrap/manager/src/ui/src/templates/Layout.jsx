@@ -1,12 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useMatches } from 'react-router-dom'
-import { Disclosure, Transition } from '@headlessui/react'
+import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
 import { NotificationContainer } from '../components/layout/NotificationContainer'
 import Footer from '../components/layout/Footer'
 
-function getNavClass (isMobile, { isActive }) {
+function getNavClass (isMobile, { isActive } = { isActive: false }) {
   let className = 'rounded-md px-3 py-2 font-medium'
   if (isMobile) {
     className = 'block text-base ' + className
@@ -23,12 +23,35 @@ function getNavClass (isMobile, { isActive }) {
   return className
 }
 
-function getNav (isMobile = false) {
+function getNav (userInfo, isMobile = false) {
   return (
     <>
       <NavLink to='/bots' className={(a) => getNavClass(isMobile, a)}>Bots</NavLink>
       <NavLink to='/servers' className={(a) => getNavClass(isMobile, a)}>Servers</NavLink>
       <NavLink to='/settings' className={(a) => getNavClass(isMobile, a)}>Settings</NavLink>
+      {userInfo &&
+        <>
+          {!isMobile && <div className='border-r border-gray-700 w-0'>&nbsp;</div>}
+          <Menu as='div' className='relative'>
+            <div>
+              <MenuButton as='a' href='' className={getNavClass(isMobile)}>
+                <span className='absolute -inset-1.5' />
+                <span className='sr-only'>Open user menu</span>
+                {userInfo.username}
+              </MenuButton>
+            </div>
+            <MenuItems
+              transition
+              className='absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in'
+            >
+              <MenuItem>
+                <a href='/logout' className='block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100'>
+                  Logout
+                </a>
+              </MenuItem>
+            </MenuItems>
+          </Menu>
+        </>}
     </>
   )
 }
@@ -39,6 +62,14 @@ function Layout () {
   const title = handle && handle.title ? handle.title(data) : ''
   const hideHeader = handle && handle.hideHeader ? handle.hideHeader(data) : false
   const hideFooter = handle && handle.hideFooter ? handle.hideFooter(data) : false
+
+  const [userInfo, setUserInfo] = useState({})
+
+  useEffect(() => {
+    fetch('/api/user').then((res) => res.json()).then((data) => {
+      setUserInfo(data)
+    })
+  }, [])
 
   useEffect(() => {
     if (title) {
@@ -66,13 +97,13 @@ function Layout () {
 
                     <div className='hidden md:block'>
                       <div className='ml-10 flex items-baseline space-x-4'>
-                        {getNav()}
+                        {getNav(userInfo)}
                       </div>
                     </div>
 
                     <div className='-mr-2 flex md:hidden'>
                       {/* Mobile menu button */}
-                      <Disclosure.Button className='relative inline-flex items-center justify-center rounded-md bg-gray-800 p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800'>
+                      <DisclosureButton className='relative inline-flex items-center justify-center rounded-md bg-gray-800 p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800'>
                         <span className='absolute -inset-0.5' />
                         <span className='sr-only'>Open navigation menu</span>
                         {open
@@ -82,7 +113,7 @@ function Layout () {
                           : (
                             <Bars3Icon className='block h-6 w-6' aria-hidden='true' />
                             )}
-                      </Disclosure.Button>
+                      </DisclosureButton>
                     </div>
                   </div>
                 </div>
@@ -96,11 +127,11 @@ function Layout () {
                   leaveFrom='transform scale-100 opacity-100'
                   leaveTo='transform scale-95 opacity-0'
                 >
-                  <Disclosure.Panel className='md:hidden'>
+                  <DisclosurePanel className='md:hidden'>
                     <div className='space-y-1 px-2 pb-3 pt-2 sm:px-3'>
-                      {getNav(true)}
+                      {getNav(userInfo, true)}
                     </div>
-                  </Disclosure.Panel>
+                  </DisclosurePanel>
                 </Transition>
               </>
             )}
@@ -116,7 +147,7 @@ function Layout () {
 
       <main className={'flex-1 ' + (!hideHeader ? '-mt-32' : '')}>
         <NotificationContainer />
-        <Outlet />
+        <Outlet context={{ currentUserInfo: userInfo }} />
       </main>
 
       {(!hideFooter &&

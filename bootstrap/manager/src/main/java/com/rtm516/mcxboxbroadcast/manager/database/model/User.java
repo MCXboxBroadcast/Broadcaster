@@ -22,6 +22,10 @@ public final class User implements UserDetails {
         this.password = password;
     }
 
+    public ObjectId getId() {
+        return _id;
+    }
+
     @Override
     public String getUsername() {
         return username;
