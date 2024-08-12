@@ -31,7 +31,7 @@ public class FileStorageManager implements StorageManager {
     private void write(String file, String data) throws IOException {
         Path filePath = Paths.get(cacheFolder, file);
         // Cleanup the file if the data is empty
-        if (data.isBlank()) {
+        if (data == null || data.isBlank()) {
             Files.deleteIfExists(filePath);
             return;
         }
