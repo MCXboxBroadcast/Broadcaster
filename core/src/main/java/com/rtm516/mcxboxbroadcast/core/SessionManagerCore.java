@@ -4,6 +4,8 @@ import com.github.mizosoft.methanol.Methanol;
 import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartBody;
+import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
@@ -11,6 +13,7 @@ import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
+import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -18,6 +21,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -41,6 +45,7 @@ public abstract class SessionManagerCore {
     protected String lastSessionResponse;
 
     protected boolean initialized = false;
+    private RtcWebsocketClient rtcWebsocket;
 
     /**
      * Create an instance of SessionManager
@@ -59,7 +64,7 @@ public abstract class SessionManagerCore {
         this.coreLogger = logger.prefixed("");
         this.storageManager = storageManager;
 
-        this.authManager = new AuthManager(storageManager, logger);
+        this.authManager = new AuthManager(storageManager, httpClient, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
     }
@@ -168,8 +173,10 @@ public abstract class SessionManagerCore {
             // Update the current session XUID
             this.sessionInfo.setXuid(tokenInfo.userXUID());
 
+            var authorizationHeader = setupSession();
+
             // Create the RTA websocket connection
-            setupWebsocket(token);
+            setupRtaWebsocket(token);
 
             try {
                 // Wait and get the connection ID from the websocket
@@ -180,6 +187,8 @@ public abstract class SessionManagerCore {
             } catch (InterruptedException | ExecutionException e) {
                 throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
             }
+
+            setupRtcWebsocket(authorizationHeader);
         }
 
         // Push the session information to the session directory
@@ -280,15 +289,15 @@ public abstract class SessionManagerCore {
      * This should be called before any updates to the session otherwise they might fail
      */
     protected void checkConnection() {
-        if (this.rtaWebsocket != null && !rtaWebsocket.isOpen()) {
-            try {
-                logger.info("Connection to websocket lost, re-creating session...");
-                createSession();
-                logger.info("Re-connected!");
-            } catch (SessionCreationException | SessionUpdateException e) {
-                logger.error("Session is dead and hit exception trying to re-create it", e);
-            }
-        }
+//        if (this.rtaWebsocket != null && !rtaWebsocket.isOpen()) {
+//            try {
+//                logger.info("Connection to websocket lost, re-creating session...");
+//                createSession();
+//                logger.info("Re-connected!");
+//            } catch (SessionCreationException | SessionUpdateException e) {
+//                logger.error("Session is dead and hit exception trying to re-create it", e);
+//            }
+//        }
     }
 
     /**
@@ -320,14 +329,41 @@ public abstract class SessionManagerCore {
         return completableFuture;
     }
 
+    protected String setupSession() {
+        var playfabTicket = this.authManager.getPlayfabSessionTicket();
+
+        var request = HttpRequest.newBuilder(Constants.START_SESSION)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.sessionStart(sessionInfo, playfabTicket)))
+                .build();
+
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new IllegalStateException("Unable to start session", e);
+        }
+
+        if (response.statusCode() != 200) {
+            logger.debug(response.body());
+            throw new IllegalStateException("Unable to start session!");
+        }
+        return Constants.GSON.fromJson(response.body(), SessionStartResponse.class).result().authorizationHeader();
+    }
+
     /**
      * Setup the RTA websocket connection
      *
      * @param token The authentication token to use
      */
-    protected void setupWebsocket(String token) {
-        rtaWebsocket = new RtaWebsocketClient(token, logger);
+    protected void setupRtaWebsocket(String token) {
+        rtaWebsocket = new RtaWebsocketClient(token, sessionInfo, getTokenHeader(), logger);
         rtaWebsocket.connect();
+    }
+
+    protected void setupRtcWebsocket(String token) {
+        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger);
+        rtcWebsocket.connect();
     }
 
     /**
@@ -336,6 +372,9 @@ public abstract class SessionManagerCore {
     public void shutdown() {
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
+        }
+        if (rtcWebsocket != null) {
+            rtcWebsocket.close();
         }
         this.initialized = false;
     }

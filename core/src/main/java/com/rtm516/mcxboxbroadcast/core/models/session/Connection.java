@@ -6,9 +6,10 @@ public record Connection(
     int ConnectionType,
     String HostIpAddress,
     int HostPort,
-    String RakNetGUID
+    long NetherNetId,
+    long WebRTCNetworkId
 ) {
-    public Connection(String ip, int port) {
-        this(Constants.ConnectionTypeUPNP, ip, port, "");
+    public Connection(long webrtcNetworkId) {
+        this(Constants.ConnectionTypeWebRTC, "", 0, webrtcNetworkId, webrtcNetworkId);
     }
 }

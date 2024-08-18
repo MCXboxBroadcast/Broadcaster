@@ -3,6 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
 
 plugins {
     id("com.rtm516.mcxboxbroadcast.shadow-conventions")
+    application
 }
 
 dependencies {
@@ -20,10 +21,8 @@ dependencies {
     api(libs.bundles.log4j)
 }
 
-tasks.withType<Jar> {
-    manifest {
-        attributes["Main-Class"] = "com.rtm516.mcxboxbroadcast.bootstrap.standalone.StandaloneMain"
-    }
+application {
+    mainClass.set("com.rtm516.mcxboxbroadcast.bootstrap.standalone.StandaloneMain")
 }
 
 tasks.withType<ShadowJar> {

@@ -92,17 +92,17 @@ public class StandaloneMain {
         sessionManager.restartCallback(StandaloneMain::restart);
         sessionManager.init(sessionInfo, config.friendSync());
 
-        sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
-            updateSessionInfo(sessionInfo);
-
-            try {
-                // Update the session
-                sessionManager.updateSession(sessionInfo);
-                sessionManager.logger().info("Updated session!");
-            } catch (SessionUpdateException e) {
-                sessionManager.logger().error("Failed to update session", e);
-            }
-        }, config.session().updateInterval(), config.session().updateInterval(), TimeUnit.SECONDS);
+//        sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
+//            updateSessionInfo(sessionInfo);
+//
+//            try {
+//                // Update the session
+//                sessionManager.updateSession(sessionInfo);
+//                sessionManager.logger().info("Updated session!");
+//            } catch (SessionUpdateException e) {
+//                sessionManager.logger().error("Failed to update session", e);
+//            }
+//        }, config.session().updateInterval(), config.session().updateInterval(), TimeUnit.SECONDS);
     }
 
     private static void updateSessionInfo(SessionInfo sessionInfo) {

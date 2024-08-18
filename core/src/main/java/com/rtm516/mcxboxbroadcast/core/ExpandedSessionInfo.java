@@ -4,24 +4,25 @@ import java.util.Random;
 import java.util.UUID;
 
 public class ExpandedSessionInfo extends SessionInfo {
+    private static final Random RANDOM = new Random();
+
     private String connectionId;
     private String xuid;
     private String rakNetGUID;
     private String sessionId;
     private String handleId;
 
+    private long webrtcNetworkId;
+    private String deviceId;
+
     ExpandedSessionInfo(String connectionId, String xuid, SessionInfo sessionInfo) {
         this.connectionId = connectionId;
         this.xuid = xuid;
-
-        StringBuilder str = new StringBuilder();
-        Random random = new Random();
-        for (int i = 0; i < 20; i++) {
-            str.append(random.nextInt(10));
-        }
-        this.rakNetGUID = str.toString();
+        this.rakNetGUID = "";
 
         this.sessionId = UUID.randomUUID().toString();
+        this.webrtcNetworkId = Math.abs(RANDOM.nextLong());
+        this.deviceId = UUID.randomUUID().toString();
 
         setHostName(sessionInfo.getHostName());
         setWorldName(sessionInfo.getWorldName());
@@ -74,6 +75,14 @@ public class ExpandedSessionInfo extends SessionInfo {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public long getWebrtcNetworkId() {
+        return webrtcNetworkId;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
     }
 
     public String getHandleId() {

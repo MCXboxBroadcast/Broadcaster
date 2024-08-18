@@ -11,11 +11,22 @@ public class Constants {
     public static final Gson GSON = new GsonBuilder()
         .registerTypeAdapter(Instant.class, new InstantConverter())
         .registerTypeAdapter(Date.class, new DateConverter())
+        .disableHtmlEscaping()
+        .create();
+
+    public static final Gson GSON_NULLS = new GsonBuilder()
+        .registerTypeAdapter(Instant.class, new InstantConverter())
+        .registerTypeAdapter(Date.class, new DateConverter())
+        .serializeNulls()
         .create();
 
     public static final String SERVICE_CONFIG_ID = "4fc10100-5f7a-4470-899b-280835760c07"; // The service config ID for Minecraft
     public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/MinecraftLobby/sessions/%s";
     public static final String JOIN_SESSION = "https://sessiondirectory.xboxlive.com/handles/%s/session";
+
+    public static final URI PLAYFAB_LOGIN = URI.create("https://20ca2.playfabapi.com/Client/LoginWithXbox");
+    public static final URI START_SESSION = URI.create("https://authorization.franchise.minecraft-services.net/api/v1.0/session/start");
+    public static final String RTC_WEBSOCKET_FORMAT = "wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/%s";
 
     public static final URI RTA_WEBSOCKET = URI.create("wss://rta.xboxlive.com/connect");
     public static final URI CREATE_HANDLE = URI.create("https://sessiondirectory.xboxlive.com/handles");
@@ -28,9 +39,7 @@ public class Constants {
     public static final URI BLOCK = URI.create("https://privacy.xboxlive.com/users/me/people/never");
 
     /**
-     * From the ConnectionType enum in the game
-     * pre 1.19.10 UPNP was 7
-     * 1.19.10+ UPNP is 6 as a previous entry was removed
+     * Gathered from scraped web requests
      */
-    public static int ConnectionTypeUPNP = 6;
+    public static int ConnectionTypeWebRTC = 3;
 }

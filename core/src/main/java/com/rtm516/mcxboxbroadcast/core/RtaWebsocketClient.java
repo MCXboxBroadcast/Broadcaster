@@ -1,5 +1,10 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -10,6 +15,8 @@ import java.util.Map;
  */
 public class RtaWebsocketClient extends WebSocketClient {
     private String connectionId;
+    private ExpandedSessionInfo sessionInfo;
+    private String tokenHeader;
     private final Logger logger;
     private boolean firstConnectionId = true;
 
@@ -18,9 +25,11 @@ public class RtaWebsocketClient extends WebSocketClient {
      *
      * @param authenticationToken The token to use for authentication
      */
-    public RtaWebsocketClient(String authenticationToken, Logger logger) {
+    public RtaWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, String tokenHeader, Logger logger) {
         super(Constants.RTA_WEBSOCKET);
         addHeader("Authorization", authenticationToken);
+        this.sessionInfo = sessionInfo;
+        this.tokenHeader = tokenHeader;
         this.logger = logger;
     }
 
@@ -61,6 +70,24 @@ public class RtaWebsocketClient extends WebSocketClient {
             firstConnectionId = false;
         } else {
             logger.debug("Websocket message: " + message);
+
+
+            HttpRequest createSessionRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(Constants.CREATE_SESSION.formatted(sessionInfo.getSessionId())))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", tokenHeader)
+                    .header("x-xbl-contract-version", "107")
+                    .GET()
+                    .build();
+
+            var client = HttpClient.newHttpClient();
+            try {
+                HttpResponse<String> createSessionResponse = client.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
+                System.out.println(createSessionResponse.body());
+            } catch (IOException | InterruptedException e) {
+                logger.error("Error dumping current session: " + e.getMessage());
+            }
+            client.close();
         }
     }
 
@@ -69,7 +96,7 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        logger.debug("Websocket disconnected: " + reason + " (" + code + ")");
+        logger.debug("RTAWebsocket disconnected: " + reason + " (" + code + ")");
     }
 
     /**
@@ -77,6 +104,6 @@ public class RtaWebsocketClient extends WebSocketClient {
      **/
     @Override
     public void onError(Exception ex) {
-        logger.debug("Websocket error: " + ex.getMessage());
+        logger.debug("RTAWebsocket error: " + ex.getMessage());
     }
 }
