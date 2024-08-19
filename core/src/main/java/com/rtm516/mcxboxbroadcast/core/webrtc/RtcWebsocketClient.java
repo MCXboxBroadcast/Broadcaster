@@ -231,13 +231,22 @@ public class RtcWebsocketClient extends WebSocketClient {
             answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
 
             var json = Constants.GSON.toJson(new WsToMessage(
-                1, from, "CONNECTRESPONSE " + answerSessionId + " " + answer
+                1, from, "CONNECTRESPONSE " + sessionId + " " + answer
             ));
             System.out.println(json);
             send(json);
 
+
+            component.getLocalCandidates().forEach(candidate -> {
+                var jsonAdd = Constants.GSON.toJson(new WsToMessage(
+                    1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + candidate.getFoundation()
+                ));
+                System.out.println(jsonAdd);
+                send(jsonAdd);
+            });
+
             // Move this since it errors since the socket isnt open, I assume bc we havent sent the CANDIDATEADD responses
-            new DTLSClientProtocol().connect(client, datagramTransport);
+//            new DTLSClientProtocol().connect(client, datagramTransport);
 
 //        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
