@@ -9,94 +9,79 @@ import com.rtm516.mcxboxbroadcast.core.models.ws.WsFromMessage;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import dev.onvoid.webrtc.PeerConnectionFactory;
 import dev.onvoid.webrtc.RTCConfiguration;
-import dev.onvoid.webrtc.RTCIceServer;
-import gov.nist.javax.sdp.SdpEncoderImpl;
-import gov.nist.javax.sdp.fields.MediaField;
-import gov.nist.javax.sdp.parser.ConnectionFieldParser;
-import gov.nist.javax.sdp.parser.MediaFieldParser;
-import gov.nist.javax.sdp.parser.SDPAnnounceParser;
 import io.jsonwebtoken.lang.Collections;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.RSAKeyGenParameterSpec;
-import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Vector;
 import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
-import javax.sdp.SdpEncoder;
-import javax.sdp.SdpException;
-import javax.sdp.SdpFactory;
 import org.bouncycastle.asn1.x509.X509Name;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.tls.AlertDescription;
 import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.CertificateRequest;
 import org.bouncycastle.tls.DTLSClientProtocol;
+import org.bouncycastle.tls.DTLSServerProtocol;
+import org.bouncycastle.tls.DatagramTransport;
 import org.bouncycastle.tls.DefaultTlsClient;
-import org.bouncycastle.tls.SignatureAndHashAlgorithm;
+import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.TlsAuthentication;
-import org.bouncycastle.tls.TlsCredentialedSigner;
 import org.bouncycastle.tls.TlsCredentials;
 import org.bouncycastle.tls.TlsFatalAlert;
-import org.bouncycastle.tls.TlsPeer;
 import org.bouncycastle.tls.TlsServerCertificate;
+import org.bouncycastle.tls.crypto.TlsCertificate;
 import org.bouncycastle.tls.crypto.TlsCryptoParameters;
-import org.bouncycastle.tls.crypto.TlsCryptoProvider;
-import org.bouncycastle.tls.crypto.TlsCryptoUtils;
-import org.bouncycastle.tls.crypto.TlsStreamSigner;
-import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 import org.bouncycastle.tls.crypto.impl.jcajce.JcaDefaultTlsCredentialedSigner;
-import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCrypto;
+import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCertificate;
 import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCryptoProvider;
-import org.bouncycastle.tls.crypto.impl.jcajce.JceDefaultTlsCredentialedAgreement;
-import org.bouncycastle.tls.crypto.impl.jcajce.JceDefaultTlsCredentialedDecryptor;
-import org.bouncycastle.x509.X509CertificatePair;
+import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.attribute.AttributeFactory;
 import org.ice4j.ice.Agent;
-import org.ice4j.ice.harvest.HarvestConfig;
-import org.ice4j.ice.harvest.StunCandidateHarvest;
+import org.ice4j.ice.CandidatePair;
+import org.ice4j.ice.CandidateType;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.FoundationsRegistry;
+import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.RemoteCandidate;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.StunMappingCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.ice.sdp.IceSdpUtils;
 import org.ice4j.security.LongTermCredential;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-import org.jitsi.config.JitsiConfig;
 import org.opentelecoms.javax.sdp.NistSdpFactory;
 
 /**
  * Handle the connection and authentication with the RTA websocket
  */
 public class RtcWebsocketClient extends WebSocketClient {
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
     private final Logger logger;
 
     private RTCConfiguration rtcConfig;
     public PeerConnectionFactory peerFactory;
     private Agent agent;
+    private Component component;
     private Map<String, PeerSession> activeSessions = new HashMap<>();
     private PeerSession pendingSession;
 
@@ -160,33 +145,32 @@ public class RtcWebsocketClient extends WebSocketClient {
         if ("CONNECTREQUEST".equals(type)) {
             handleConnectRequest(from, sessionId, content);
         } else if ("CANDIDATEADD".equals(type)) {
-            handleCandidateAdd(sessionId, content);
+            try {
+                handleCandidateAdd(sessionId, content);
+            } catch (UnknownHostException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     private void handleConnectRequest(BigInteger from, String sessionId, String message) {
-//        agent.startCandidateTrickle(iceCandidates -> {
-//            iceCandidates
-//        });
-
         try {
             var factory = new NistSdpFactory();
 
             var offer = factory.createSessionDescription(message);
 
-            String userFragment;
-            String password;
-            String fingerprint;
+            var stream = agent.createMediaStream("application");
+            String fingerprint = null;
             for (Object mediaDescription : offer.getMediaDescriptions(false)) {
                 var description = (MediaDescription) mediaDescription;
                 for (Object descriptionAttribute : description.getAttributes(false)) {
                     var attribute = (Attribute) descriptionAttribute;
                     switch (attribute.getName()) {
                         case "ice-ufrag":
-                            userFragment = attribute.getValue();
+                            stream.setRemoteUfrag(attribute.getValue());
                             break;
                         case "ice-pwd":
-                            password = attribute.getValue();
+                            stream.setRemotePassword(attribute.getValue());
                             break;
                         case "fragment":
                             fingerprint = attribute.getValue();
@@ -194,6 +178,9 @@ public class RtcWebsocketClient extends WebSocketClient {
                     }
                 }
             }
+            agent.startConnectivityEstablishment();
+
+            component = agent.createComponent(stream, 5000, 5000, 6000);
 
             var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
@@ -207,36 +194,46 @@ public class RtcWebsocketClient extends WebSocketClient {
             certGen.setSubjectDN(new X509Name("CN=Test Certificate"));
             certGen.setPublicKey(keyPair.getPublic());
             certGen.setSignatureAlgorithm("SHA256WithRSA");
+            var cert = certGen.generate(keyPair.getPrivate());
 
             var crypto = new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong());
+            var bcCert = new Certificate(new TlsCertificate[]{new JcaTlsCertificate(crypto, cert)});
 
+            String finalFingerprint = fingerprint;
             var client = new DefaultTlsClient(crypto) {
                 @Override
                 public TlsAuthentication getAuthentication() throws IOException {
                     return new TlsAuthentication() {
                         @Override
                         public void notifyServerCertificate(TlsServerCertificate serverCertificate) throws IOException {
-                            if (serverCertificate == null || serverCertificate.getCertificate() == null) {
-                                throw new TlsFatalAlert(AlertDescription.handshake_failure);
+                            if (serverCertificate == null || serverCertificate.getCertificate() == null || serverCertificate.getCertificate().isEmpty()) {
+                                System.out.println("invalid cert: " + serverCertificate);
+                                throw new TlsFatalAlert(AlertDescription.bad_certificate);
                             }
-//                            var status =
+                            var cert = serverCertificate.getCertificate().getCertificateAt(0).getEncoded();
+                            var fp = fingerprintFor(cert);
 
-//                            System.out.println("status type: " + serverCertificate.);
+                            if (!fp.equals(finalFingerprint)) {
+                                System.out.println("fingerprint does not match! expected " + finalFingerprint + " got " + fp);
+                                throw new TlsFatalAlert(AlertDescription.bad_certificate);
+                            }
                         }
 
                         @Override
-                        public TlsCredentials getClientCredentials(CertificateRequest certificateRequest) throws IOException {
-//                            return new JcaDefaultTlsCredentialedSigner();
-                            return null;
+                        public TlsCredentials getClientCredentials(CertificateRequest certificateRequest) {
+                            return new JcaDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), crypto, keyPair.getPrivate(), bcCert, null);
                         }
                     };
                 }
+
+                @Override
+                protected ProtocolVersion[] getSupportedVersions() {
+                    return new ProtocolVersion[]{ProtocolVersion.DTLSv12};
+                }
             };
 
-//            new DTLSClientProtocol().connect(client);
-
             var answer = factory.createSessionDescription();
-            answer.setOrigin(factory.createOrigin("-", new Random().nextLong(), 2L, "IN", "IP4", "127.0.0.1"));
+            answer.setOrigin(factory.createOrigin("-", Math.abs(new Random().nextLong()), 2L, "IN", "IP4", "127.0.0.1"));
 
             var attributes = new Vector<>();
             attributes.add(factory.createAttribute("group", "BUNDLE 0"));
@@ -249,6 +246,11 @@ public class RtcWebsocketClient extends WebSocketClient {
             media.setAttribute("ice-ufrag", agent.getLocalUfrag());
             media.setAttribute("ice-pwd", agent.getLocalPassword());
             media.setAttribute("ice-options", "trickle");
+            media.setAttribute("fingerprint", "sha-256 " + fingerprintFor(cert.getEncoded()));
+            media.setAttribute("setup", "active");
+            media.setAttribute("mid", "0");
+            media.setAttribute("sctp-port", "5000");
+            media.setAttribute("max-message-size", "262144");
             answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
 
             var json = Constants.GSON.toJson(new WsToMessage(
@@ -256,12 +258,33 @@ public class RtcWebsocketClient extends WebSocketClient {
             ));
             System.out.println(json);
             send(json);
+
+            component.getLocalCandidates().forEach(candidate -> {
+                var jsonAdd = Constants.GSON.toJson(new WsToMessage(
+                        1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + candidate.getFoundation()
+                ));
+                System.out.println(jsonAdd);
+                send(jsonAdd);
+            });
+
+            agent.addStateChangeListener(evt -> {
+                System.out.println(evt + " " + evt.getPropertyName());
+            });
+
+            stream.addPairChangeListener(evt -> {
+                System.out.println("pair change! " + evt);
+                try {
+                    new DTLSClientProtocol().connect(client, new CustomDatagramTransport(component));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
 //        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("LETS GOOOO CONNECTREQUEST!!!!!");
 //        var session = pendingSession;
 //        pendingSession = null;
 //
@@ -269,9 +292,123 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        session.receiveOffer(from, sessionId, message);
     }
 
-    private void handleCandidateAdd(String sessionId, String message) {
+    static class CustomDatagramTransport implements DatagramTransport {
+        private final DatagramSocket socket;
+        private final Component component;
+        private final int maxMessageSize = 262144; // vanilla
+
+        public CustomDatagramTransport(Component component) {
+            this.socket = component.getSocket();
+            this.component = component;
+        }
+
+        @Override
+        public int getReceiveLimit() {
+            return maxMessageSize;
+        }
+
+        @Override
+        public int getSendLimit() {
+            return maxMessageSize;
+        }
+
+        @Override
+        public int receive(byte[] buf, int off, int len, int waitMillis) throws IOException {
+            System.out.println("receive! " + new String(buf, off, len));
+            DatagramPacket packet = new DatagramPacket(buf, off, len);
+            socket.receive(packet);
+            return packet.getLength();
+        }
+
+        @Override
+        public void send(byte[] buf, int off, int len) throws IOException {
+            System.out.println("send! " + new String(buf, off, len));
+            socket.send(new DatagramPacket(buf, off, len, component.getDefaultCandidate().getTransportAddress()));
+        }
+
+        @Override
+        public void close() {
+            socket.close();
+        }
+    }
+
+    private String fingerprintFor(byte[] input) {
+        var digest = new SHA256Digest();
+        digest.update(input, 0, input.length);
+        var result = new byte[digest.getDigestSize()];
+        digest.doFinal(result, 0);
+
+        var hexBytes = Hex.encode(result);
+        String hex = new String(hexBytes, StandardCharsets.US_ASCII).toUpperCase();
+
+        var fp = new StringBuilder();
+        int i = 0;
+        fp.append(hex, i, i + 2);
+        while ((i += 2) < hex.length())
+        {
+            fp.append(':');
+            fp.append(hex, i, i + 2);
+        }
+        return fp.toString();
+    }
+
+    private void handleCandidateAdd(String sessionId, String message) throws UnknownHostException {
 //        agent.candidate
 //        activeSessions.get(sessionId).addCandidate(message);
+        // Get the appropriate IceMediaStream
+        var stream = agent.getStream("application");
+        if (stream == null) {
+            throw new IllegalArgumentException("No media stream found with name: " + "application");
+        }
+
+        component.addUpdateRemoteCandidates(parseCandidate(message, stream));
+    }
+
+    public static RemoteCandidate parseCandidate(String value, IceMediaStream stream) {
+        StringTokenizer tokenizer = new StringTokenizer(value);
+
+        //XXX add exception handling.
+        String foundation = tokenizer.nextToken();
+        int componentID = Integer.parseInt( tokenizer.nextToken() );
+        Transport transport = Transport.parse(tokenizer.nextToken());
+        long priority = Long.parseLong(tokenizer.nextToken());
+        String address = tokenizer.nextToken();
+        int port = Integer.parseInt(tokenizer.nextToken());
+
+        TransportAddress transAddr
+                = new TransportAddress(address, port, transport);
+
+        tokenizer.nextToken(); //skip the "typ" String
+        CandidateType type = CandidateType.parse(tokenizer.nextToken());
+
+        Component component = stream.getComponent(componentID);
+
+        if(component == null)
+            return null;
+
+        // check if there's a related address property
+
+        RemoteCandidate relatedCandidate = null;
+        String ufrag = null;
+        while (tokenizer.countTokens() >= 2) {
+            String key = tokenizer.nextToken();
+            String val = tokenizer.nextToken();
+
+            if (key.equals("ufrag")) {
+                ufrag = val;
+                break;
+            } else if (key.equals("raddr")) {
+                tokenizer.nextToken(); // skip the rport element
+                int relatedPort = Integer.parseInt(tokenizer.nextToken());
+
+                TransportAddress raddr = new TransportAddress(
+                        val, relatedPort, Transport.UDP);
+
+                relatedCandidate = component.findRemoteCandidate(raddr);
+            }
+        }
+
+        return new RemoteCandidate(transAddr, component, type, foundation, priority, relatedCandidate, ufrag);
     }
 
     private void initialize(JsonObject message) {
@@ -301,17 +438,16 @@ public class RtcWebsocketClient extends WebSocketClient {
                 String host = parts[1];
                 int port = Integer.parseInt(parts[2]);
 
-                agent.addCandidateHarvester(switch (type) {
-                    case "stun":
-                        yield new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP));
-                    case "turn":
-                        yield new TurnCandidateHarvester(
-                                new TransportAddress(host, port, Transport.UDP),
-                                new LongTermCredential(username, password)
-                        );
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + type);
-                });
+                if ("stun".equals(type)) {
+                    agent.addCandidateHarvester(new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP)));
+                } else if ("turn".equals(type)) {
+                    agent.addCandidateHarvester(new TurnCandidateHarvester(
+                            new TransportAddress(host, port, Transport.UDP),
+                            new LongTermCredential(username, password)
+                    ));
+                } else {
+                    throw new IllegalStateException("Unexpected value: " + type);
+                }
             });
         }
     }
