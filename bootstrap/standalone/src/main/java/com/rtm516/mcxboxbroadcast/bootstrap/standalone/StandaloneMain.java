@@ -11,6 +11,8 @@ import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,7 +20,6 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.LoggerFactory;
 
 public class StandaloneMain {
     private static StandaloneConfig config;
@@ -28,10 +29,6 @@ public class StandaloneMain {
     public static SessionManager sessionManager;
 
     public static void main(String[] args) throws Exception {
-        main0();
-    }
-
-    private static void main0() throws Exception {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
 
         logger.info("Starting MCXboxBroadcast Standalone " + BuildData.VERSION);

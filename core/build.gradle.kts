@@ -10,10 +10,6 @@ dependencies {
     api(libs.methanol)
     api(libs.minecraftauth)
 
-    api("org.jitsi:ice4j:3.0-72-g824cd4b")
-    api("org.bouncycastle:bctls-jdk18on:1.78.1")
-//    implementation("org.bouncycastle:bctls-debug-jdk18on:1.78.1")
-
     implementation("dev.onvoid.webrtc:webrtc-java:0.8.0")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "windows-x86_64")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "macos-x86_64")
@@ -21,6 +17,14 @@ dependencies {
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "linux-x86_64")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "linux-aarch64")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "linux-aarch32")
+
+    api("org.jitsi:ice4j:3.0-72-g824cd4b")
+    api("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    api("org.bouncycastle:bctls-jdk18on:1.78.1")
+    api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+
+    // For sctp4j
+    implementation(files("libs/sctp4j-1.0.6.jar"))
 }
 
 sourceSets {

@@ -9,28 +9,14 @@ import com.rtm516.mcxboxbroadcast.core.models.ws.WsFromMessage;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import dev.onvoid.webrtc.PeerConnectionFactory;
 import dev.onvoid.webrtc.RTCConfiguration;
-import dev.onvoid.webrtc.RTCIceServer;
-import gov.nist.javax.sdp.SdpEncoderImpl;
-import gov.nist.javax.sdp.fields.MediaField;
-import gov.nist.javax.sdp.parser.ConnectionFieldParser;
-import gov.nist.javax.sdp.parser.MediaFieldParser;
-import gov.nist.javax.sdp.parser.SDPAnnounceParser;
 import io.jsonwebtoken.lang.Collections;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.RSAKeyGenParameterSpec;
-import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,49 +25,30 @@ import java.util.UUID;
 import java.util.Vector;
 import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
-import javax.sdp.SdpEncoder;
-import javax.sdp.SdpException;
-import javax.sdp.SdpFactory;
+
 import org.bouncycastle.asn1.x509.X509Name;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.tls.AlertDescription;
-import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.CertificateRequest;
 import org.bouncycastle.tls.DTLSClientProtocol;
 import org.bouncycastle.tls.DefaultTlsClient;
-import org.bouncycastle.tls.SignatureAndHashAlgorithm;
+import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.TlsAuthentication;
-import org.bouncycastle.tls.TlsCredentialedSigner;
 import org.bouncycastle.tls.TlsCredentials;
 import org.bouncycastle.tls.TlsFatalAlert;
-import org.bouncycastle.tls.TlsPeer;
 import org.bouncycastle.tls.TlsServerCertificate;
-import org.bouncycastle.tls.crypto.TlsCryptoParameters;
-import org.bouncycastle.tls.crypto.TlsCryptoProvider;
-import org.bouncycastle.tls.crypto.TlsCryptoUtils;
-import org.bouncycastle.tls.crypto.TlsStreamSigner;
-import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
-import org.bouncycastle.tls.crypto.impl.jcajce.JcaDefaultTlsCredentialedSigner;
-import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCrypto;
 import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCryptoProvider;
-import org.bouncycastle.tls.crypto.impl.jcajce.JceDefaultTlsCredentialedAgreement;
-import org.bouncycastle.tls.crypto.impl.jcajce.JceDefaultTlsCredentialedDecryptor;
-import org.bouncycastle.x509.X509CertificatePair;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.attribute.AttributeFactory;
 import org.ice4j.ice.Agent;
-import org.ice4j.ice.harvest.HarvestConfig;
-import org.ice4j.ice.harvest.StunCandidateHarvest;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.IceMediaStream;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.StunMappingCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
-import org.ice4j.ice.sdp.IceSdpUtils;
 import org.ice4j.security.LongTermCredential;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-import org.jitsi.config.JitsiConfig;
 import org.opentelecoms.javax.sdp.NistSdpFactory;
 
 /**
@@ -119,9 +86,9 @@ public class RtcWebsocketClient extends WebSocketClient {
 
     /**
      * When the web socket connects send the request for the connection ID
-     * 
+     *
      * @see WebSocketClient#onOpen(ServerHandshake)
-     * 
+     *
      * @param serverHandshake The handshake of the websocket instance
      */
     @Override
@@ -131,9 +98,9 @@ public class RtcWebsocketClient extends WebSocketClient {
     /**
      * When we get a message check if it's a connection ID message
      * and handle otherwise ignore it
-     * 
-     * @see WebSocketClient#onMessage(String) 
-     * 
+     *
+     * @see WebSocketClient#onMessage(String)
+     *
      * @param data The UTF-8 decoded message that was received.
      */
     @Override
@@ -231,12 +198,24 @@ public class RtcWebsocketClient extends WebSocketClient {
                         }
                     };
                 }
+
+                @Override
+                protected ProtocolVersion[] getSupportedVersions() {
+                    return new ProtocolVersion[]{ProtocolVersion.DTLSv12};
+                }
             };
 
-//            new DTLSClientProtocol().connect(client);
+            IceMediaStream stream = agent.createMediaStream("data");
+            Component component = agent.createComponent(stream, 5000, 5000, 6000);
+
+            CustomDatagramTransport datagramTransport = new CustomDatagramTransport(component);
 
             var answer = factory.createSessionDescription();
-            answer.setOrigin(factory.createOrigin("-", new Random().nextLong(), 2L, "IN", "IP4", "127.0.0.1"));
+            long answerSessionId = new Random().nextLong();
+            while (answerSessionId < 0) {
+                answerSessionId = new Random().nextLong();
+            }
+            answer.setOrigin(factory.createOrigin("-", answerSessionId, 2L, "IN", "IP4", "127.0.0.1"));
 
             var attributes = new Vector<>();
             attributes.add(factory.createAttribute("group", "BUNDLE 0"));
@@ -252,10 +231,14 @@ public class RtcWebsocketClient extends WebSocketClient {
             answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
 
             var json = Constants.GSON.toJson(new WsToMessage(
-                    1, from, "CONNECTRESPONSE " + sessionId + " " + answer
+                1, from, "CONNECTRESPONSE " + answerSessionId + " " + answer
             ));
             System.out.println(json);
             send(json);
+
+            // Move this since it errors since the socket isnt open, I assume bc we havent sent the CANDIDATEADD responses
+            new DTLSClientProtocol().connect(client, datagramTransport);
+
 //        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -306,8 +289,8 @@ public class RtcWebsocketClient extends WebSocketClient {
                         yield new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP));
                     case "turn":
                         yield new TurnCandidateHarvester(
-                                new TransportAddress(host, port, Transport.UDP),
-                                new LongTermCredential(username, password)
+                            new TransportAddress(host, port, Transport.UDP),
+                            new LongTermCredential(username, password)
                         );
                     default:
                         throw new IllegalStateException("Unexpected value: " + type);
