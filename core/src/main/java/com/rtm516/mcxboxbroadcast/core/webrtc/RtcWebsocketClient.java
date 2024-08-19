@@ -14,9 +14,10 @@ import io.jsonwebtoken.lang.Collections;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,8 +29,9 @@ import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
 
 import org.bouncycastle.asn1.x509.X509Name;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.tls.AlertDescription;
+import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.CertificateRequest;
 import org.bouncycastle.tls.DTLSClientProtocol;
 import org.bouncycastle.tls.DefaultTlsClient;
@@ -38,7 +40,12 @@ import org.bouncycastle.tls.TlsAuthentication;
 import org.bouncycastle.tls.TlsCredentials;
 import org.bouncycastle.tls.TlsFatalAlert;
 import org.bouncycastle.tls.TlsServerCertificate;
+import org.bouncycastle.tls.crypto.TlsCertificate;
+import org.bouncycastle.tls.crypto.TlsCryptoParameters;
+import org.bouncycastle.tls.crypto.impl.jcajce.JcaDefaultTlsCredentialedSigner;
+import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCertificate;
 import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCryptoProvider;
+import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -59,10 +66,6 @@ import org.opentelecoms.javax.sdp.NistSdpFactory;
  * Handle the connection and authentication with the RTA websocket
  */
 public class RtcWebsocketClient extends WebSocketClient {
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
     private final Logger logger;
 
     private RTCConfiguration rtcConfig;
@@ -132,33 +135,32 @@ public class RtcWebsocketClient extends WebSocketClient {
         if ("CONNECTREQUEST".equals(type)) {
             handleConnectRequest(from, sessionId, content);
         } else if ("CANDIDATEADD".equals(type)) {
-            handleCandidateAdd(sessionId, content);
+            try {
+                handleCandidateAdd(sessionId, content);
+            } catch (UnknownHostException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     private void handleConnectRequest(BigInteger from, String sessionId, String message) {
-//        agent.startCandidateTrickle(iceCandidates -> {
-//            iceCandidates
-//        });
-
         try {
             var factory = new NistSdpFactory();
 
             var offer = factory.createSessionDescription(message);
 
-            String userFragment = "";
-            String password = "";
-            String fingerprint;
+            var stream = agent.createMediaStream("application");
+            String fingerprint = null;
             for (Object mediaDescription : offer.getMediaDescriptions(false)) {
                 var description = (MediaDescription) mediaDescription;
                 for (Object descriptionAttribute : description.getAttributes(false)) {
                     var attribute = (Attribute) descriptionAttribute;
                     switch (attribute.getName()) {
                         case "ice-ufrag":
-                            userFragment = attribute.getValue();
+                            stream.setRemoteUfrag(attribute.getValue());
                             break;
                         case "ice-pwd":
-                            password = attribute.getValue();
+                            stream.setRemotePassword(attribute.getValue());
                             break;
                         case "fragment":
                             fingerprint = attribute.getValue();
@@ -167,8 +169,9 @@ public class RtcWebsocketClient extends WebSocketClient {
                 }
             }
 
-            component.getParentStream().setRemoteUfrag(userFragment);
-            component.getParentStream().setRemotePassword(password);
+            agent.startConnectivityEstablishment();
+
+            component = agent.createComponent(stream, 5000, 5000, 6000);
 
             var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
@@ -182,27 +185,34 @@ public class RtcWebsocketClient extends WebSocketClient {
             certGen.setSubjectDN(new X509Name("CN=Test Certificate"));
             certGen.setPublicKey(keyPair.getPublic());
             certGen.setSignatureAlgorithm("SHA256WithRSA");
+            var cert = certGen.generate(keyPair.getPrivate());
 
             var crypto = new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong());
+            var bcCert = new Certificate(new TlsCertificate[]{new JcaTlsCertificate(crypto, cert)});
 
+            String finalFingerprint = fingerprint;
             var client = new DefaultTlsClient(crypto) {
                 @Override
                 public TlsAuthentication getAuthentication() throws IOException {
                     return new TlsAuthentication() {
                         @Override
                         public void notifyServerCertificate(TlsServerCertificate serverCertificate) throws IOException {
-                            if (serverCertificate == null || serverCertificate.getCertificate() == null) {
-                                throw new TlsFatalAlert(AlertDescription.handshake_failure);
+                            if (serverCertificate == null || serverCertificate.getCertificate() == null || serverCertificate.getCertificate().isEmpty()) {
+                                System.out.println("invalid cert: " + serverCertificate);
+                                throw new TlsFatalAlert(AlertDescription.bad_certificate);
                             }
-//                            var status =
+                            var cert = serverCertificate.getCertificate().getCertificateAt(0).getEncoded();
+                            var fp = fingerprintFor(cert);
 
-//                            System.out.println("status type: " + serverCertificate.);
+                            if (!fp.equals(finalFingerprint)) {
+                                System.out.println("fingerprint does not match! expected " + finalFingerprint + " got " + fp);
+                                throw new TlsFatalAlert(AlertDescription.bad_certificate);
+                            }
                         }
 
                         @Override
-                        public TlsCredentials getClientCredentials(CertificateRequest certificateRequest) throws IOException {
-//                            return new JcaDefaultTlsCredentialedSigner();
-                            return null;
+                        public TlsCredentials getClientCredentials(CertificateRequest certificateRequest) {
+                            return new JcaDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), crypto, keyPair.getPrivate(), bcCert, null);
                         }
                     };
                 }
@@ -226,11 +236,7 @@ public class RtcWebsocketClient extends WebSocketClient {
             });
 
             var answer = factory.createSessionDescription();
-            long answerSessionId = new Random().nextLong();
-            while (answerSessionId < 0) {
-                answerSessionId = new Random().nextLong();
-            }
-            answer.setOrigin(factory.createOrigin("-", answerSessionId, 2L, "IN", "IP4", "127.0.0.1"));
+            answer.setOrigin(factory.createOrigin("-", Math.abs(new Random().nextLong()), 2L, "IN", "IP4", "127.0.0.1"));
 
             var attributes = new Vector<>();
             attributes.add(factory.createAttribute("group", "BUNDLE 0"));
@@ -243,6 +249,11 @@ public class RtcWebsocketClient extends WebSocketClient {
             media.setAttribute("ice-ufrag", agent.getLocalUfrag());
             media.setAttribute("ice-pwd", agent.getLocalPassword());
             media.setAttribute("ice-options", "trickle");
+            media.setAttribute("fingerprint", "sha-256 " + fingerprintFor(cert.getEncoded()));
+            media.setAttribute("setup", "active");
+            media.setAttribute("mid", "0");
+            media.setAttribute("sctp-port", "5000");
+            media.setAttribute("max-message-size", "262144");
             answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
 
             var json = Constants.GSON.toJson(new WsToMessage(
@@ -250,7 +261,6 @@ public class RtcWebsocketClient extends WebSocketClient {
             ));
             System.out.println(json);
             send(json);
-
 
             component.getLocalCandidates().forEach(candidate -> {
                 var jsonAdd = Constants.GSON.toJson(new WsToMessage(
@@ -260,21 +270,36 @@ public class RtcWebsocketClient extends WebSocketClient {
                 send(jsonAdd);
             });
 
-            new Thread(() -> {
+            agent.addStateChangeListener(evt -> {
+                System.out.println(evt + " " + evt.getPropertyName());
+            });
+
+            stream.addPairChangeListener(evt -> {
+                System.out.println("pair change! " + evt);
                 try {
-                    Thread.sleep(2_500);
-                    agent.startConnectivityEstablishment();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    new DTLSClientProtocol().connect(client, new CustomDatagramTransport(component));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }).start();
+            });
+
+//            new Thread(() -> {
+//                try {
+//                    Thread.sleep(1000);
+//                    component.getRemoteCandidates().forEach(remoteCandidate -> {
+//                        System.out.println("remote candidate: " + remoteCandidate);
+//                    });
+//                    agent.startConnectivityEstablishment();
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }).start();
 
 //        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("LETS GOOOO CONNECTREQUEST!!!!!");
 //        var session = pendingSession;
 //        pendingSession = null;
 //
@@ -282,17 +307,36 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        session.receiveOffer(from, sessionId, message);
     }
 
-    private void handleCandidateAdd(String sessionId, String message) {
-//        agent.candidate
-//        activeSessions.get(sessionId).addCandidate(message);
+    private String fingerprintFor(byte[] input) {
+        var digest = new SHA256Digest();
+        digest.update(input, 0, input.length);
+        var result = new byte[digest.getDigestSize()];
+        digest.doFinal(result, 0);
 
-        RemoteCandidate remoteCandidate = parseCandidate(message, component.getParentStream());
-        component.addRemoteCandidate(remoteCandidate);
+        var hexBytes = Hex.encode(result);
+        String hex = new String(hexBytes, StandardCharsets.US_ASCII).toUpperCase();
+
+        var fp = new StringBuilder();
+        int i = 0;
+        fp.append(hex, i, i + 2);
+        while ((i += 2) < hex.length())
+        {
+            fp.append(':');
+            fp.append(hex, i, i + 2);
+        }
+        return fp.toString();
     }
 
-    public static RemoteCandidate parseCandidate(String      value,
-                                                 IceMediaStream stream)
-    {
+    private void handleCandidateAdd(String sessionId, String message) throws UnknownHostException {
+//        agent.candidate
+//        activeSessions.get(sessionId).addCandidate(message);
+        component.addUpdateRemoteCandidates(parseCandidate(message, component.getParentStream()));
+//        component.updateRemoteCandidates();
+    }
+
+
+
+    public static RemoteCandidate parseCandidate(String value, IceMediaStream stream) {
         StringTokenizer tokenizer = new StringTokenizer(value);
 
         //XXX add exception handling.
@@ -303,8 +347,7 @@ public class RtcWebsocketClient extends WebSocketClient {
         String address = tokenizer.nextToken();
         int port = Integer.parseInt(tokenizer.nextToken());
 
-        TransportAddress transAddr
-            = new TransportAddress(address, port, transport);
+        TransportAddress transAddr = new TransportAddress(address, port, transport);
 
         tokenizer.nextToken(); //skip the "typ" String
         CandidateType type = CandidateType.parse(tokenizer.nextToken());
@@ -329,17 +372,13 @@ public class RtcWebsocketClient extends WebSocketClient {
                 tokenizer.nextToken(); // skip the rport element
                 int relatedPort = Integer.parseInt(tokenizer.nextToken());
 
-                TransportAddress raddr = new TransportAddress(
-                    val, relatedPort, Transport.UDP);
+                TransportAddress raddr = new TransportAddress(val, relatedPort, Transport.UDP);
 
                 relatedCandidate = component.findRemoteCandidate(raddr);
             }
         }
 
-        RemoteCandidate cand = new RemoteCandidate(transAddr, component, type,
-            foundation, priority, relatedCandidate, ufrag);
-
-        return cand;
+        return new RemoteCandidate(transAddr, component, type, foundation, priority, relatedCandidate, ufrag);
     }
 
     private void initialize(JsonObject message) {
@@ -358,16 +397,7 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        pendingSession = new PeerSession(this, rtcConfig);
 
         agent = new Agent();
-        agent.addStateChangeListener(evt -> {
-            logger.info("ICE Agent state changed: " + evt);
-        });
-
-        try {
-            IceMediaStream stream = agent.createMediaStream("rtcmedia");
-            component = agent.createComponent(stream, 5000, 5000, 6000);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        agent.setTrickling(true);
 
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();
@@ -379,17 +409,16 @@ public class RtcWebsocketClient extends WebSocketClient {
                 String host = parts[1];
                 int port = Integer.parseInt(parts[2]);
 
-                agent.addCandidateHarvester(switch (type) {
-                    case "stun":
-                        yield new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP));
-                    case "turn":
-                        yield new TurnCandidateHarvester(
+                if ("stun".equals(type)) {
+                    agent.addCandidateHarvester(new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP)));
+                } else if ("turn".equals(type)) {
+                    agent.addCandidateHarvester(new TurnCandidateHarvester(
                             new TransportAddress(host, port, Transport.UDP),
                             new LongTermCredential(username, password)
-                        );
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + type);
-                });
+                    ));
+                } else {
+                    throw new IllegalStateException("Unexpected value: " + type);
+                }
             });
         }
     }
