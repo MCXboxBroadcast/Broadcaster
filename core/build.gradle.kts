@@ -10,6 +10,10 @@ dependencies {
     api(libs.methanol)
     api(libs.minecraftauth)
 
+    api("org.jitsi:ice4j:3.0-72-g824cd4b")
+    api("org.bouncycastle:bctls-jdk18on:1.78.1")
+//    implementation("org.bouncycastle:bctls-debug-jdk18on:1.78.1")
+
     implementation("dev.onvoid.webrtc:webrtc-java:0.8.0")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "windows-x86_64")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "macos-x86_64")

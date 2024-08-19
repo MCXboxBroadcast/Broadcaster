@@ -30,13 +30,13 @@ import java.util.Arrays;
 
 public class PeerSession implements PeerConnectionObserver {
     private final RtcWebsocketClient rtcClient;
-    private final RTCPeerConnection peerConnection;
+    private RTCPeerConnection peerConnection;
     private BigInteger from;
     private String sessionId;
 
     public PeerSession(RtcWebsocketClient client, RTCConfiguration config) {
         this.rtcClient = client;
-        this.peerConnection = client.peerFactory().createPeerConnection(config, this);
+//        this.peerConnection = client.peerFactory.createPeerConnection(config, this);
     }
 
     public void receiveOffer(BigInteger from, String sessionId, String offer) {
@@ -54,6 +54,7 @@ public class PeerSession implements PeerConnectionObserver {
                         peerConnection.setLocalDescription(description, new SetSessionDescriptionObserver() {
                             @Override
                             public void onSuccess() {
+                                System.out.println(description.sdp);
                                 var json = Constants.GSON.toJson(new WsToMessage(
                                         1, from, "CONNECTRESPONSE " + sessionId + " " + description.sdp
                                 ));

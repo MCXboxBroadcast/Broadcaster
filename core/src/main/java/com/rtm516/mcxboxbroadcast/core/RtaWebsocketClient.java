@@ -87,7 +87,7 @@ public class RtaWebsocketClient extends WebSocketClient {
             } catch (IOException | InterruptedException e) {
                 logger.error("Error dumping current session: " + e.getMessage());
             }
-            client.close();
+//            client.close();
         }
     }
 

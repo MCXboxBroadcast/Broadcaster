@@ -6,25 +6,97 @@ import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsFromMessage;
+import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import dev.onvoid.webrtc.PeerConnectionFactory;
 import dev.onvoid.webrtc.RTCConfiguration;
 import dev.onvoid.webrtc.RTCIceServer;
+import gov.nist.javax.sdp.SdpEncoderImpl;
+import gov.nist.javax.sdp.fields.MediaField;
+import gov.nist.javax.sdp.parser.ConnectionFieldParser;
+import gov.nist.javax.sdp.parser.MediaFieldParser;
+import gov.nist.javax.sdp.parser.SDPAnnounceParser;
+import io.jsonwebtoken.lang.Collections;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.RSAKeyGenParameterSpec;
+import java.text.ParseException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
+import java.util.Vector;
+import javax.sdp.Attribute;
+import javax.sdp.MediaDescription;
+import javax.sdp.SdpEncoder;
+import javax.sdp.SdpException;
+import javax.sdp.SdpFactory;
+import org.bouncycastle.asn1.x509.X509Name;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.tls.AlertDescription;
+import org.bouncycastle.tls.Certificate;
+import org.bouncycastle.tls.CertificateRequest;
+import org.bouncycastle.tls.DTLSClientProtocol;
+import org.bouncycastle.tls.DefaultTlsClient;
+import org.bouncycastle.tls.SignatureAndHashAlgorithm;
+import org.bouncycastle.tls.TlsAuthentication;
+import org.bouncycastle.tls.TlsCredentialedSigner;
+import org.bouncycastle.tls.TlsCredentials;
+import org.bouncycastle.tls.TlsFatalAlert;
+import org.bouncycastle.tls.TlsPeer;
+import org.bouncycastle.tls.TlsServerCertificate;
+import org.bouncycastle.tls.crypto.TlsCryptoParameters;
+import org.bouncycastle.tls.crypto.TlsCryptoProvider;
+import org.bouncycastle.tls.crypto.TlsCryptoUtils;
+import org.bouncycastle.tls.crypto.TlsStreamSigner;
+import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
+import org.bouncycastle.tls.crypto.impl.jcajce.JcaDefaultTlsCredentialedSigner;
+import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCrypto;
+import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCryptoProvider;
+import org.bouncycastle.tls.crypto.impl.jcajce.JceDefaultTlsCredentialedAgreement;
+import org.bouncycastle.tls.crypto.impl.jcajce.JceDefaultTlsCredentialedDecryptor;
+import org.bouncycastle.x509.X509CertificatePair;
+import org.bouncycastle.x509.X509V3CertificateGenerator;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.ice.Agent;
+import org.ice4j.ice.harvest.HarvestConfig;
+import org.ice4j.ice.harvest.StunCandidateHarvest;
+import org.ice4j.ice.harvest.StunCandidateHarvester;
+import org.ice4j.ice.harvest.StunMappingCandidateHarvester;
+import org.ice4j.ice.harvest.TurnCandidateHarvester;
+import org.ice4j.ice.sdp.IceSdpUtils;
+import org.ice4j.security.LongTermCredential;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.jitsi.config.JitsiConfig;
+import org.opentelecoms.javax.sdp.NistSdpFactory;
 
 /**
  * Handle the connection and authentication with the RTA websocket
  */
 public class RtcWebsocketClient extends WebSocketClient {
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     private final Logger logger;
 
     private RTCConfiguration rtcConfig;
-    private PeerConnectionFactory peerFactory;
+    public PeerConnectionFactory peerFactory;
+    private Agent agent;
     private Map<String, PeerSession> activeSessions = new HashMap<>();
     private PeerSession pendingSession;
 
@@ -93,31 +165,155 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void handleConnectRequest(BigInteger from, String sessionId, String message) {
-        var session = pendingSession;
-        pendingSession = null;
+//        agent.startCandidateTrickle(iceCandidates -> {
+//            iceCandidates
+//        });
 
-        activeSessions.put(sessionId, session);
-        session.receiveOffer(from, sessionId, message);
+        try {
+            var factory = new NistSdpFactory();
+
+            var offer = factory.createSessionDescription(message);
+
+            String userFragment;
+            String password;
+            String fingerprint;
+            for (Object mediaDescription : offer.getMediaDescriptions(false)) {
+                var description = (MediaDescription) mediaDescription;
+                for (Object descriptionAttribute : description.getAttributes(false)) {
+                    var attribute = (Attribute) descriptionAttribute;
+                    switch (attribute.getName()) {
+                        case "ice-ufrag":
+                            userFragment = attribute.getValue();
+                            break;
+                        case "ice-pwd":
+                            password = attribute.getValue();
+                            break;
+                        case "fragment":
+                            fingerprint = attribute.getValue();
+                            break;
+                    }
+                }
+            }
+
+            var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+            keyPairGenerator.initialize(2048);
+            var keyPair = keyPairGenerator.generateKeyPair();
+
+            var certGen = new X509V3CertificateGenerator();
+            certGen.setSerialNumber(BigInteger.valueOf(System.currentTimeMillis()));
+            certGen.setIssuerDN(new X509Name("CN=Test Certificate"));
+            certGen.setNotBefore(new Date(System.currentTimeMillis() - 10000L));
+            certGen.setNotAfter(new Date(System.currentTimeMillis() + 31536000000L));
+            certGen.setSubjectDN(new X509Name("CN=Test Certificate"));
+            certGen.setPublicKey(keyPair.getPublic());
+            certGen.setSignatureAlgorithm("SHA256WithRSA");
+
+            var crypto = new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong());
+
+            var client = new DefaultTlsClient(crypto) {
+                @Override
+                public TlsAuthentication getAuthentication() throws IOException {
+                    return new TlsAuthentication() {
+                        @Override
+                        public void notifyServerCertificate(TlsServerCertificate serverCertificate) throws IOException {
+                            if (serverCertificate == null || serverCertificate.getCertificate() == null) {
+                                throw new TlsFatalAlert(AlertDescription.handshake_failure);
+                            }
+//                            var status =
+
+//                            System.out.println("status type: " + serverCertificate.);
+                        }
+
+                        @Override
+                        public TlsCredentials getClientCredentials(CertificateRequest certificateRequest) throws IOException {
+//                            return new JcaDefaultTlsCredentialedSigner();
+                            return null;
+                        }
+                    };
+                }
+            };
+
+//            new DTLSClientProtocol().connect(client);
+
+            var answer = factory.createSessionDescription();
+            answer.setOrigin(factory.createOrigin("-", new Random().nextLong(), 2L, "IN", "IP4", "127.0.0.1"));
+
+            var attributes = new Vector<>();
+            attributes.add(factory.createAttribute("group", "BUNDLE 0"));
+            attributes.add(factory.createAttribute("extmap-allow-mixed", ""));
+            attributes.add(factory.createAttribute("msid-semantic", " WMS"));
+            answer.setAttributes(attributes);
+
+            var media = factory.createMediaDescription("application", 9, 0, "UDP/DTLS/SCTP", new String[]{"webrtc-datachannel"});
+            media.setConnection(factory.createConnection("IN", "IP4", "0.0.0.0"));
+            media.setAttribute("ice-ufrag", agent.getLocalUfrag());
+            media.setAttribute("ice-pwd", agent.getLocalPassword());
+            media.setAttribute("ice-options", "trickle");
+            answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
+
+            var json = Constants.GSON.toJson(new WsToMessage(
+                    1, from, "CONNECTRESPONSE " + sessionId + " " + answer
+            ));
+            System.out.println(json);
+            send(json);
+//        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("LETS GOOOO CONNECTREQUEST!!!!!");
+//        var session = pendingSession;
+//        pendingSession = null;
+//
+//        activeSessions.put(sessionId, session);
+//        session.receiveOffer(from, sessionId, message);
     }
 
     private void handleCandidateAdd(String sessionId, String message) {
-        activeSessions.get(sessionId).addCandidate(message);
+//        agent.candidate
+//        activeSessions.get(sessionId).addCandidate(message);
     }
 
     private void initialize(JsonObject message) {
         var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
 
-        rtcConfig = new RTCConfiguration();
+//        rtcConfig = new RTCConfiguration();
+//        for (JsonElement authServerElement : turnAuthServers) {
+//            var authServer = authServerElement.getAsJsonObject();
+//            var server = new RTCIceServer();
+//            server.username = authServer.get("Username").getAsString();
+//            server.password = authServer.get("Password").getAsString();
+//            authServer.getAsJsonArray("Urls").forEach(url -> server.urls.add(url.getAsString()));
+//            rtcConfig.iceServers.add(server);
+//        }
+//
+//        pendingSession = new PeerSession(this, rtcConfig);
+
+        agent = new Agent();
+
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();
-            var server = new RTCIceServer();
-            server.username = authServer.get("Username").getAsString();
-            server.password = authServer.get("Password").getAsString();
-            authServer.getAsJsonArray("Urls").forEach(url -> server.urls.add(url.getAsString()));
-            rtcConfig.iceServers.add(server);
-        }
+            var username = authServer.get("Username").getAsString();
+            var password = authServer.get("Password").getAsString();
+            authServer.getAsJsonArray("Urls").forEach(url -> {
+                var parts = url.getAsString().split(":");
+                String type = parts[0];
+                String host = parts[1];
+                int port = Integer.parseInt(parts[2]);
 
-        pendingSession = new PeerSession(this, rtcConfig);
+                agent.addCandidateHarvester(switch (type) {
+                    case "stun":
+                        yield new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP));
+                    case "turn":
+                        yield new TurnCandidateHarvester(
+                                new TransportAddress(host, port, Transport.UDP),
+                                new LongTermCredential(username, password)
+                        );
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + type);
+                });
+            });
+        }
     }
 
     @Override
@@ -130,7 +326,7 @@ public class RtcWebsocketClient extends WebSocketClient {
         logger.info("RTCWebsocket error: " + ex.getMessage());
     }
 
-    protected PeerConnectionFactory peerFactory() {
-        return peerFactory;
-    }
+//    protected PeerConnectionFactory peerFactory() {
+//        return peerFactory;
+//    }
 }
