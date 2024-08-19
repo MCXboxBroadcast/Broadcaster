@@ -46,6 +46,7 @@ import org.ice4j.ice.Agent;
 import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.IceProcessingState;
 import org.ice4j.ice.RemoteCandidate;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
@@ -145,8 +146,8 @@ public class RtcWebsocketClient extends WebSocketClient {
 
             var offer = factory.createSessionDescription(message);
 
-            String userFragment;
-            String password;
+            String userFragment = "";
+            String password = "";
             String fingerprint;
             for (Object mediaDescription : offer.getMediaDescriptions(false)) {
                 var description = (MediaDescription) mediaDescription;
@@ -165,6 +166,9 @@ public class RtcWebsocketClient extends WebSocketClient {
                     }
                 }
             }
+
+            component.getParentStream().setRemoteUfrag(userFragment);
+            component.getParentStream().setRemotePassword(password);
 
             var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
@@ -210,6 +214,16 @@ public class RtcWebsocketClient extends WebSocketClient {
             };
 
             CustomDatagramTransport datagramTransport = new CustomDatagramTransport(component);
+            agent.addStateChangeListener(evt -> {
+                if (evt.getPropertyName().equals("IceProcessingState") && evt.getNewValue().equals(IceProcessingState.COMPLETED)) {
+                    System.out.println("ICE processing completed, starting DTLS handshake");
+                    try {
+                        new DTLSClientProtocol().connect(client, datagramTransport);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
             var answer = factory.createSessionDescription();
             long answerSessionId = new Random().nextLong();
@@ -246,8 +260,14 @@ public class RtcWebsocketClient extends WebSocketClient {
                 send(jsonAdd);
             });
 
-            // Move this since it errors since the socket isnt open, I assume bc we havent sent the CANDIDATEADD responses
-//            new DTLSClientProtocol().connect(client, datagramTransport);
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2_500);
+                    agent.startConnectivityEstablishment();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
 
 //        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
@@ -338,9 +358,12 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        pendingSession = new PeerSession(this, rtcConfig);
 
         agent = new Agent();
+        agent.addStateChangeListener(evt -> {
+            logger.info("ICE Agent state changed: " + evt);
+        });
 
         try {
-            IceMediaStream stream = agent.createMediaStream("data");
+            IceMediaStream stream = agent.createMediaStream("rtcmedia");
             component = agent.createComponent(stream, 5000, 5000, 6000);
         } catch (IOException e) {
             throw new RuntimeException(e);
