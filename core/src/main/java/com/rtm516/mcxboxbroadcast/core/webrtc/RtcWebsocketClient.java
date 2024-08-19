@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Vector;
 import javax.sdp.Attribute;
@@ -42,8 +43,10 @@ import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Agent;
+import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.RemoteCandidate;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
@@ -64,6 +67,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     private RTCConfiguration rtcConfig;
     public PeerConnectionFactory peerFactory;
     private Agent agent;
+    private Component component;
     private Map<String, PeerSession> activeSessions = new HashMap<>();
     private PeerSession pendingSession;
 
@@ -205,9 +209,6 @@ public class RtcWebsocketClient extends WebSocketClient {
                 }
             };
 
-            IceMediaStream stream = agent.createMediaStream("data");
-            Component component = agent.createComponent(stream, 5000, 5000, 6000);
-
             CustomDatagramTransport datagramTransport = new CustomDatagramTransport(component);
 
             var answer = factory.createSessionDescription();
@@ -264,6 +265,61 @@ public class RtcWebsocketClient extends WebSocketClient {
     private void handleCandidateAdd(String sessionId, String message) {
 //        agent.candidate
 //        activeSessions.get(sessionId).addCandidate(message);
+
+        RemoteCandidate remoteCandidate = parseCandidate(message, component.getParentStream());
+        component.addRemoteCandidate(remoteCandidate);
+    }
+
+    public static RemoteCandidate parseCandidate(String      value,
+                                                 IceMediaStream stream)
+    {
+        StringTokenizer tokenizer = new StringTokenizer(value);
+
+        //XXX add exception handling.
+        String foundation = tokenizer.nextToken();
+        int componentID = Integer.parseInt( tokenizer.nextToken() );
+        Transport transport = Transport.parse(tokenizer.nextToken());
+        long priority = Long.parseLong(tokenizer.nextToken());
+        String address = tokenizer.nextToken();
+        int port = Integer.parseInt(tokenizer.nextToken());
+
+        TransportAddress transAddr
+            = new TransportAddress(address, port, transport);
+
+        tokenizer.nextToken(); //skip the "typ" String
+        CandidateType type = CandidateType.parse(tokenizer.nextToken());
+
+        Component component = stream.getComponent(componentID);
+
+        if(component == null)
+            return null;
+
+        // check if there's a related address property
+
+        RemoteCandidate relatedCandidate = null;
+        String ufrag = null;
+        while (tokenizer.countTokens() >= 2) {
+            String key = tokenizer.nextToken();
+            String val = tokenizer.nextToken();
+
+            if (key.equals("ufrag")) {
+                ufrag = val;
+                break;
+            } else if (key.equals("raddr")) {
+                tokenizer.nextToken(); // skip the rport element
+                int relatedPort = Integer.parseInt(tokenizer.nextToken());
+
+                TransportAddress raddr = new TransportAddress(
+                    val, relatedPort, Transport.UDP);
+
+                relatedCandidate = component.findRemoteCandidate(raddr);
+            }
+        }
+
+        RemoteCandidate cand = new RemoteCandidate(transAddr, component, type,
+            foundation, priority, relatedCandidate, ufrag);
+
+        return cand;
     }
 
     private void initialize(JsonObject message) {
@@ -282,6 +338,13 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        pendingSession = new PeerSession(this, rtcConfig);
 
         agent = new Agent();
+
+        try {
+            IceMediaStream stream = agent.createMediaStream("data");
+            component = agent.createComponent(stream, 5000, 5000, 6000);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();
