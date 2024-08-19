@@ -1,4 +1,9 @@
 # MCXboxBroadcast
+
+# Broken awaiting update
+There's an ongoing issue with the latest minecraft version on how it connects to xbox live servers follow the issue [here](https://github.com/rtm516/MCXboxBroadcast/issues/122)
+
+
 [![License: GPL-3.0](https://img.shields.io/github/license/rtm516/MCXboxBroadcast)](LICENSE)
 [![Build Release](https://github.com/rtm516/MCXboxBroadcast/actions/workflows/release.yml/badge.svg)](https://github.com/rtm516/MCXboxBroadcast/releases)
 [![HitCount](https://hits.dwyl.com/rtm516/MCXboxBroadcast.svg?style=flat)](http://hits.dwyl.com/rtm516/MCXboxBroadcast)
