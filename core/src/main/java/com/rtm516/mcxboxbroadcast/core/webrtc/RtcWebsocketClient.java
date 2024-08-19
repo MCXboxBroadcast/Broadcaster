@@ -18,6 +18,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,12 +31,14 @@ import javax.sdp.MediaDescription;
 
 import org.bouncycastle.asn1.x509.X509Name;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.tls.AlertDescription;
 import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.CertificateRequest;
 import org.bouncycastle.tls.DTLSClientProtocol;
 import org.bouncycastle.tls.DefaultTlsClient;
 import org.bouncycastle.tls.ProtocolVersion;
+import org.bouncycastle.tls.SignatureAndHashAlgorithm;
 import org.bouncycastle.tls.TlsAuthentication;
 import org.bouncycastle.tls.TlsCredentials;
 import org.bouncycastle.tls.TlsFatalAlert;
@@ -61,11 +64,19 @@ import org.ice4j.security.LongTermCredential;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.opentelecoms.javax.sdp.NistSdpFactory;
+import pe.pi.sctp4j.sctp.Association;
+import pe.pi.sctp4j.sctp.AssociationListener;
+import pe.pi.sctp4j.sctp.SCTPStream;
+import pe.pi.sctp4j.sctp.small.ThreadedAssociation;
 
 /**
  * Handle the connection and authentication with the RTA websocket
  */
 public class RtcWebsocketClient extends WebSocketClient {
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     private final Logger logger;
 
     private RTCConfiguration rtcConfig;
@@ -162,13 +173,12 @@ public class RtcWebsocketClient extends WebSocketClient {
                         case "ice-pwd":
                             stream.setRemotePassword(attribute.getValue());
                             break;
-                        case "fragment":
-                            fingerprint = attribute.getValue();
+                        case "fingerprint":
+                            fingerprint = attribute.getValue().split(" ")[1];
                             break;
                     }
                 }
             }
-
             agent.startConnectivityEstablishment();
 
             component = agent.createComponent(stream, 5000, 5000, 6000);
@@ -189,6 +199,8 @@ public class RtcWebsocketClient extends WebSocketClient {
 
             var crypto = new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong());
             var bcCert = new Certificate(new TlsCertificate[]{new JcaTlsCertificate(crypto, cert)});
+
+            var transport = new CustomDatagramTransport();
 
             String finalFingerprint = fingerprint;
             var client = new DefaultTlsClient(crypto) {
@@ -212,7 +224,7 @@ public class RtcWebsocketClient extends WebSocketClient {
 
                         @Override
                         public TlsCredentials getClientCredentials(CertificateRequest certificateRequest) {
-                            return new JcaDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), crypto, keyPair.getPrivate(), bcCert, null);
+                            return new JcaDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), crypto, keyPair.getPrivate(), bcCert, SignatureAndHashAlgorithm.rsa_pss_rsae_sha256);
                         }
                     };
                 }
@@ -221,19 +233,33 @@ public class RtcWebsocketClient extends WebSocketClient {
                 protected ProtocolVersion[] getSupportedVersions() {
                     return new ProtocolVersion[]{ProtocolVersion.DTLSv12};
                 }
-            };
 
-            CustomDatagramTransport datagramTransport = new CustomDatagramTransport(component);
-            agent.addStateChangeListener(evt -> {
-                if (evt.getPropertyName().equals("IceProcessingState") && evt.getNewValue().equals(IceProcessingState.COMPLETED)) {
-                    System.out.println("ICE processing completed, starting DTLS handshake");
-                    try {
-                        new DTLSClientProtocol().connect(client, datagramTransport);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                @Override
+                public void notifyHandshakeComplete() throws IOException {
+                    System.out.println("handshake complete!");
+                    var a = new ThreadedAssociation(transport, new AssociationListener() {
+                        @Override
+                        public void onAssociated(Association association) {
+                            System.out.println("Association associated: " + association.toString());
+                        }
+
+                        @Override
+                        public void onDisAssociated(Association association) {
+                            System.out.println("Association disassociated: " + association.toString());
+                        }
+
+                        @Override
+                        public void onDCEPStream(SCTPStream sctpStream, String s, int i) throws Exception {
+                            System.out.println("Received DCEP SCTP stream: " + sctpStream.toString());
+                        }
+
+                        @Override
+                        public void onRawStream(SCTPStream sctpStream) {
+                            System.out.println("Received raw SCTP stream: " + sctpStream.toString());
+                        }
+                    });
                 }
-            });
+            };
 
             var answer = factory.createSessionDescription();
             answer.setOrigin(factory.createOrigin("-", Math.abs(new Random().nextLong()), 2L, "IN", "IP4", "127.0.0.1"));
@@ -271,29 +297,16 @@ public class RtcWebsocketClient extends WebSocketClient {
             });
 
             agent.addStateChangeListener(evt -> {
-                System.out.println(evt + " " + evt.getPropertyName());
-            });
-
-            stream.addPairChangeListener(evt -> {
-                System.out.println("pair change! " + evt);
-                try {
-                    new DTLSClientProtocol().connect(client, new CustomDatagramTransport(component));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                System.out.println("state change! " + evt + " " + evt.getPropertyName());
+                if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
+                    transport.init(component);
+                    try {
+                        new DTLSClientProtocol().connect(client, transport);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             });
-
-//            new Thread(() -> {
-//                try {
-//                    Thread.sleep(1000);
-//                    component.getRemoteCandidates().forEach(remoteCandidate -> {
-//                        System.out.println("remote candidate: " + remoteCandidate);
-//                    });
-//                    agent.startConnectivityEstablishment();
-//                } catch (InterruptedException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }).start();
 
 //        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
@@ -397,7 +410,7 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        pendingSession = new PeerSession(this, rtcConfig);
 
         agent = new Agent();
-//        agent.setTrickling(true);
+        agent.setTrickling(true);
 
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();

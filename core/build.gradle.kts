@@ -24,7 +24,7 @@ dependencies {
     api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
 
     // For sctp4j
-    implementation(files("libs/sctp4j-1.0.6.jar"))
+    api("pe.pi:sctp4j:1.0.6")
 }
 
 sourceSets {

@@ -1,20 +1,23 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
-import org.bouncycastle.tls.DatagramTransport;
-import org.ice4j.ice.Component;
-import org.ice4j.ice.ComponentSocket;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import org.bouncycastle.tls.DatagramTransport;
+import org.ice4j.ice.Component;
 
 public class CustomDatagramTransport implements DatagramTransport {
-    private final DatagramSocket socket;
-    private final Component component;
     private final int maxMessageSize = 262144; // vanilla
+    private DatagramSocket socket;
+    private Component component;
 
-    public CustomDatagramTransport(Component component) {
+    public CustomDatagramTransport() {
+    }
+
+    public void init(Component component) {
         this.socket = component.getSocket();
+        System.out.println("socket state: " + socket.isConnected());
+        System.out.println("key state: " + component.getSelectedPair().getDatagramSocket().isConnected());
         this.component = component;
     }
 
