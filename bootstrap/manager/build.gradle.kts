@@ -13,7 +13,6 @@ dependencies {
 	testRuntimeOnly(libs.junit.platform.launcher)
 
 	api(project(":core"))
-	api(libs.bedrock.common)
 	api(libs.guava)
 }
 

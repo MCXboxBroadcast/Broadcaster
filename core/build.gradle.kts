@@ -9,6 +9,7 @@ dependencies {
     api(libs.java.websocket)
     api(libs.methanol)
     api(libs.minecraftauth)
+    api(libs.bundles.protocol)
 
     implementation("dev.onvoid.webrtc:webrtc-java:0.8.0")
     implementation("dev.onvoid.webrtc", "webrtc-java", "0.8.0", classifier = "windows-x86_64")
@@ -25,10 +26,6 @@ dependencies {
 
     // Needs https://github.com/steely-glint/srtplight and https://github.com/pipe/sctp4j to be installed locally
     api("pe.pi:sctp4j:1.0.7-SNAPSHOT")
-
-    api("org.cloudburstmc.protocol:common:3.0.0.Beta3-20240814.133201-7")
-    api("org.cloudburstmc.protocol:bedrock-codec:3.0.0.Beta3-20240814.133201-7")
-    api("org.cloudburstmc.protocol:bedrock-connection:3.0.0.Beta3-20240814.133201-7")
 }
 
 sourceSets {

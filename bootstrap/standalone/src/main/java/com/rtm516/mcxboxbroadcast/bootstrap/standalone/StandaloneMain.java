@@ -2,15 +2,15 @@ package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.nukkitx.protocol.bedrock.BedrockClient;
-import com.nukkitx.protocol.bedrock.BedrockPong;
 import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.ping.PingUtil;
 import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
+import org.cloudburstmc.protocol.bedrock.BedrockPong;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -107,29 +107,19 @@ public class StandaloneMain {
 
     private static void updateSessionInfo(SessionInfo sessionInfo) {
         if (config.session().queryServer()) {
-            BedrockClient client = null;
             try {
-                InetSocketAddress bindAddress = new InetSocketAddress("0.0.0.0", 0);
-                client = new BedrockClient(bindAddress);
-
-                client.bind().join();
-
                 InetSocketAddress addressToPing = new InetSocketAddress(sessionInfo.getIp(), sessionInfo.getPort());
-                BedrockPong pong = client.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
+                BedrockPong pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
                 // Update the session information
-                sessionInfo.setHostName(pong.getMotd());
-                sessionInfo.setWorldName(pong.getSubMotd());
-                sessionInfo.setVersion(pong.getVersion());
-                sessionInfo.setProtocol(pong.getProtocolVersion());
-                sessionInfo.setPlayers(pong.getPlayerCount());
-                sessionInfo.setMaxPlayers(pong.getMaximumPlayerCount());
+                sessionInfo.setHostName(pong.motd());
+                sessionInfo.setWorldName(pong.subMotd());
+                sessionInfo.setVersion(pong.version());
+                sessionInfo.setProtocol(pong.protocolVersion());
+                sessionInfo.setPlayers(pong.playerCount());
+                sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
             } catch (InterruptedException | ExecutionException e) {
                 sessionManager.logger().error("Failed to ping server", e);
-            } finally {
-                if (client != null) {
-                    client.close();
-                }
             }
         }
     }
