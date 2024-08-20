@@ -24,7 +24,11 @@ dependencies {
     api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
 
     // Needs https://github.com/steely-glint/srtplight and https://github.com/pipe/sctp4j to be installed locally
-    api("pe.pi:sctp4j:1.0.6")
+    api("pe.pi:sctp4j:1.0.7-SNAPSHOT")
+
+    api("org.cloudburstmc.protocol:common:3.0.0.Beta3-20240814.133201-7")
+    api("org.cloudburstmc.protocol:bedrock-codec:3.0.0.Beta3-20240814.133201-7")
+    api("org.cloudburstmc.protocol:bedrock-connection:3.0.0.Beta3-20240814.133201-7")
 }
 
 sourceSets {

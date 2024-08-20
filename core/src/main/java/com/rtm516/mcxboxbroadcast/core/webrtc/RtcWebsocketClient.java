@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core.webrtc;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.phono.srtplight.Log;
 import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import com.rtm516.mcxboxbroadcast.core.Logger;
@@ -10,7 +11,8 @@ import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import dev.onvoid.webrtc.PeerConnectionFactory;
 import dev.onvoid.webrtc.RTCConfiguration;
 import io.jsonwebtoken.lang.Collections;
-
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
@@ -28,7 +30,6 @@ import java.util.UUID;
 import java.util.Vector;
 import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
-
 import org.bouncycastle.asn1.x509.X509Name;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -50,6 +51,17 @@ import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCertificate;
 import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCryptoProvider;
 import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
+import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
+import org.cloudburstmc.protocol.bedrock.codec.BedrockCodecHelper;
+import org.cloudburstmc.protocol.bedrock.codec.v712.Bedrock_v712;
+import org.cloudburstmc.protocol.bedrock.data.PacketCompressionAlgorithm;
+import org.cloudburstmc.protocol.bedrock.netty.BedrockPacketWrapper;
+import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec;
+import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec_v3;
+import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
+import org.cloudburstmc.protocol.bedrock.packet.NetworkSettingsPacket;
+import org.cloudburstmc.protocol.bedrock.packet.RequestNetworkSettingsPacket;
+import org.cloudburstmc.protocol.common.util.VarInts;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Agent;
@@ -57,6 +69,7 @@ import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.IceMediaStream;
 import org.ice4j.ice.IceProcessingState;
+import org.ice4j.ice.KeepAliveStrategy;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.RemoteCandidate;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
@@ -67,6 +80,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.opentelecoms.javax.sdp.NistSdpFactory;
 import pe.pi.sctp4j.sctp.Association;
 import pe.pi.sctp4j.sctp.AssociationListener;
+import pe.pi.sctp4j.sctp.SCTPByteStreamListener;
 import pe.pi.sctp4j.sctp.SCTPStream;
 import pe.pi.sctp4j.sctp.small.ThreadedAssociation;
 
@@ -181,7 +195,7 @@ public class RtcWebsocketClient extends WebSocketClient {
                 }
             }
 
-            component = agent.createComponent(stream, 5000, 5000, 6000);
+            component = agent.createComponent(stream, 5000, 5000, 6000, KeepAliveStrategy.SELECTED_ONLY, true);
 
             var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
@@ -233,32 +247,6 @@ public class RtcWebsocketClient extends WebSocketClient {
                 protected ProtocolVersion[] getSupportedVersions() {
                     return new ProtocolVersion[]{ProtocolVersion.DTLSv12};
                 }
-
-                @Override
-                public void notifyHandshakeComplete() throws IOException {
-                    System.out.println("handshake complete!");
-                    var a = new ThreadedAssociation(transport, new AssociationListener() {
-                        @Override
-                        public void onAssociated(Association association) {
-                            System.out.println("Association associated: " + association.toString());
-                        }
-
-                        @Override
-                        public void onDisAssociated(Association association) {
-                            System.out.println("Association disassociated: " + association.toString());
-                        }
-
-                        @Override
-                        public void onDCEPStream(SCTPStream sctpStream, String s, int i) throws Exception {
-                            System.out.println("Received DCEP SCTP stream: " + sctpStream.toString());
-                        }
-
-                        @Override
-                        public void onRawStream(SCTPStream sctpStream) {
-                            System.out.println("Received raw SCTP stream: " + sctpStream.toString());
-                        }
-                    });
-                }
             };
 
             var answer = factory.createSessionDescription();
@@ -303,7 +291,138 @@ public class RtcWebsocketClient extends WebSocketClient {
                 if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
                     transport.init(component);
                     try {
-                        new DTLSClientProtocol().connect(client, transport);
+                        var dtlsTransport = new DTLSClientProtocol().connect(client, transport);
+                        Log.setLevel(Log.DEBUG);
+                        var a = new ThreadedAssociation(dtlsTransport, new AssociationListener() {
+                            private final Map<String, SCTPStream> streams = new HashMap<>();
+                            private final BedrockCodec codec = Bedrock_v712.CODEC;
+                            private final BedrockPacketCodec packetCodec = new BedrockPacketCodec_v3();
+                            private final BedrockCodecHelper helper = codec.createHelper();
+
+                            @Override
+                            public void onAssociated(Association association) {
+                                System.out.println("Association associated: " + association.toString());
+                            }
+
+                            @Override
+                            public void onDisAssociated(Association association) {
+                                System.out.println("Association disassociated: " + association.toString());
+                            }
+
+                            @Override
+                            public void onDCEPStream(SCTPStream sctpStream, String label, int i) throws Exception {
+                                if (label == null) {
+                                    return;
+                                }
+                                System.out.println("Received DCEP SCTP stream: " + sctpStream.toString());
+                                streams.put(sctpStream.getLabel(), sctpStream);
+
+                                sctpStream.setSCTPStreamListener(new SCTPByteStreamListener() {
+                                    private ByteBuf concat;
+
+                                    @Override
+                                    public void onMessage(SCTPStream sctpStream, byte[] bytes) {
+                                        try {
+                                            System.out.println("binary message (" + sctpStream.getLabel() + "): " + Hex.toHexString(bytes));
+                                            if (bytes.length == 0) {
+                                                throw new IllegalStateException("Expected at least 2 bytes");
+                                            }
+                                            //todo only do this if segmentcount > 0
+                                            var buf = Unpooled.buffer(bytes.length);
+                                            buf.writeBytes(bytes);
+
+                                            byte remainingSegments = buf.readByte();
+                                            int packetLength = VarInts.readInt(buf);
+
+                                            if (remainingSegments > 0) {
+                                                if (concat == null) {
+                                                    concat = buf;
+                                                } else {
+                                                    concat.writeBytes(buf, packetLength);
+                                                }
+                                                return;
+                                            }
+
+                                            if (concat != null) {
+                                                concat.writeBytes(buf, packetLength);
+                                                buf = concat;
+                                                concat = null;
+                                            }
+
+                                            var packet = readPacket(buf);
+
+                                            System.out.println(packet);
+                                            if (packet instanceof RequestNetworkSettingsPacket) {
+                                                var networkSettings = new NetworkSettingsPacket();
+                                                networkSettings.setCompressionAlgorithm(PacketCompressionAlgorithm.ZLIB);
+                                                networkSettings.setCompressionThreshold(0);
+                                                sendPacket(networkSettings, sctpStream);
+                                            }
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onMessage(SCTPStream sctpStream, String s) {
+                                        System.out.println("string message (" + sctpStream.getLabel() + "): " + s);
+                                    }
+
+                                    @Override
+                                    public void close(SCTPStream sctpStream) {
+                                        System.out.println("stream closed: " + sctpStream.getLabel());
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onRawStream(SCTPStream sctpStream) {
+                                System.out.println("Received raw SCTP stream: " + sctpStream.toString());
+                            }
+
+                            private void sendPacket(BedrockPacket packet, String streamLabel) {
+                                sendPacket(packet, streams.get(streamLabel));
+                            }
+
+                            private void sendPacket(BedrockPacket packet, SCTPStream stream) {
+                                try {
+                                    ByteBuf dataBuf = Unpooled.buffer(128);
+                                    int packetId = codec.getPacketDefinition(packet.getClass()).getId();
+                                    System.out.println("packet id: " + packetId);
+                                    packetCodec.encodeHeader(
+                                            dataBuf,
+                                            BedrockPacketWrapper.create(packetId, 0, 0, null, null)
+                                    );
+                                    codec.tryEncode(helper, dataBuf, packet);
+
+                                    int segmentCount = (int) Math.ceil(dataBuf.readableBytes() / 10_000f);
+                                    for (int remainingSegements = segmentCount - 1; remainingSegements >= 0; remainingSegements--) {
+                                        int segmentLength = (remainingSegements == 0 ? dataBuf.readableBytes() : 10_000);
+                                        var sendBuf = Unpooled.buffer(segmentLength + 1 + 5);
+                                        sendBuf.writeByte(remainingSegements);
+                                        VarInts.writeInt(sendBuf, segmentLength);
+                                        sendBuf.writeBytes(dataBuf, segmentLength);
+
+                                        byte[] send = new byte[sendBuf.readableBytes()];
+                                        sendBuf.readBytes(send);
+                                        System.out.println("sending: " + Hex.toHexString(send));
+                                        stream.send(send);
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
+                            private BedrockPacket readPacket(ByteBuf buf) {
+                                BedrockPacketWrapper wrapper = BedrockPacketWrapper.create();
+                                packetCodec.decodeHeader(buf, wrapper);
+                                System.out.println("sender/target: " + wrapper.getSenderSubClientId() + " " + wrapper.getTargetSubClientId());
+                                var packet = codec.tryDecode(helper, buf, wrapper.getPacketId());
+                                // release it
+                                wrapper.getHandle().recycle(wrapper);
+                                return packet;
+                            }
+                        });
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -401,10 +520,9 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void initialize(JsonObject message) {
-        var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
-
         agent = new Agent();
 
+        var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();
             var username = authServer.get("Username").getAsString();

@@ -7,7 +7,7 @@ import org.bouncycastle.tls.DatagramTransport;
 import org.ice4j.ice.Component;
 
 public class CustomDatagramTransport implements DatagramTransport {
-    private final int maxMessageSize = 262144; // vanilla
+    private final int maxMessageSize = 1200; // default message size as provided in the ice attributes
     private DatagramSocket socket;
     private Component component;
 
@@ -16,8 +16,6 @@ public class CustomDatagramTransport implements DatagramTransport {
 
     public void init(Component component) {
         this.socket = component.getSocket();
-        System.out.println("socket state: " + socket.isConnected());
-        System.out.println("key state: " + component.getSelectedPair().getDatagramSocket().isConnected());
         this.component = component;
     }
 
@@ -33,9 +31,8 @@ public class CustomDatagramTransport implements DatagramTransport {
 
     @Override
     public int receive(byte[] buf, int off, int len, int waitMillis) throws IOException {
-        System.out.println("receive! " + new String(buf, off, len));
+//        System.out.println("receive! " + new String(buf, off, len));
 //        System.out.println("receive! " + bytesToHex(buf));
-
         DatagramPacket packet = new DatagramPacket(buf, off, len);
         socket.receive(packet);
         return packet.getLength();
@@ -43,7 +40,7 @@ public class CustomDatagramTransport implements DatagramTransport {
 
     @Override
     public void send(byte[] buf, int off, int len) throws IOException {
-        System.out.println("send! " + new String(buf, off, len));
+//        System.out.println("send! " + new String(buf, off, len));
 //        System.out.println("send! " + bytesToHex(buf));
         socket.send(new DatagramPacket(buf, off, len));
     }
