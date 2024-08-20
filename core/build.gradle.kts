@@ -22,9 +22,12 @@ dependencies {
     api("org.bouncycastle:bcprov-jdk18on:1.78.1")
     api("org.bouncycastle:bctls-jdk18on:1.78.1")
     api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
-
     // For sctp4j
-    api("pe.pi:sctp4j:1.0.6")
+    api("pe.pi:sctp4j:1.0.7-SNAPSHOT")
+
+    api("org.cloudburstmc.protocol:common:3.0.0.Beta3-20240814.133201-7")
+    api("org.cloudburstmc.protocol:bedrock-codec:3.0.0.Beta3-20240814.133201-7")
+    api("org.cloudburstmc.protocol:bedrock-connection:3.0.0.Beta3-20240814.133201-7")
 }
 
 sourceSets {
