@@ -143,6 +143,7 @@ public class AuthManager {
     }
 
     private String fetchPlayfabSessionTicket() throws IOException, InterruptedException {
+        // TODO Use minecraftauth library
         var initialSession = xboxToken.getInitialXblSession();
 
         var authorizeRequest = new PostRequest(StepXblSisuAuthentication.XBL_SISU_URL);
@@ -151,7 +152,6 @@ public class AuthManager {
                 .setHeader(CryptUtil.getSignatureHeader(authorizeRequest, initialSession.getXblDeviceToken().getPrivateKey()));
         var authorizeResponse = MinecraftAuth.createHttpClient().execute(authorizeRequest, new XblResponseHandler());
 
-        System.out.println(authorizeResponse.toString());
         var tokens = XblXstsToken.fromMicrosoftJson(authorizeResponse.getAsJsonObject("AuthorizationToken"), null);
 
         var loginRequest = HttpRequest.newBuilder(Constants.PLAYFAB_LOGIN)

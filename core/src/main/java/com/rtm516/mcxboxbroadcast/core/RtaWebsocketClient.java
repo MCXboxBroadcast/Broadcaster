@@ -70,24 +70,6 @@ public class RtaWebsocketClient extends WebSocketClient {
             firstConnectionId = false;
         } else {
             logger.debug("Websocket message: " + message);
-
-
-            HttpRequest createSessionRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(Constants.CREATE_SESSION.formatted(sessionInfo.getSessionId())))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", tokenHeader)
-                    .header("x-xbl-contract-version", "107")
-                    .GET()
-                    .build();
-
-            var client = HttpClient.newHttpClient();
-            try {
-                HttpResponse<String> createSessionResponse = client.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
-                System.out.println(createSessionResponse.body());
-            } catch (IOException | InterruptedException e) {
-                logger.error("Error dumping current session: " + e.getMessage());
-            }
-//            client.close();
         }
     }
 
