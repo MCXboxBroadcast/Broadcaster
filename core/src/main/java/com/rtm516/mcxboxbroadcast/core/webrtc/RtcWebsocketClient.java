@@ -198,7 +198,7 @@ public class RtcWebsocketClient extends WebSocketClient {
             var json = Constants.GSON.toJson(new WsToMessage(
                 1, from, "CONNECTRESPONSE " + sessionId + " " + answer
             ));
-            System.out.println(json);
+//            System.out.println(json);
             send(json);
 
             int i = 0;
@@ -207,17 +207,17 @@ public class RtcWebsocketClient extends WebSocketClient {
                     1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + i + " network-cost 0"
                 ));
                 i++;
-                System.out.println(jsonAdd);
+//                System.out.println(jsonAdd);
                 send(jsonAdd);
             }
 
             agent.addStateChangeListener(evt -> {
-                System.out.println("state change! " + evt);
+//                System.out.println("state change! " + evt);
                 if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
                     transport.init(component);
                     try {
                         var dtlsTransport = new DTLSClientProtocol().connect(client, transport);
-                        Log.setLevel(Log.DEBUG);
+//                        Log.setLevel(Log.DEBUG);
 
                         // Log the remote public IP
                         component.getRemoteCandidates().forEach(remoteCandidate -> {
