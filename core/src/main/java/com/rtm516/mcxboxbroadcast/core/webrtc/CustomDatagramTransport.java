@@ -34,6 +34,8 @@ public class CustomDatagramTransport implements DatagramTransport {
     @Override
     public int receive(byte[] buf, int off, int len, int waitMillis) throws IOException {
         System.out.println("receive! " + new String(buf, off, len));
+//        System.out.println("receive! " + bytesToHex(buf));
+
         DatagramPacket packet = new DatagramPacket(buf, off, len);
         socket.receive(packet);
         return packet.getLength();
@@ -42,11 +44,23 @@ public class CustomDatagramTransport implements DatagramTransport {
     @Override
     public void send(byte[] buf, int off, int len) throws IOException {
         System.out.println("send! " + new String(buf, off, len));
+//        System.out.println("send! " + bytesToHex(buf));
         socket.send(new DatagramPacket(buf, off, len, component.getDefaultCandidate().getTransportAddress()));
     }
 
     @Override
     public void close() {
         socket.close();
+    }
+
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }

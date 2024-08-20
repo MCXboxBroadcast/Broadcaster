@@ -23,7 +23,7 @@ dependencies {
     api("org.bouncycastle:bctls-jdk18on:1.78.1")
     api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
 
-    // For sctp4j
+    // Needs https://github.com/steely-glint/srtplight and https://github.com/pipe/sctp4j to be installed locally
     api("pe.pi:sctp4j:1.0.6")
 }
 

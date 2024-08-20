@@ -344,7 +344,7 @@ public class RtcWebsocketClient extends WebSocketClient {
 //        agent.candidate
 //        activeSessions.get(sessionId).addCandidate(message);
         component.addUpdateRemoteCandidates(parseCandidate(message, component.getParentStream()));
-//        component.updateRemoteCandidates();
+        component.updateRemoteCandidates();
     }
 
 
@@ -396,18 +396,6 @@ public class RtcWebsocketClient extends WebSocketClient {
 
     private void initialize(JsonObject message) {
         var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
-
-//        rtcConfig = new RTCConfiguration();
-//        for (JsonElement authServerElement : turnAuthServers) {
-//            var authServer = authServerElement.getAsJsonObject();
-//            var server = new RTCIceServer();
-//            server.username = authServer.get("Username").getAsString();
-//            server.password = authServer.get("Password").getAsString();
-//            authServer.getAsJsonArray("Urls").forEach(url -> server.urls.add(url.getAsString()));
-//            rtcConfig.iceServers.add(server);
-//        }
-//
-//        pendingSession = new PeerSession(this, rtcConfig);
 
         agent = new Agent();
         agent.setTrickling(true);
