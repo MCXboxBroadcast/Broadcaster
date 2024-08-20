@@ -57,6 +57,7 @@ import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.IceMediaStream;
 import org.ice4j.ice.IceProcessingState;
+import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.RemoteCandidate;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
@@ -179,7 +180,6 @@ public class RtcWebsocketClient extends WebSocketClient {
                     }
                 }
             }
-            agent.startConnectivityEstablishment();
 
             component = agent.createComponent(stream, 5000, 5000, 6000);
 
@@ -288,16 +288,18 @@ public class RtcWebsocketClient extends WebSocketClient {
             System.out.println(json);
             send(json);
 
-            component.getLocalCandidates().forEach(candidate -> {
+            int i = 0;
+            for (LocalCandidate candidate : component.getLocalCandidates()) {
                 var jsonAdd = Constants.GSON.toJson(new WsToMessage(
-                    1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + candidate.getFoundation()
+                    1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + i + " network-cost 0"
                 ));
+                i++;
                 System.out.println(jsonAdd);
                 send(jsonAdd);
-            });
+            }
 
             agent.addStateChangeListener(evt -> {
-                System.out.println("state change! " + evt + " " + evt.getPropertyName());
+                System.out.println("state change! " + evt);
                 if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
                     transport.init(component);
                     try {
@@ -340,14 +342,18 @@ public class RtcWebsocketClient extends WebSocketClient {
         return fp.toString();
     }
 
+    int candidateCount = 0;
     private void handleCandidateAdd(String sessionId, String message) throws UnknownHostException {
 //        agent.candidate
 //        activeSessions.get(sessionId).addCandidate(message);
         component.addUpdateRemoteCandidates(parseCandidate(message, component.getParentStream()));
-        component.updateRemoteCandidates();
+        candidateCount++;
+
+        if (candidateCount == 4) {
+            component.updateRemoteCandidates();
+            agent.startConnectivityEstablishment();
+        }
     }
-
-
 
     public static RemoteCandidate parseCandidate(String value, IceMediaStream stream) {
         StringTokenizer tokenizer = new StringTokenizer(value);
@@ -398,7 +404,6 @@ public class RtcWebsocketClient extends WebSocketClient {
         var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
 
         agent = new Agent();
-        agent.setTrickling(true);
 
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();

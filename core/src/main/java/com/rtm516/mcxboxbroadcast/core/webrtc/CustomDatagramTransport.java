@@ -45,7 +45,7 @@ public class CustomDatagramTransport implements DatagramTransport {
     public void send(byte[] buf, int off, int len) throws IOException {
         System.out.println("send! " + new String(buf, off, len));
 //        System.out.println("send! " + bytesToHex(buf));
-        socket.send(new DatagramPacket(buf, off, len, component.getDefaultCandidate().getTransportAddress()));
+        socket.send(new DatagramPacket(buf, off, len));
     }
 
     @Override
