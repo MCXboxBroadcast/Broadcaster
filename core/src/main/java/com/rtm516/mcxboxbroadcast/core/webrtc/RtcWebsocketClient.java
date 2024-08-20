@@ -23,6 +23,9 @@ import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -55,6 +58,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private final Logger logger;
+    private final ScheduledExecutorService scheduledExecutorService;
 
     private RTCConfiguration rtcConfig;
     public PeerConnectionFactory peerFactory;
@@ -62,13 +66,15 @@ public class RtcWebsocketClient extends WebSocketClient {
     private Component component;
     private Map<String, PeerSession> activeSessions = new HashMap<>();
     private PeerSession pendingSession;
+    private ScheduledFuture<?> heartbeatFuture;
 
     /**
      * Create a new websocket and add the Authorization header
      *
-     * @param authenticationToken The token to use for authentication
+     * @param authenticationToken      The token to use for authentication
+     * @param scheduledExecutorService
      */
-    public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger) {
+    public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger, ScheduledExecutorService scheduledExecutorService) {
         super(URI.create(Constants.RTC_WEBSOCKET_FORMAT.formatted(sessionInfo.getWebrtcNetworkId())));
         addHeader("Authorization", authenticationToken);
         // both seem random
@@ -76,6 +82,7 @@ public class RtcWebsocketClient extends WebSocketClient {
         addHeader("Request-Id", UUID.randomUUID().toString());
 
         this.logger = logger;
+        this.scheduledExecutorService = scheduledExecutorService;
 
         this.peerFactory = new PeerConnectionFactory();
     }
@@ -89,6 +96,10 @@ public class RtcWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
+        // Set up the heartbeat
+        heartbeatFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
+            send(Constants.GSON.toJson(new WsToMessage(0, null, null)));
+        }, 60, 60, TimeUnit.SECONDS);
     }
 
     /**
@@ -322,6 +333,8 @@ public class RtcWebsocketClient extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
+        heartbeatFuture.cancel(true);
+
         logger.info("RTCWebsocket disconnected: " + reason + " (" + code + ")");
     }
 

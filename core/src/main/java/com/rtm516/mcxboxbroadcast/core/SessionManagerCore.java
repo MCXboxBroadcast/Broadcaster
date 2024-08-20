@@ -362,7 +362,7 @@ public abstract class SessionManagerCore {
     }
 
     protected void setupRtcWebsocket(String token) {
-        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger);
+        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread());
         rtcWebsocket.connect();
     }
 
