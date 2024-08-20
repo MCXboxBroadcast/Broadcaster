@@ -128,7 +128,7 @@ public class SctpAssociationListener implements AssociationListener {
             int segmentCount = (int) Math.ceil(dataBuf.readableBytes() / 10_000f);
             for (int remainingSegements = segmentCount - 1; remainingSegements >= 0; remainingSegements--) {
                 int segmentLength = (remainingSegements == 0 ? dataBuf.readableBytes() : 10_000);
-                var sendBuf = Unpooled.buffer(1);
+                var sendBuf = Unpooled.buffer(segmentLength + 1 + 5);
                 sendBuf.writeByte(1);
                 VarInts.writeInt(sendBuf, segmentLength);
                 sendBuf.writeBytes(dataBuf, segmentLength);
