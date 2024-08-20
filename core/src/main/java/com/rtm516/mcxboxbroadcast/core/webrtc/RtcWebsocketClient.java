@@ -96,10 +96,10 @@ public class RtcWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-        // Set up the heartbeat
+        // Set up the heartbeat, the official client sends a heartbeat every ~40 seconds
         heartbeatFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             send(Constants.GSON.toJson(new WsToMessage(0, null, null)));
-        }, 60, 60, TimeUnit.SECONDS);
+        }, 40, 40, TimeUnit.SECONDS);
     }
 
     /**
