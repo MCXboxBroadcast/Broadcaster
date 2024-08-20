@@ -11,8 +11,10 @@ import org.cloudburstmc.protocol.bedrock.netty.BedrockPacketWrapper;
 import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec;
 import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec_v3;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
+import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.packet.NetworkSettingsPacket;
 import org.cloudburstmc.protocol.bedrock.packet.RequestNetworkSettingsPacket;
+import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 import org.cloudburstmc.protocol.common.util.VarInts;
 import pe.pi.sctp4j.sctp.Association;
 import pe.pi.sctp4j.sctp.AssociationListener;
@@ -48,6 +50,7 @@ public class SctpAssociationListener implements AssociationListener {
 
         sctpStream.setSCTPStreamListener(new SCTPByteStreamListener() {
             private ByteBuf concat;
+            private int expectedLength;
 
             @Override
             public void onMessage(SCTPStream sctpStream, byte[] bytes) {
@@ -61,32 +64,45 @@ public class SctpAssociationListener implements AssociationListener {
                     buf.writeBytes(bytes);
 
                     byte remainingSegments = buf.readByte();
-                    int packetLength = VarInts.readInt(buf);
+                    if (concat == null) {
+                        expectedLength = VarInts.readUnsignedInt(buf);
+                    }
 
                     if (remainingSegments > 0) {
                         if (concat == null) {
                             concat = buf;
                         } else {
-                            concat.writeBytes(buf, packetLength);
+                            concat.writeBytes(buf);
                         }
                         return;
                     }
 
                     if (concat != null) {
-                        concat.writeBytes(buf, packetLength);
+                        concat.writeBytes(buf);
                         buf = concat;
                         concat = null;
                     }
 
+//                    if (buf.readableBytes() != expectedLength) {
+//                        System.out.println("expected " + expectedLength + " bytes but got " + buf.readableBytes());
+//                        var disconnect = new DisconnectPacket();
+//                        disconnect.setReason(DisconnectFailReason.BAD_PACKET);
+//                        disconnect.setKickMessage("");
+//                        sendPacket(disconnect, sctpStream);
+//                        return;
+//                    }
+
                     var packet = readPacket(buf);
 
-                    System.out.println("GOT PACKET");
                     System.out.println(packet);
                     if (packet instanceof RequestNetworkSettingsPacket) {
                         var networkSettings = new NetworkSettingsPacket();
                         networkSettings.setCompressionAlgorithm(PacketCompressionAlgorithm.ZLIB);
                         networkSettings.setCompressionThreshold(0);
                         sendPacket(networkSettings, sctpStream);
+                    } else if (packet instanceof LoginPacket login) {
+                        var result = EncryptionUtils.validateChain(login.getChain());
+                        System.out.println("signed? " + result.signed());
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -129,8 +145,8 @@ public class SctpAssociationListener implements AssociationListener {
             for (int remainingSegements = segmentCount - 1; remainingSegements >= 0; remainingSegements--) {
                 int segmentLength = (remainingSegements == 0 ? dataBuf.readableBytes() : 10_000);
                 var sendBuf = Unpooled.buffer(segmentLength + 1 + 5);
-                sendBuf.writeByte(1);
-                VarInts.writeInt(sendBuf, segmentLength);
+                sendBuf.writeByte(remainingSegements);
+                VarInts.writeUnsignedInt(sendBuf, segmentLength);
                 sendBuf.writeBytes(dataBuf, segmentLength);
 
                 byte[] send = new byte[sendBuf.readableBytes()];
@@ -147,7 +163,7 @@ public class SctpAssociationListener implements AssociationListener {
         BedrockPacketWrapper wrapper = BedrockPacketWrapper.create();
         packetCodec.decodeHeader(buf, wrapper);
         System.out.println("sender/target: " + wrapper.getSenderSubClientId() + " " + wrapper.getTargetSubClientId());
-        var packet = codec.tryDecode(helper, buf, wrapper.getPacketId());
+        var packet = codec.tryDecode(helper, buf.slice(), wrapper.getPacketId());
         // release it
         wrapper.getHandle().recycle(wrapper);
         return packet;
