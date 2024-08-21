@@ -16,8 +16,9 @@ junit = "1.10.2"
 spring-dependency = "1.1.5" # Spring Dependency Management Plugin
 guava = "33.2.1-jre"
 bouncycastle = "1.78.1"
+slf4j-bridge = "2.0.16"
 
-shadow = "8.1.1"
+shadow = "8.3.0"
 indra = "3.1.3"
 blossom = "2.1.0"
 
@@ -38,7 +39,7 @@ java-websocket = { group = "org.java-websocket", name = "Java-WebSocket", versio
 nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
 
 # Plugins
-shadow = { group = "com.github.johnrengelman", name = "shadow", version.ref = "shadow" }
+shadow = { group = "com.gradleup.shadow", name = "shadow-gradle-plugin", version.ref = "shadow" }
 indra-git = { group = "net.kyori", name = "indra-git", version.ref = "indra" }
 blossom = { group = "net.kyori", name = "blossom", version.ref = "blossom" }
 
@@ -47,6 +48,7 @@ terminalconsoleappender = { group = "net.minecrell", name = "terminalconsoleappe
 log4j-api = { group = "org.apache.logging.log4j", name = "log4j-api", version.ref = "log4j" }
 log4j-core = { group = "org.apache.logging.log4j", name = "log4j-core", version.ref = "log4j" }
 log4j-slf4j2-impl = { group = "org.apache.logging.log4j", name = "log4j-slf4j2-impl", version.ref = "log4j" }
+slf4j-bridge = { group = "org.slf4j", name = "jul-to-slf4j", version.ref = "slf4j-bridge" }
 
 jline-terminal = { group = "org.jline", name = "jline-terminal", version.ref = "jline" }
 jline-terminal-jna = { group = "org.jline", name = "jline-terminal-jna", version.ref = "jline" }
@@ -85,7 +87,8 @@ geyser = [
 log4j = [
     "log4j-api",
     "log4j-core",
-    "log4j-slf4j2-impl"
+    "log4j-slf4j2-impl",
+    "slf4j-bridge"
 ]
 jline = [
     "jline-terminal",
@@ -115,7 +118,7 @@ bouncycastle = [
 ]
 
 [plugins]
-shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 indra-git = { id = "net.kyori.indra.git", version.ref = "indra" }
 blossom = { id = "net.kyori.blossom", version.ref = "blossom" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring" }

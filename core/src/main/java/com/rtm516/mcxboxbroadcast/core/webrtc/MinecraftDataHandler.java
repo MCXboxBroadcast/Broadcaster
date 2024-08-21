@@ -1,20 +1,19 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
+import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.webrtc.bedrock.RedirectPacketHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.encryption.BedrockEncryptionEncoder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import javax.crypto.SecretKey;
-import org.bouncycastle.util.encoders.Hex;
+
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodecHelper;
-import org.cloudburstmc.protocol.bedrock.data.DisconnectFailReason;
 import org.cloudburstmc.protocol.bedrock.netty.BedrockPacketWrapper;
 import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec;
 import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec_v3;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
-import org.cloudburstmc.protocol.bedrock.packet.DisconnectPacket;
 import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 import org.cloudburstmc.protocol.common.util.VarInts;
@@ -27,6 +26,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     private final BedrockCodec codec;
     private final BedrockCodecHelper helper;
     private final RedirectPacketHandler redirectPacketHandler;
+    private final Logger logger;
 
     private boolean compressionEnabled;
     private BedrockEncryptionEncoder encryptionEncoder;
@@ -34,10 +34,11 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     private ByteBuf concat;
     private int expectedLength;
 
-    public MinecraftDataHandler(SCTPStream sctpStream, BedrockCodec codec, SessionInfo sessionInfo) {
+    public MinecraftDataHandler(SCTPStream sctpStream, BedrockCodec codec, SessionInfo sessionInfo, Logger logger) {
         this.sctpStream = sctpStream;
         this.codec = codec;
         this.helper = codec.createHelper();
+        this.logger = logger.prefixed("MinecraftDataHandler");
 
         this.redirectPacketHandler = new RedirectPacketHandler(this, sessionInfo);
     }
@@ -54,12 +55,12 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             buf.writeBytes(bytes);
 
             byte remainingSegments = buf.readByte();
-            System.out.println("first 100 bytes: " + Hex.toHexString(bytes, 0, Math.min(100, bytes.length)));
+//            System.out.println("first 100 bytes: " + Hex.toHexString(bytes, 0, Math.min(100, bytes.length)));
 
             if (concat == null) {
                 if (compressionEnabled) {
                     if (0xff != buf.readUnsignedByte()) {
-                        throw new IllegalStateException("Expected none compression!");
+                        throw new IllegalStateException("Expected no compression!");
                     }
                 }
                 expectedLength = VarInts.readUnsignedInt(buf);
@@ -92,27 +93,28 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             var packet = readPacket(buf);
 
             if (!(packet instanceof LoginPacket)) {
-                System.out.println("C -> S: " + packet);
+                logger.debug("C -> S: " + packet);
+            } else {
+                // Don't log the contents of the login packet
+                logger.debug("C -> S: LoginPacket");
             }
 
             packet.handle(redirectPacketHandler);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to handle packet from NetherNet", e);
         }
     }
 
     @Override
     public void onMessage(SCTPStream sctpStream, String s) {
-        System.out.println("string message (" + sctpStream.getLabel() + "): " + s);
     }
 
     @Override
     public void close(SCTPStream sctpStream) {
-        System.out.println("stream closed: " + sctpStream.getLabel());
     }
 
     public void sendPacket(BedrockPacket packet) {
-        System.out.println("S -> C: " + packet);
+        logger.debug("S -> C: " + packet);
         try {
             ByteBuf dataBuf = Unpooled.buffer(128);
             var shiftedBytes = (compressionEnabled ? 1 : 0) + 5; // leave enough room for compression byte & data length
@@ -128,7 +130,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
 
             var lastPacketByte = dataBuf.writerIndex();
             dataBuf.readerIndex(shiftedBytes);
-            System.out.println("packet: " + Hex.toHexString(encode(dataBuf)));
+//            System.out.println("packet: " + Hex.toHexString(encode(dataBuf)));
 
             var packetLength = lastPacketByte - shiftedBytes;
             // read from the first actual byte
@@ -142,14 +144,14 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             dataBuf.writerIndex(lastPacketByte);
 
             var ri = dataBuf.readerIndex();
-            System.out.println("encoding: " + Hex.toHexString(encode(dataBuf)));
+//            System.out.println("encoding: " + Hex.toHexString(encode(dataBuf)));
             dataBuf.readerIndex(ri);
 
             if (encryptionEncoder != null) {
                 dataBuf = encryptionEncoder.encode(dataBuf);
 
                 ri = dataBuf.readerIndex();
-                System.out.println("encrypted: " + Hex.toHexString(encode(dataBuf)));
+//                System.out.println("encrypted: " + Hex.toHexString(encode(dataBuf)));
                 dataBuf.readerIndex(ri);
             }
 
@@ -161,11 +163,11 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
                 sendBuf.writeBytes(dataBuf, segmentLength);
 
                 var data = encode(sendBuf);
-                System.out.println("final: " + Hex.toHexString(data));
+//                System.out.println("final: " + Hex.toHexString(data));
                 sctpStream.send(data);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to send packet to NetherNet", e);
         }
     }
 

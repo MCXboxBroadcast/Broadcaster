@@ -127,7 +127,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     public void handleDisconnect(String sessionId) {
-        System.out.println("Disconnecting session: " + sessionId);
+        logger.debug("Disconnecting session: " + sessionId);
         activeSessions.remove(sessionId);
     }
 
@@ -174,5 +174,9 @@ public class RtcWebsocketClient extends WebSocketClient {
 
     public SessionInfo sessionInfo() {
         return sessionInfo;
+    }
+
+    public Logger logger() {
+        return logger;
     }
 }
