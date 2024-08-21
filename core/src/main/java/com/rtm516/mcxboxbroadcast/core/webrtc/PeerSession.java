@@ -70,7 +70,7 @@ public class PeerSession {
                 }
             }
 
-            component = agent.createComponent(stream, 5000, 5000, 6000, KeepAliveStrategy.SELECTED_ONLY, true);
+            component = agent.createComponent(stream, KeepAliveStrategy.SELECTED_ONLY, true);
 
             var transport = new CustomDatagramTransport();
 
@@ -93,7 +93,7 @@ public class PeerSession {
             media.setAttribute("fingerprint", "sha-256 " + client.getClientFingerprint());
             media.setAttribute("setup", "active");
             media.setAttribute("mid", "0");
-            media.setAttribute("sctp-port", "5000");
+            media.setAttribute("sctp-port", String.valueOf(getComponentPort(5000)));
             media.setAttribute("max-message-size", "262144");
             answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
 
@@ -193,5 +193,23 @@ public class PeerSession {
         }
 
         return new RemoteCandidate(transAddr, component, type, foundation, priority, relatedCandidate, ufrag);
+    }
+
+    /**
+     * Get the port of the first host candidate.
+     *
+     * @param fallback the port to return if no host candidate is found
+     * @return the port of the first host candidate or the fallback port
+     */
+    private int getComponentPort(int fallback) {
+        int port = fallback;
+        for (LocalCandidate localCandidate : component.getLocalCandidates()) {
+            if (localCandidate.getType() == CandidateType.HOST_CANDIDATE) {
+                port = localCandidate.getTransportAddress().getPort();
+                break;
+            }
+        }
+
+        return port;
     }
 }
