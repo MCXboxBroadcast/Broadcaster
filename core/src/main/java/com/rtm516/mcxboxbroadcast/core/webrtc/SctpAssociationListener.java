@@ -6,6 +6,12 @@ import pe.pi.sctp4j.sctp.AssociationListener;
 import pe.pi.sctp4j.sctp.SCTPStream;
 
 public class SctpAssociationListener implements AssociationListener {
+    private final Runnable onDisconnect;
+
+    public SctpAssociationListener(Runnable onDisconnect) {
+        this.onDisconnect = onDisconnect;
+    }
+
     @Override
     public void onAssociated(Association association) {
         System.out.println("Association associated: " + association.toString());
@@ -14,6 +20,7 @@ public class SctpAssociationListener implements AssociationListener {
     @Override
     public void onDisAssociated(Association association) {
         System.out.println("Association disassociated: " + association.toString());
+        onDisconnect.run();
     }
 
     @Override

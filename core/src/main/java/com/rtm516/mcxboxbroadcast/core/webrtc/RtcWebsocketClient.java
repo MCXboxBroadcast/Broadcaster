@@ -123,7 +123,15 @@ public class RtcWebsocketClient extends WebSocketClient {
         activeSessions.get(sessionId).addCandidate(message);
     }
 
+    public void handleDisconnect(String sessionId) {
+        System.out.println("Disconnecting session: " + sessionId);
+        activeSessions.remove(sessionId);
+    }
+
     private void initialize(JsonObject message) {
+        // In the event we are sent another set of auth servers, clear the current list
+        candidateHarvesters.clear();
+
         var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
         for (JsonElement authServerElement : turnAuthServers) {
             var authServer = authServerElement.getAsJsonObject();
