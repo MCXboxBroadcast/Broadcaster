@@ -26,7 +26,7 @@ public class CreateSessionRequest extends JoinSessionRequest {
             sessionInfo.getXuid(),
             "",
             sessionInfo.getWebrtcNetworkId(),
-            UUID.randomUUID().toString(),
+            sessionInfo.getWorldName(),
             "Survival",
             sessionInfo.getProtocol(),
             sessionInfo.getVersion(),
