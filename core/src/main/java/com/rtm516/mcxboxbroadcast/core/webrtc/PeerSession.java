@@ -129,7 +129,7 @@ public class PeerSession {
                         });
 
                         // TODO Pass some form of close handler to the association so we can clean up properly in the RtcWebsocketClient
-                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(() -> {
+                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), () -> {
                             try {
                                 dtlsTransport.close();
                                 agent.free();

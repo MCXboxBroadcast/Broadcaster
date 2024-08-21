@@ -1,14 +1,17 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
+import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import org.cloudburstmc.protocol.bedrock.codec.v712.Bedrock_v712;
 import pe.pi.sctp4j.sctp.Association;
 import pe.pi.sctp4j.sctp.AssociationListener;
 import pe.pi.sctp4j.sctp.SCTPStream;
 
 public class SctpAssociationListener implements AssociationListener {
+    private final SessionInfo sessionInfo;
     private final Runnable onDisconnect;
 
-    public SctpAssociationListener(Runnable onDisconnect) {
+    public SctpAssociationListener(SessionInfo sessionInfo, Runnable onDisconnect) {
+        this.sessionInfo = sessionInfo;
         this.onDisconnect = onDisconnect;
     }
 
@@ -31,7 +34,7 @@ public class SctpAssociationListener implements AssociationListener {
         System.out.println("Received DCEP SCTP stream: " + sctpStream.toString());
 
         if ("ReliableDataChannel".equals(label)) {
-            sctpStream.setSCTPStreamListener(new MinecraftDataHandler(sctpStream, Bedrock_v712.CODEC));
+            sctpStream.setSCTPStreamListener(new MinecraftDataHandler(sctpStream, Bedrock_v712.CODEC, sessionInfo));
         }
     }
 

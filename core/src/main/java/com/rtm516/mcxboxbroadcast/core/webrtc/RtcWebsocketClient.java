@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import com.rtm516.mcxboxbroadcast.core.Logger;
+import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsFromMessage;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import java.math.BigInteger;
@@ -37,6 +38,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private final Logger logger;
+    private SessionInfo sessionInfo;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Map<String, PeerSession> activeSessions;
     private final List<CandidateHarvester> candidateHarvesters;
@@ -57,6 +59,7 @@ public class RtcWebsocketClient extends WebSocketClient {
         addHeader("Request-Id", UUID.randomUUID().toString());
 
         this.logger = logger;
+        this.sessionInfo = sessionInfo;
         this.scheduledExecutorService = scheduledExecutorService;
 
         this.activeSessions = new HashMap<>();
@@ -167,5 +170,9 @@ public class RtcWebsocketClient extends WebSocketClient {
     @Override
     public void onError(Exception ex) {
         logger.info("RTCWebsocket error: " + ex.getMessage());
+    }
+
+    public SessionInfo sessionInfo() {
+        return sessionInfo;
     }
 }

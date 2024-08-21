@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
 
+import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.webrtc.MinecraftDataHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.Utils;
 import java.util.UUID;
@@ -35,14 +36,16 @@ import org.cloudburstmc.protocol.common.util.OptionalBoolean;
 
 public class RedirectPacketHandler implements BedrockPacketHandler {
     private final MinecraftDataHandler dataHandler;
+    private final SessionInfo sessionInfo;
 
     /**
      * In Protocol V554 and above, RequestNetworkSettingsPacket is sent before LoginPacket.
      */
     private boolean networkSettingsRequested = false;
 
-    public RedirectPacketHandler(MinecraftDataHandler dataHandler) {
+    public RedirectPacketHandler(MinecraftDataHandler dataHandler, SessionInfo sessionInfo) {
         this.dataHandler = dataHandler;
+        this.sessionInfo = sessionInfo;
     }
 
     @Override
@@ -234,8 +237,8 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         // can only start transferring after the StartGame packet
         TransferPacket transferPacket = new TransferPacket();
-        transferPacket.setAddress("test.geysermc.org");
-        transferPacket.setPort(19132);
+        transferPacket.setAddress(sessionInfo.getIp());
+        transferPacket.setPort(sessionInfo.getPort());
         dataHandler.sendPacket(transferPacket);
     }
 }
