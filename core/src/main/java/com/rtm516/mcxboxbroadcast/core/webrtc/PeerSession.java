@@ -122,14 +122,14 @@ public class PeerSession {
 //                        Log.setLevel(Log.DEBUG);
 
                         // Log the remote public IP
-                        component.getRemoteCandidates().forEach(remoteCandidate -> {
-                            if (remoteCandidate.getType() == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
-                                System.out.println("Remote public IP: " + remoteCandidate.getTransportAddress().getHostAddress());
-                            }
-                        });
+//                        component.getRemoteCandidates().forEach(remoteCandidate -> {
+//                            if (remoteCandidate.getType() == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
+//                                System.out.println("Remote public IP: " + remoteCandidate.getTransportAddress().getHostAddress());
+//                            }
+//                        });
 
                         // TODO Pass some form of close handler to the association so we can clean up properly in the RtcWebsocketClient
-                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), () -> {
+                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), () -> {
                             try {
                                 dtlsTransport.close();
                                 agent.free();

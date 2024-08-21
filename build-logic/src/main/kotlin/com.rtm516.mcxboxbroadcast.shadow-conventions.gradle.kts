@@ -1,6 +1,6 @@
 plugins {
     id("com.rtm516.mcxboxbroadcast.java-conventions")
-    id("com.github.johnrengelman.shadow")
+    id("com.gradleup.shadow")
 }
 
 tasks {

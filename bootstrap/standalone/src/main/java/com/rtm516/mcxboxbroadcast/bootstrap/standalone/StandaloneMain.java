@@ -12,6 +12,7 @@ import com.rtm516.mcxboxbroadcast.core.ping.PingUtil;
 import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
 import org.cloudburstmc.protocol.bedrock.BedrockPong;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -20,6 +21,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.LogManager;
 
 public class StandaloneMain {
     private static StandaloneConfig config;
@@ -29,6 +31,10 @@ public class StandaloneMain {
     public static SessionManager sessionManager;
 
     public static void main(String[] args) throws Exception {
+        // Redirect all logging to SLF4J since ice4j uses java.util.logging
+        LogManager.getLogManager().reset();
+        SLF4JBridgeHandler.install();
+
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
 
         logger.info("Starting MCXboxBroadcast Standalone " + BuildData.VERSION);

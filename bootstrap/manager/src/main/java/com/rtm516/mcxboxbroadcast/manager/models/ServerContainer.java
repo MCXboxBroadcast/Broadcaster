@@ -1,10 +1,11 @@
 package com.rtm516.mcxboxbroadcast.manager.models;
 
-import com.nukkitx.protocol.bedrock.BedrockPong;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
+import com.rtm516.mcxboxbroadcast.core.ping.PingUtil;
 import com.rtm516.mcxboxbroadcast.manager.ServerManager;
 import com.rtm516.mcxboxbroadcast.manager.database.model.Server;
 import com.rtm516.mcxboxbroadcast.manager.models.response.ServerInfoResponse;
+import org.cloudburstmc.protocol.bedrock.BedrockPong;
 
 import java.net.InetSocketAddress;
 import java.util.Date;
@@ -57,15 +58,15 @@ public class ServerContainer {
     public void updateSessionInfo() {
         try {
             InetSocketAddress addressToPing = new InetSocketAddress(server.hostname(), server.port());
-            BedrockPong pong = serverManager.bedrockClient().ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
+            BedrockPong pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
             // Update the session information
-            sessionInfo.setHostName(pong.getMotd());
-            sessionInfo.setWorldName(pong.getSubMotd());
-            sessionInfo.setVersion(pong.getVersion());
-            sessionInfo.setProtocol(pong.getProtocolVersion());
-            sessionInfo.setPlayers(pong.getPlayerCount());
-            sessionInfo.setMaxPlayers(pong.getMaximumPlayerCount());
+            sessionInfo.setHostName(pong.motd());
+            sessionInfo.setWorldName(pong.subMotd());
+            sessionInfo.setVersion(pong.version());
+            sessionInfo.setProtocol(pong.protocolVersion());
+            sessionInfo.setPlayers(pong.playerCount());
+            sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
 
             // We only want to change this if the ping is successful so users can still join
             sessionInfo.setIp(server.hostname());

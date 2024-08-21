@@ -217,7 +217,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         startGamePacket.setServerEngine("");
         startGamePacket.setLevelId("");
-        startGamePacket.setLevelName("GlobalLinkServer");
+        startGamePacket.setLevelName("MCXboxBroadcast");
         startGamePacket.setPremiumWorldTemplateId("");
         startGamePacket.setWorldTemplateId(new UUID(0, 0));
         startGamePacket.setCurrentTick(0);

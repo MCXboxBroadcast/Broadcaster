@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="DEBUG">
+<Configuration status="WARN">
     <Appenders>
         <TerminalConsole name="Console">
             <PatternLayout pattern="[%d{HH:mm:ss} %style{%highlight{%level}{FATAL=red, ERROR=red, WARN=yellow bright, INFO=cyan bright, DEBUG=green, TRACE=white}}] %style{%highlight{%msg}{FATAL=red, ERROR=red, WARN=yellow bright, INFO=default, DEBUG=white dim, TRACE=white dim}}%n"/>
@@ -13,9 +13,17 @@
         </RollingRandomAccessFile>
     </Appenders>
     <Loggers>
-        <Root level="DEBUG" >
+        <Root level="INFO" >
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
+
+        <!-- Disable logging for ice4j and jitsi -->
+        <Logger name="org.ice4j" level="OFF">
+        </Logger>
+        <Logger name="org.jitsi" level="OFF">
+        </Logger>
+        <Logger name="JitsiConfig" level="OFF">
+        </Logger>
     </Loggers>
 </Configuration>
