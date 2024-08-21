@@ -2,7 +2,6 @@ package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
 
 import com.rtm516.mcxboxbroadcast.core.webrtc.MinecraftDataHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.Utils;
-import io.netty.buffer.Unpooled;
 import java.util.UUID;
 import org.cloudburstmc.math.vector.Vector2f;
 import org.cloudburstmc.math.vector.Vector3f;
@@ -20,11 +19,8 @@ import org.cloudburstmc.protocol.bedrock.data.PlayerPermission;
 import org.cloudburstmc.protocol.bedrock.data.SpawnBiomeType;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacketHandler;
-import org.cloudburstmc.protocol.bedrock.packet.BiomeDefinitionListPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ClientCacheStatusPacket;
-import org.cloudburstmc.protocol.bedrock.packet.ClientToServerHandshakePacket;
 import org.cloudburstmc.protocol.bedrock.packet.DisconnectPacket;
-import org.cloudburstmc.protocol.bedrock.packet.LevelChunkPacket;
 import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.packet.NetworkSettingsPacket;
 import org.cloudburstmc.protocol.bedrock.packet.PlayStatusPacket;
@@ -32,8 +28,6 @@ import org.cloudburstmc.protocol.bedrock.packet.RequestNetworkSettingsPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ResourcePackClientResponsePacket;
 import org.cloudburstmc.protocol.bedrock.packet.ResourcePackStackPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ResourcePacksInfoPacket;
-import org.cloudburstmc.protocol.bedrock.packet.SetEntityMotionPacket;
-import org.cloudburstmc.protocol.bedrock.packet.SetLocalPlayerAsInitializedPacket;
 import org.cloudburstmc.protocol.bedrock.packet.StartGamePacket;
 import org.cloudburstmc.protocol.bedrock.packet.TransferPacket;
 import org.cloudburstmc.protocol.common.PacketSignal;
@@ -129,12 +123,16 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
             return PacketSignal.HANDLED;
         }
 
-        try {
-            // TODO
-//            ChainValidationResult.IdentityData extraData =
-//                Utils.validateAndEncryptConnection(session, packet.getChain(), packet.getExtra());
+        PlayStatusPacket status = new PlayStatusPacket();
+        status.setStatus(PlayStatusPacket.Status.LOGIN_SUCCESS);
+        dataHandler.sendPacket(status);
 
-            Utils.validateAndEncryptConnection(dataHandler, packet.getChain(), packet.getExtra());
+        ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
+        dataHandler.sendPacket(info);
+
+        try {
+            //todo use encryption
+            Utils.validateConnection(dataHandler, packet.getChain(), packet.getExtra());
 
         } catch (AssertionError | Exception error) {
             disconnect("disconnect.loginFailed");
@@ -151,12 +149,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
     public PacketSignal handle(ResourcePackClientResponsePacket packet) {
         switch (packet.getStatus()) {
             case COMPLETED:
-                TransferPacket transferPacket = new TransferPacket();
-                transferPacket.setAddress("test.geysermc.org");
-                transferPacket.setPort(19132);
-                dataHandler.sendPacket(transferPacket);
-                // TODO Test if we can send a transfer packet here
-//                sendStartGame();
+                sendStartGame();
                 break;
             case HAVE_ALL_PACKS:
                 ResourcePackStackPacket stack = new ResourcePackStackPacket();
@@ -169,22 +162,6 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
                 disconnect("disconnectionScreen.resourcePack");
                 break;
         }
-        return PacketSignal.HANDLED;
-    }
-
-    @Override
-    public PacketSignal handle(ClientToServerHandshakePacket packet) {
-        PlayStatusPacket status = new PlayStatusPacket();
-        status.setStatus(PlayStatusPacket.Status.LOGIN_SUCCESS);
-        dataHandler.sendPacket(status);
-
-        ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
-        dataHandler.sendPacket(info);
-        return PacketSignal.HANDLED;
-    }
-
-    @Override
-    public PacketSignal handle(SetLocalPlayerAsInitializedPacket packet) {
         return PacketSignal.HANDLED;
     }
 
@@ -255,29 +232,10 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         dataHandler.sendPacket(startGamePacket);
 
-        // Send an empty chunk
-        LevelChunkPacket data = new LevelChunkPacket();
-        data.setChunkX(0);
-        data.setChunkZ(0);
-        data.setSubChunksLength(0);
-        data.setData(Unpooled.wrappedBuffer(PaletteUtils.EMPTY_LEVEL_CHUNK_DATA));
-        data.setCachingEnabled(false);
-        dataHandler.sendPacket(data);
-
-        // Send the biomes
-        BiomeDefinitionListPacket biomeDefinitionListPacket = new BiomeDefinitionListPacket();
-        biomeDefinitionListPacket.setDefinitions(PaletteUtils.BIOMES_PALETTE);
-        dataHandler.sendPacket(biomeDefinitionListPacket);
-
-        // Let the client know the player can spawn
-        PlayStatusPacket playStatusPacket = new PlayStatusPacket();
-        playStatusPacket.setStatus(PlayStatusPacket.Status.PLAYER_SPAWN);
-        dataHandler.sendPacket(playStatusPacket);
-
-        // Freeze the player
-        SetEntityMotionPacket setEntityMotionPacket = new SetEntityMotionPacket();
-        setEntityMotionPacket.setRuntimeEntityId(1);
-        setEntityMotionPacket.setMotion(Vector3f.ZERO);
-        dataHandler.sendPacket(setEntityMotionPacket);
+        // can only start transferring after the StartGame packet
+        TransferPacket transferPacket = new TransferPacket();
+        transferPacket.setAddress("test.geysermc.org");
+        transferPacket.setPort(19132);
+        dataHandler.sendPacket(transferPacket);
     }
 }

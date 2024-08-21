@@ -79,14 +79,14 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
                 concat = null;
             }
 
-            if (buf.readableBytes() != expectedLength) {
-                System.out.println("expected " + expectedLength + " bytes but got " + buf.readableBytes());
-                var disconnect = new DisconnectPacket();
-                disconnect.setReason(DisconnectFailReason.BAD_PACKET);
-                disconnect.setKickMessage("");
-                sendPacket(disconnect);
-                return;
-            }
+//            if (buf.readableBytes() != expectedLength) {
+//                System.out.println("expected " + expectedLength + " bytes but got " + buf.readableBytes());
+//                var disconnect = new DisconnectPacket();
+//                disconnect.setReason(DisconnectFailReason.BAD_PACKET);
+//                disconnect.setKickMessage("");
+//                sendPacket(disconnect);
+//                return;
+//            }
 
             var packet = readPacket(buf);
 

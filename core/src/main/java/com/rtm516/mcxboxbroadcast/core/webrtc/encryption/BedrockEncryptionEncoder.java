@@ -13,7 +13,7 @@ import javax.crypto.SecretKey;
 
 // https://github.com/CloudburstMC/Protocol/blob/3.0/bedrock-connection/src/main/java/org/cloudburstmc/protocol/bedrock/netty/codec/encryption/BedrockEncryptionEncoder.java
 public class BedrockEncryptionEncoder {
-    private static final FastThreadLocal<MessageDigest> DIGEST = new FastThreadLocal<MessageDigest>() {
+    private static final FastThreadLocal<MessageDigest> DIGEST = new FastThreadLocal<>() {
         protected MessageDigest initialValue() {
             try {
                 return MessageDigest.getInstance("SHA-256");

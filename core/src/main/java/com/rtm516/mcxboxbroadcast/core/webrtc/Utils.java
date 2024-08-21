@@ -10,7 +10,7 @@ import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 
 // https://github.com/GeyserMC/GlobalLinkServer/blob/master/src/main/java/org/geysermc/globallinkserver/util/Utils.java
 public class Utils {
-    public static ChainValidationResult.IdentityData validateAndEncryptConnection(MinecraftDataHandler session, List<String> certChainData, String clientDataJwt) throws Exception {
+    public static ChainValidationResult.IdentityData validateConnection(MinecraftDataHandler session, List<String> certChainData, String clientDataJwt) throws Exception {
         ChainValidationResult result = EncryptionUtils.validateChain(certChainData);
         if (!result.signed()) {
             throw new IllegalArgumentException("Chain is not signed");
@@ -22,7 +22,8 @@ public class Utils {
             throw new IllegalStateException("Client data isn't signed by the given chain data");
         }
 
-        startEncryptionHandshake(session, identityPublicKey);
+        //todo encrypt
+//        startEncryptionHandshake(session, identityPublicKey);
 
         return result.identityClaims().extraData;
     }
