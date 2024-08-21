@@ -105,10 +105,10 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         NetworkSettingsPacket responsePacket = new NetworkSettingsPacket();
         responsePacket.setCompressionAlgorithm(algorithm);
-        responsePacket.setCompressionThreshold(0);
+        responsePacket.setCompressionThreshold(512);
         dataHandler.sendPacket(responsePacket);
 
-        dataHandler.enableCompression();
+        dataHandler.enableCompression(algorithm, 512);
 
         networkSettingsRequested = true;
         return PacketSignal.HANDLED;
