@@ -44,59 +44,6 @@ public class PeerSession {
         }
     }
 
-    public void addCandidate(String message) {
-        component.addRemoteCandidate(parseCandidate(message, component.getParentStream()));
-
-        if (component.getRemoteCandidateCount() == 4) {
-            agent.startConnectivityEstablishment();
-        }
-    }
-
-    private RemoteCandidate parseCandidate(String value, IceMediaStream stream) {
-        StringTokenizer tokenizer = new StringTokenizer(value);
-
-        //XXX add exception handling.
-        String foundation = tokenizer.nextToken();
-        int componentID = Integer.parseInt( tokenizer.nextToken() );
-        Transport transport = Transport.parse(tokenizer.nextToken());
-        long priority = Long.parseLong(tokenizer.nextToken());
-        String address = tokenizer.nextToken();
-        int port = Integer.parseInt(tokenizer.nextToken());
-
-        TransportAddress transAddr = new TransportAddress(address, port, transport);
-
-        tokenizer.nextToken(); //skip the "typ" String
-        CandidateType type = CandidateType.parse(tokenizer.nextToken());
-
-        Component component = stream.getComponent(componentID);
-
-        if(component == null)
-            return null;
-
-        // check if there's a related address property
-
-        RemoteCandidate relatedCandidate = null;
-        String ufrag = null;
-        while (tokenizer.countTokens() >= 2) {
-            String key = tokenizer.nextToken();
-            String val = tokenizer.nextToken();
-
-            if (key.equals("ufrag")) {
-                ufrag = val;
-                break;
-            } else if (key.equals("raddr")) {
-                tokenizer.nextToken(); // skip the rport element
-                int relatedPort = Integer.parseInt(tokenizer.nextToken());
-
-                TransportAddress raddr = new TransportAddress(val, relatedPort, Transport.UDP);
-
-                relatedCandidate = component.findRemoteCandidate(raddr);
-            }
-        }
-
-        return new RemoteCandidate(transAddr, component, type, foundation, priority, relatedCandidate, ufrag);
-    }
-
     public void receiveOffer(BigInteger from, String sessionId, String message) {
         try {
             var factory = new NistSdpFactory();
@@ -193,5 +140,58 @@ public class PeerSession {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void addCandidate(String message) {
+        component.addRemoteCandidate(parseCandidate(message, component.getParentStream()));
+
+        if (component.getRemoteCandidateCount() == 4) {
+            agent.startConnectivityEstablishment();
+        }
+    }
+
+    private RemoteCandidate parseCandidate(String value, IceMediaStream stream) {
+        StringTokenizer tokenizer = new StringTokenizer(value);
+
+        //XXX add exception handling.
+        String foundation = tokenizer.nextToken();
+        int componentID = Integer.parseInt( tokenizer.nextToken() );
+        Transport transport = Transport.parse(tokenizer.nextToken());
+        long priority = Long.parseLong(tokenizer.nextToken());
+        String address = tokenizer.nextToken();
+        int port = Integer.parseInt(tokenizer.nextToken());
+
+        TransportAddress transAddr = new TransportAddress(address, port, transport);
+
+        tokenizer.nextToken(); //skip the "typ" String
+        CandidateType type = CandidateType.parse(tokenizer.nextToken());
+
+        Component component = stream.getComponent(componentID);
+
+        if(component == null)
+            return null;
+
+        // check if there's a related address property
+
+        RemoteCandidate relatedCandidate = null;
+        String ufrag = null;
+        while (tokenizer.countTokens() >= 2) {
+            String key = tokenizer.nextToken();
+            String val = tokenizer.nextToken();
+
+            if (key.equals("ufrag")) {
+                ufrag = val;
+                break;
+            } else if (key.equals("raddr")) {
+                tokenizer.nextToken(); // skip the rport element
+                int relatedPort = Integer.parseInt(tokenizer.nextToken());
+
+                TransportAddress raddr = new TransportAddress(val, relatedPort, Transport.UDP);
+
+                relatedCandidate = component.findRemoteCandidate(raddr);
+            }
+        }
+
+        return new RemoteCandidate(transAddr, component, type, foundation, priority, relatedCandidate, ufrag);
     }
 }
