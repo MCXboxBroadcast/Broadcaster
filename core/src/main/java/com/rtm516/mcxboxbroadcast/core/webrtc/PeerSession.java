@@ -150,11 +150,24 @@ public class PeerSession {
         }
     }
 
+    boolean hadFirstCandidate = false;
+    long lastCandidateTime = 0;
     public void addCandidate(String message) {
         component.addRemoteCandidate(parseCandidate(message, component.getParentStream()));
+        lastCandidateTime = System.currentTimeMillis();
 
-        if (component.getRemoteCandidateCount() == 4) {
-            agent.startConnectivityEstablishment();
+        if (!hadFirstCandidate) {
+            hadFirstCandidate = true;
+            new Thread(() -> {
+                try {
+                    while (System.currentTimeMillis() - lastCandidateTime < 200) {
+                        Thread.sleep(200);
+                    }
+                    agent.startConnectivityEstablishment();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
         }
     }
 

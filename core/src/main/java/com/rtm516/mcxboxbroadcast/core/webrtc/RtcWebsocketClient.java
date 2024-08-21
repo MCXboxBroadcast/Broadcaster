@@ -123,7 +123,11 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void handleCandidateAdd(String sessionId, String message) {
-        activeSessions.get(sessionId).addCandidate(message);
+        // Check the session exists, sometimes we get candidates after the session has been disconnected
+        PeerSession session = activeSessions.get(sessionId);
+        if (session != null) {
+            session.addCandidate(message);
+        }
     }
 
     public void handleDisconnect(String sessionId) {

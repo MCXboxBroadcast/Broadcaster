@@ -20,6 +20,7 @@ public class SctpAssociationListener implements AssociationListener {
 
     @Override
     public void onAssociated(Association association) {
+        logger.debug("SCTP session associated");
 //        System.out.println("Association associated: " + association.toString());
     }
 
