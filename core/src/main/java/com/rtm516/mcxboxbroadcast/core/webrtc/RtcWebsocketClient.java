@@ -8,8 +8,6 @@ import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsFromMessage;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
-import dev.onvoid.webrtc.PeerConnectionFactory;
-import dev.onvoid.webrtc.RTCConfiguration;
 import io.jsonwebtoken.lang.Collections;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -60,12 +58,8 @@ public class RtcWebsocketClient extends WebSocketClient {
     private final Logger logger;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    private RTCConfiguration rtcConfig;
-    public PeerConnectionFactory peerFactory;
     private Agent agent;
     private Component component;
-    private Map<String, PeerSession> activeSessions = new HashMap<>();
-    private PeerSession pendingSession;
     private ScheduledFuture<?> heartbeatFuture;
 
     /**
@@ -83,12 +77,10 @@ public class RtcWebsocketClient extends WebSocketClient {
 
         this.logger = logger;
         this.scheduledExecutorService = scheduledExecutorService;
-
-        this.peerFactory = new PeerConnectionFactory();
     }
 
     /**
-     * When the web socket connects send the request for the connection ID
+     * When the web socket connects start the heartbeat to keep the connection alive
      *
      * @see WebSocketClient#onOpen(ServerHandshake)
      *
@@ -103,17 +95,16 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     /**
-     * When we get a message check if it's a connection ID message
-     * and handle otherwise ignore it
+     * When we get a message parse its json and handle it
      *
      * @see WebSocketClient#onMessage(String)
      *
-     * @param data The UTF-8 decoded message that was received.
+     * @param message The UTF-8 decoded message that was received.
      */
     @Override
-    public void onMessage(String data) {
-        logger.info(data);
-        var messageWrapper = Constants.GSON.fromJson(data, WsFromMessage.class);
+    public void onMessage(String message) {
+        logger.debug("RTC Websocket message: " + message);
+        var messageWrapper = Constants.GSON.fromJson(message, WsFromMessage.class);
 
         if (messageWrapper.Type() == 2) {
             initialize(messageWrapper.message());

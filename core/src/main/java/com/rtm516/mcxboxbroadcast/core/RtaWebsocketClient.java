@@ -69,7 +69,7 @@ public class RtaWebsocketClient extends WebSocketClient {
             connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
             firstConnectionId = false;
         } else {
-            logger.debug("Websocket message: " + message);
+            logger.debug("RTA Websocket message: " + message);
         }
     }
 
