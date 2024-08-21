@@ -5,6 +5,7 @@ import com.rtm516.mcxboxbroadcast.core.webrtc.encryption.BedrockEncryptionEncode
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import javax.crypto.SecretKey;
+import org.bouncycastle.util.encoders.Hex;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodecHelper;
 import org.cloudburstmc.protocol.bedrock.data.DisconnectFailReason;
@@ -26,6 +27,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     private final BedrockCodecHelper helper;
     private final RedirectPacketHandler redirectPacketHandler;
 
+    private boolean compressionEnabled;
     private BedrockEncryptionEncoder encryptionEncoder;
 
     private ByteBuf concat;
@@ -51,12 +53,13 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             buf.writeBytes(bytes);
 
             byte remainingSegments = buf.readByte();
+            System.out.println("first 100 bytes: " + Hex.toHexString(bytes, 0, Math.min(100, bytes.length)));
+
             if (concat == null) {
-                if (remainingSegments > 0) {
-                    // TODO Make sure this is correct, and implement on the sending side
-                    // This seems to be included when there are multiple segments
-                    // Seems to always be 0xFF
-                    buf.readByte();
+                if (compressionEnabled) {
+                    if (0xff != buf.readUnsignedByte()) {
+                        throw new IllegalStateException("Expected none compression!");
+                    }
                 }
                 expectedLength = VarInts.readUnsignedInt(buf);
             }
@@ -111,6 +114,9 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
         System.out.println("S -> C: " + packet);
         try {
             ByteBuf dataBuf = Unpooled.buffer(128);
+            var shiftedBytes = (compressionEnabled ? 1 : 0) + 5; // leave enough room for compression byte & data length
+            dataBuf.writerIndex(shiftedBytes);
+
             int packetId = codec.getPacketDefinition(packet.getClass()).getId();
 //            System.out.println("packet id: " + packetId);
             packetCodec.encodeHeader(
@@ -119,8 +125,31 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             );
             codec.tryEncode(helper, dataBuf, packet);
 
+            var lastPacketByte = dataBuf.writerIndex();
+            dataBuf.readerIndex(shiftedBytes);
+            System.out.println("packet: " + Hex.toHexString(encode(dataBuf)));
+
+            var packetLength = lastPacketByte - shiftedBytes;
+            // read from the first actual byte
+            dataBuf.readerIndex(5 - Utils.varintSize(packetLength));
+            dataBuf.writerIndex(dataBuf.readerIndex());
+
+            if (compressionEnabled) {
+                dataBuf.writeByte(0xFF);
+            }
+            VarInts.writeUnsignedInt(dataBuf, packetLength);
+            dataBuf.writerIndex(lastPacketByte);
+
+            var ri = dataBuf.readerIndex();
+            System.out.println("encoding: " + Hex.toHexString(encode(dataBuf)));
+            dataBuf.readerIndex(ri);
+
             if (encryptionEncoder != null) {
                 dataBuf = encryptionEncoder.encode(dataBuf);
+
+                ri = dataBuf.readerIndex();
+                System.out.println("encrypted: " + Hex.toHexString(encode(dataBuf)));
+                dataBuf.readerIndex(ri);
             }
 
             int segmentCount = (int) Math.ceil(dataBuf.readableBytes() / 10_000f);
@@ -128,17 +157,21 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
                 int segmentLength = (remainingSegements == 0 ? dataBuf.readableBytes() : 10_000);
                 var sendBuf = Unpooled.buffer(segmentLength + 1 + 5);
                 sendBuf.writeByte(remainingSegements);
-                VarInts.writeUnsignedInt(sendBuf, segmentLength);
                 sendBuf.writeBytes(dataBuf, segmentLength);
 
-                byte[] send = new byte[sendBuf.readableBytes()];
-                sendBuf.readBytes(send);
-//                System.out.println("sending: " + Hex.toHexString(send));
-                sctpStream.send(send);
+                var data = encode(sendBuf);
+                System.out.println("final: " + Hex.toHexString(data));
+                sctpStream.send(data);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private byte[] encode(ByteBuf buf) {
+        byte[] send = new byte[buf.readableBytes()];
+        buf.readBytes(send);
+        return send;
     }
 
     private BedrockPacket readPacket(ByteBuf buf) {
@@ -149,6 +182,10 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
         // release it
         wrapper.getHandle().recycle(wrapper);
         return packet;
+    }
+
+    public void enableCompression() {
+        compressionEnabled = true;
     }
 
     public void enableEncryption(SecretKey secretKey) {
