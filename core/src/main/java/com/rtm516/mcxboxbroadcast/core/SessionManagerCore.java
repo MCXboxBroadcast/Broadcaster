@@ -14,6 +14,8 @@ import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
 import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
+import org.java_websocket.enums.ReadyState;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -189,6 +191,13 @@ public abstract class SessionManagerCore {
             }
 
             setupRtcWebsocket(authorizationHeader);
+
+            try {
+                // Wait for the RTC websocket to connect
+                waitForRTCConnection().get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new SessionCreationException("Unable to connect to WebRTC for session: " + e.getMessage());
+            }
         }
 
         // Push the session information to the session directory
@@ -289,15 +298,15 @@ public abstract class SessionManagerCore {
      * This should be called before any updates to the session otherwise they might fail
      */
     protected void checkConnection() {
-//        if (this.rtaWebsocket != null && !rtaWebsocket.isOpen()) {
-//            try {
-//                logger.info("Connection to websocket lost, re-creating session...");
-//                createSession();
-//                logger.info("Re-connected!");
-//            } catch (SessionCreationException | SessionUpdateException e) {
-//                logger.error("Session is dead and hit exception trying to re-create it", e);
-//            }
-//        }
+        if ((this.rtaWebsocket != null && !rtaWebsocket.isOpen()) || this.rtcWebsocket != null && !rtcWebsocket.isOpen()) {
+            try {
+                logger.info("Connection to websocket lost, re-creating session...");
+                createSession();
+                logger.info("Re-connected!");
+            } catch (SessionCreationException | SessionUpdateException e) {
+                logger.error("Session is dead and hit exception trying to re-create it", e);
+            }
+        }
     }
 
     /**
@@ -322,6 +331,21 @@ public abstract class SessionManagerCore {
                 Thread.sleep(100);
             }
             completableFuture.complete(rtaWebsocket.getConnectionId());
+
+            return null;
+        });
+
+        return completableFuture;
+    }
+
+    protected Future<Void> waitForRTCConnection() {
+        CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+
+        Executors.newCachedThreadPool().submit(() -> {
+            while (rtcWebsocket.getReadyState() == ReadyState.NOT_YET_CONNECTED) {
+                Thread.sleep(100);
+            }
+            completableFuture.complete(null);
 
             return null;
         });
@@ -357,11 +381,17 @@ public abstract class SessionManagerCore {
      * @param token The authentication token to use
      */
     protected void setupRtaWebsocket(String token) {
+        if (rtaWebsocket != null) {
+            rtaWebsocket.close();
+        }
         rtaWebsocket = new RtaWebsocketClient(token, sessionInfo, getTokenHeader(), logger);
         rtaWebsocket.connect();
     }
 
     protected void setupRtcWebsocket(String token) {
+        if (rtcWebsocket != null) {
+            rtcWebsocket.close();
+        }
         rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread());
         rtcWebsocket.connect();
     }
@@ -424,7 +454,6 @@ public abstract class SessionManagerCore {
             .header("Authorization", getTokenHeader())
             .GET()
             .build();
-
 
         try {
             return Constants.GSON.fromJson(httpClient.send(socialSummaryRequest, HttpResponse.BodyHandlers.ofString()).body(), SocialSummaryResponse.class);
