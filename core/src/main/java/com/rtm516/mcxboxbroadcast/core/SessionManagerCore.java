@@ -16,14 +16,12 @@ import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
 import org.java_websocket.enums.ReadyState;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -69,6 +67,9 @@ public abstract class SessionManagerCore {
         this.authManager = new AuthManager(storageManager, httpClient, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
+
+        // Load the ICE configuration
+        CustomIceConfigSource.install();
     }
 
     /**
