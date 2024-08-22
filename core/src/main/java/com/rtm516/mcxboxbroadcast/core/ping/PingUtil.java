@@ -39,7 +39,7 @@ public class PingUtil {
             .group(workerEventLoopGroup)
             .option(RakChannelOption.RAK_GUID, ThreadLocalRandom.current().nextLong())
             .handler(new ClientPingHandler(promise, timeout, timeUnit))
-            .bind(ThreadLocalRandom.current().nextInt(10000, 15000))
+            .bind(0)
             .addListener((ChannelFuture future) -> {
                 if (future.cause() != null) {
                     promise.tryFailure(future.cause());

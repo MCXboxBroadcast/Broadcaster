@@ -79,6 +79,12 @@ public class CustomIceConfigSource implements ConfigSource {
 
     @NotNull
     @Override
+    public String getName() {
+        return "";
+    }
+
+    @NotNull
+    @Override
     public String getDescription() {
         return "";
     }
@@ -87,8 +93,6 @@ public class CustomIceConfigSource implements ConfigSource {
     @Override
     public Function1<String, Object> getterFor(@NotNull KType kType) {
         return s -> {
-            System.out.println("getterFor: " + s + " " + kType);
-
             String value = config.get(s);
             if (value != null) {
                 String typeName = kType.getClassifier().toString();
@@ -99,39 +103,22 @@ public class CustomIceConfigSource implements ConfigSource {
                     if (value.isEmpty()) {
                         return new ArrayList<>();
                     } else {
-                        System.out.println("List not empty: " + s + " " + value + " " + kType);
                         return null;
                     }
                 }
 
-                Object out = switch (typeName) {
+                return switch (typeName) {
                     case "kotlin.Boolean" -> Boolean.parseBoolean(value);
                     case "kotlin.Int" -> Integer.parseInt(value);
                     case "kotlin.Long" -> Long.parseLong(value);
                     case "kotlin.Double" -> Double.parseDouble(value);
                     case "java.time.Duration" -> Duration.ofMillis(Long.parseLong(value));
-                    default -> {
-                        System.out.println("Unknown type: " + typeName);
-                        yield null;
-                    }
+                    default -> null;
                 };
-
-                if (out == null) {
-                    System.out.println("Failed to parse: " + s + " " + value + " " + kType);
-                }
-
-                return out;
             }
 
-            System.out.println("Unknown key: " + s + " " + kType);
             return null;
         };
-    }
-
-    @NotNull
-    @Override
-    public String getName() {
-        return "";
     }
 
     public static void install() {
