@@ -11,44 +11,16 @@ on:
 
 env:
   DOCKER_OWNER: ${{ github.repository_owner }}
-  DOCKER_CONTAINER: mcxboxbroadcast
-  DOCKER_CONTAINER_MANAGER: mcxboxbroadcast-manager
+  DOCKER_CONTAINER: standalone
   DOCKER_TAG: ${{ github.ref_name }}
   
 jobs:
-  build-ui:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    - name: Install dependencies
-      run: npm ci
-      working-directory: bootstrap/manager/src/ui
-    - name: Build
-      run: npm run build
-      working-directory: bootstrap/manager/src/ui
-    - uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: UI
-        path: bootstrap/manager/src/ui/dist
-        if-no-files-found: error
-
   build:
-    needs: build-ui
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Download UI
-      uses: actions/download-artifact@v4
-      with:
-        name: UI
-        path: bootstrap/manager/src/main/resources/static
     - name: Validate Gradle Wrapper
       uses: gradle/actions/wrapper-validation@v3
     - name: Set up JDK 17
@@ -87,12 +59,6 @@ jobs:
         name: MCXboxBroadcastStandalone
         path: bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar
         if-no-files-found: error
-    - uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: MCXboxBroadcastManager
-        path: bootstrap/manager/build/libs/MCXboxBroadcastManager.jar
-        if-no-files-found: error
     - name: Bump version and push tag
       id: tag_version
       uses: mathieudutour/github-tag-action@v6.2
@@ -111,7 +77,7 @@ jobs:
       uses: ncipollo/release-action@v1
       if: success()
       with:
-        artifacts: "bootstrap/geyser/build/libs/MCXboxBroadcastExtension.jar,bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar,bootstrap/manager/build/libs/MCXboxBroadcastManager.jar,egg-m-c-xbox-broadcast.json"
+        artifacts: "bootstrap/geyser/build/libs/MCXboxBroadcastExtension.jar,bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar,egg-m-c-xbox-broadcast.json"
         allowUpdates: true
         bodyFile: "release_notes.md"
         draft: false
@@ -153,37 +119,3 @@ jobs:
         run: |
           [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:latest
           docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:$DOCKER_TAG
-  
-  docker-manager:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: MCXboxBroadcastManager
-          path: bootstrap/manager/build/libs
-      - name: Fix Docker environment variables
-        run: |
-          # Make lowercase
-          echo "DOCKER_OWNER=$(echo $DOCKER_OWNER | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
-          echo "DOCKER_CONTAINER_MANAGER=$(echo $DOCKER_CONTAINER_MANAGER | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
-          echo "DOCKER_TAG=$(echo $DOCKER_TAG | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
-
-          # Replace / with _
-          echo "DOCKER_TAG=$(echo $DOCKER_TAG | sed -e 's/\//_/g')" >> $GITHUB_ENV
-
-      - name: Build the Docker image
-        run: |
-          docker build . --file bootstrap/manager/Dockerfile --tag $DOCKER_CONTAINER_MANAGER:$DOCKER_TAG
-          [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker tag $DOCKER_CONTAINER_MANAGER:$DOCKER_TAG ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER_MANAGER:latest
-          docker tag $DOCKER_CONTAINER_MANAGER:$DOCKER_TAG ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER_MANAGER:$DOCKER_TAG
-
-      - name: Log in to registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
-
-      - name: Push to GHCR
-        run: |
-          [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER_MANAGER:latest
-          docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER_MANAGER:$DOCKER_TAG

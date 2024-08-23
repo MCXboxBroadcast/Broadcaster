@@ -9,27 +9,6 @@ on:
       - 'README.md'
 
 jobs:
-  build-ui:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    - name: Install dependencies
-      run: npm ci
-      working-directory: bootstrap\manager\src\ui
-    - name: Build
-      run: npm run build
-      working-directory: bootstrap\manager\src\ui
-    - uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: UI
-        path: bootstrap\manager\src\ui\dist
-        if-no-files-found: error
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -40,11 +19,6 @@ jobs:
           distribution: temurin
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Download UI
-        uses: actions/download-artifact@v4
-        with:
-          name: UI
-          path: bootstrap/manager/src/main/resources/static
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v3
       - name: Set up JDK 17
@@ -69,10 +43,4 @@ jobs:
         with:
           name: MCXboxBroadcastStandalone
           path: bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: MCXboxBroadcastManager
-          path: bootstrap/manager/build/libs/MCXboxBroadcastManager.jar
           if-no-files-found: error

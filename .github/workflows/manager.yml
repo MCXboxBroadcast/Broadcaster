@@ -1,0 +1,22 @@
+name: Trigger Manager Build
+on:
+  push:
+    branches:
+      - "master"
+    paths-ignore:
+      - '.gitignore'
+      - 'egg-m-c-xbox-broadcast.json'
+      - 'LICENSE'
+      - 'README.md'
+      - 'bootstrap/**'
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TRIGGER_PAT }}
+          repository: MCXboxBroadcast/Manager
+          event-type: manager-build-event
