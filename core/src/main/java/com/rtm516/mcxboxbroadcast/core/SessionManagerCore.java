@@ -299,7 +299,7 @@ public abstract class SessionManagerCore {
      * This should be called before any updates to the session otherwise they might fail
      */
     protected void checkConnection() {
-        if ((this.rtaWebsocket != null && !rtaWebsocket.isOpen()) || this.rtcWebsocket != null && !rtcWebsocket.isOpen()) {
+        if ((this.rtaWebsocket != null && !rtaWebsocket.isOpen()) || (this.rtcWebsocket != null && !rtcWebsocket.isOpen())) {
             try {
                 logger.info("Connection to websocket lost, re-creating session...");
                 createSession();
