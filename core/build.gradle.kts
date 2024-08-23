@@ -11,11 +11,9 @@ dependencies {
     api(libs.minecraftauth)
     api(libs.bundles.protocol)
 
-    api("org.jitsi:ice4j:3.0-72-g824cd4b")
+    api(libs.ice4j)
     api(libs.bundles.bouncycastle)
-
-    // Needs https://github.com/steely-glint/srtplight and https://github.com/pipe/sctp4j to be installed locally
-    api("pe.pi:sctp4j:1.0.7-SNAPSHOT")
+    api(libs.sctp4j)
 }
 
 sourceSets {
