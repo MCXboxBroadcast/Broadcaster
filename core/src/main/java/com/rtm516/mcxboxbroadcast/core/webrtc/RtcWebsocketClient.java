@@ -102,6 +102,12 @@ public class RtcWebsocketClient extends WebSocketClient {
         }
     }
 
+    @Override
+    public void send(String text) {
+        super.send(text);
+        logger.debug("RTC Websocket sent: " + text);
+    }
+
     private void handleDataAction(BigInteger from, String message) {
         var typeIndex = message.indexOf(' ');
         var type = message.substring(0, typeIndex);

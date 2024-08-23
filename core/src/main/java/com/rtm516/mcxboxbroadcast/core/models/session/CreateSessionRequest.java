@@ -11,10 +11,10 @@ public class CreateSessionRequest extends JoinSessionRequest {
     public CreateSessionRequest(ExpandedSessionInfo sessionInfo) {
         super(sessionInfo);
         this.properties = new SessionProperties(new SessionSystemProperties(), new SessionCustomProperties(
-            2,
+            3,
             false,
             "joinable_by_friends",
-            true,
+            false,
             sessionInfo.getMaxPlayers(),
             sessionInfo.getPlayers(),
             true,

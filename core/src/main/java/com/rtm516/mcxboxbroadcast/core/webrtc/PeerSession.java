@@ -100,7 +100,6 @@ public class PeerSession {
             var json = Constants.GSON.toJson(new WsToMessage(
                 1, from, "CONNECTRESPONSE " + sessionId + " " + answer
             ));
-//            System.out.println(json);
             rtcWebsocket.send(json);
 
             int i = 0;
@@ -109,7 +108,6 @@ public class PeerSession {
                     1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + i + " network-cost 0"
                 ));
                 i++;
-//                System.out.println(jsonAdd);
                 rtcWebsocket.send(jsonAdd);
             }
 
