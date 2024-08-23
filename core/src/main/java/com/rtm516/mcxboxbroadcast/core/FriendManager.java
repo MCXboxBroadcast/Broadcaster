@@ -316,7 +316,7 @@ public class FriendManager {
 
                             if (modifyResponse.code() == 1028) {
                                 logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
-                            } else if (modifyResponse.code() == 1011) {
+                            } else if (modifyResponse.code() == 1011 || modifyResponse.code() == 1049) {
                                 // The friend wasn't added successfully so remove them from the list
                                 // This seems to happen in some cases, I assume from the user blocking us or having account restrictions
                                 toAdd.remove(entry.getKey());
