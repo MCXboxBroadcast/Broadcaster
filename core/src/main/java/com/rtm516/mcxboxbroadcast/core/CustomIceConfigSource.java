@@ -92,14 +92,14 @@ public class CustomIceConfigSource implements ConfigSource {
     @NotNull
     @Override
     public Function1<String, Object> getterFor(@NotNull KType kType) {
+        // We only need to do this once, not every call
+        String typeName = cleanType(kType);
+
         return s -> {
             String value = config.get(s);
             if (value != null) {
-                String typeName = kType.getClassifier().toString();
-                // Remove the "class " prefix
-                typeName = typeName.replaceFirst("class ", "");
-
-                if (typeName.startsWith("kotlin.collections.List")) {
+                // Handle the list type, should always be empty
+                if (typeName.startsWith("list")) {
                     if (value.isEmpty()) {
                         return new ArrayList<>();
                     } else {
@@ -107,18 +107,49 @@ public class CustomIceConfigSource implements ConfigSource {
                     }
                 }
 
+                // Handle the other types
                 return switch (typeName) {
-                    case "kotlin.Boolean" -> Boolean.parseBoolean(value);
-                    case "kotlin.Int" -> Integer.parseInt(value);
-                    case "kotlin.Long" -> Long.parseLong(value);
-                    case "kotlin.Double" -> Double.parseDouble(value);
-                    case "java.time.Duration" -> Duration.ofMillis(Long.parseLong(value));
+                    case "boolean" -> Boolean.parseBoolean(value);
+                    case "int" -> Integer.parseInt(value);
+                    case "long" -> Long.parseLong(value);
+                    case "double" -> Double.parseDouble(value);
+                    case "duration" -> Duration.ofMillis(Long.parseLong(value));
                     default -> null;
                 };
             }
 
             return null;
         };
+    }
+
+    /**
+     * Normalise the type names
+     *
+     * class kotlin.Long -> long
+     * class kotlin.collections.List -> list
+     * long (Kotlin reflection is not available) -> long
+     * interface java.util.List (Kotlin reflection is not available) -> list
+     *
+     * @param type The kotlin type to clean
+     * @return The cleaned type name
+     */
+    private String cleanType(KType type) {
+        String typeName = type.getClassifier().toString();
+
+        // Get the real type name
+        String[] parts = typeName.split(" ");
+        if (parts[1].startsWith("(")) {
+            typeName = parts[0];
+        } else {
+            typeName = parts[1];
+        }
+
+        // Get the last part of the type name
+        parts = typeName.split("\\.");
+        typeName = parts[parts.length - 1];
+        typeName = typeName.toLowerCase();
+
+        return typeName;
     }
 
     public static void install() {
