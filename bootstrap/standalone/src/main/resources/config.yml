@@ -7,6 +7,10 @@ session:
   # Should we query the bedrock server to sync the session information
   query-server: true
 
+  # This uses checker.geysermc.org for querying if the native ping fails
+  # This can be useful in the case of docker networks or routing problems causing the native ping to fail
+  web-query-fallback: false
+
   # The data to broadcast over xbox live, this is the default if querying is enabled
   session-info:
     host-name: "Geyser Test Server"

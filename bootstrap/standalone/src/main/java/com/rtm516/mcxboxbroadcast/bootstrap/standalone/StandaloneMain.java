@@ -74,6 +74,8 @@ public class StandaloneMain {
 
         sessionInfo = config.session().sessionInfo();
 
+        PingUtil.setWebPingEnabled(config.session().webQueryFallback());
+
         // Sync the session info from the server if needed
         updateSessionInfo(sessionInfo);
 
