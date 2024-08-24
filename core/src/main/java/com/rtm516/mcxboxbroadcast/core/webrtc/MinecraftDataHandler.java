@@ -51,8 +51,8 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             if (bytes.length == 0) {
                 throw new IllegalStateException("Expected at least 2 bytes");
             }
-            //todo only do this if segmentcount > 0
-            var buf = Unpooled.buffer(bytes.length);
+            // TODO Only do this if segmentcount > 0
+            ByteBuf buf = Unpooled.buffer(bytes.length);
             buf.writeBytes(bytes);
 
             byte remainingSegments = buf.readByte();
@@ -80,14 +80,14 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             // TODO Implement this check
 //            if (buf.readableBytes() != expectedLength) {
 //                System.out.println("expected " + expectedLength + " bytes but got " + buf.readableBytes());
-//                var disconnect = new DisconnectPacket();
+//                DisconnectPacket disconnect = new DisconnectPacket();
 //                disconnect.setReason(DisconnectFailReason.BAD_PACKET);
 //                disconnect.setKickMessage("");
 //                sendPacket(disconnect);
 //                return;
 //            }
 
-            var packet = readPacket(buf);
+            BedrockPacket packet = readPacket(buf);
 
             if (!(packet instanceof LoginPacket)) {
                 logger.debug("C -> S: " + packet);
@@ -114,7 +114,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
         logger.debug("S -> C: " + packet);
         try {
             ByteBuf dataBuf = Unpooled.buffer(128);
-            var shiftedBytes = 5; // leave enough room for data length
+            int shiftedBytes = 5; // leave enough room for data length
             dataBuf.writerIndex(shiftedBytes);
 
             int packetId = codec.getPacketDefinition(packet.getClass()).getId();
@@ -124,10 +124,10 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             );
             codec.tryEncode(helper, dataBuf, packet);
 
-            var lastPacketByte = dataBuf.writerIndex();
+            int lastPacketByte = dataBuf.writerIndex();
             dataBuf.readerIndex(shiftedBytes);
 
-            var packetLength = lastPacketByte - shiftedBytes;
+            int packetLength = lastPacketByte - shiftedBytes;
             // read from the first actual byte
             dataBuf.readerIndex(5 - Utils.varintSize(packetLength));
             dataBuf.writerIndex(dataBuf.readerIndex());
@@ -139,7 +139,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
                 dataBuf = compressionHandler.encode(dataBuf);
             }
 
-            var ri = dataBuf.readerIndex();
+            int ri = dataBuf.readerIndex();
             dataBuf.readerIndex(ri);
 
             if (encryptionEncoder != null) {
@@ -152,11 +152,11 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             int segmentCount = (int) Math.ceil(dataBuf.readableBytes() / 10_000f);
             for (int remainingSegements = segmentCount - 1; remainingSegements >= 0; remainingSegements--) {
                 int segmentLength = (remainingSegements == 0 ? dataBuf.readableBytes() : 10_000);
-                var sendBuf = Unpooled.buffer(segmentLength + 1 + 5);
+                ByteBuf sendBuf = Unpooled.buffer(segmentLength + 1 + 5);
                 sendBuf.writeByte(remainingSegements);
                 sendBuf.writeBytes(dataBuf, segmentLength);
 
-                var data = encode(sendBuf);
+                byte[] data = encode(sendBuf);
                 sctpStream.send(data);
             }
         } catch (Exception e) {
@@ -173,7 +173,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     private BedrockPacket readPacket(ByteBuf buf) {
         BedrockPacketWrapper wrapper = BedrockPacketWrapper.create();
         packetCodec.decodeHeader(buf, wrapper);
-        var packet = codec.tryDecode(helper, buf.slice(), wrapper.getPacketId());
+        BedrockPacket packet = codec.tryDecode(helper, buf.slice(), wrapper.getPacketId());
         // release it
         wrapper.getHandle().recycle(wrapper);
         return packet;

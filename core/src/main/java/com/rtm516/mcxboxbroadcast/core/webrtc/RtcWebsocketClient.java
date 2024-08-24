@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.rtm516.mcxboxbroadcast.core.Constants;
@@ -91,7 +92,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     @Override
     public void onMessage(String message) {
         logger.debug("RTC Websocket received: " + message);
-        var messageWrapper = Constants.GSON.fromJson(message, WsFromMessage.class);
+        WsFromMessage messageWrapper = Constants.GSON.fromJson(message, WsFromMessage.class);
 
         if (messageWrapper.Type() == 2) {
             initialize(messageWrapper.message());
@@ -109,11 +110,11 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void handleDataAction(BigInteger from, String message) {
-        var typeIndex = message.indexOf(' ');
-        var type = message.substring(0, typeIndex);
-        var sessionIdIndex = message.indexOf(' ', typeIndex + 1);
-        var sessionId = message.substring(typeIndex + 1, sessionIdIndex);
-        var content = message.substring(sessionIdIndex + 1);
+        int typeIndex = message.indexOf(' ');
+        String type = message.substring(0, typeIndex);
+        int sessionIdIndex = message.indexOf(' ', typeIndex + 1);
+        String sessionId = message.substring(typeIndex + 1, sessionIdIndex);
+        String content = message.substring(sessionIdIndex + 1);
 
         if ("CONNECTREQUEST".equals(type)) {
             handleConnectRequest(from, sessionId, content);
@@ -145,13 +146,13 @@ public class RtcWebsocketClient extends WebSocketClient {
         // In the event we are sent another set of auth servers, clear the current list
         candidateHarvesters.clear();
 
-        var turnAuthServers = message.getAsJsonArray("TurnAuthServers");
+        JsonArray turnAuthServers = message.getAsJsonArray("TurnAuthServers");
         for (JsonElement authServerElement : turnAuthServers) {
-            var authServer = authServerElement.getAsJsonObject();
-            var username = authServer.get("Username").getAsString();
-            var password = authServer.get("Password").getAsString();
+            JsonObject authServer = authServerElement.getAsJsonObject();
+            String username = authServer.get("Username").getAsString();
+            String password = authServer.get("Password").getAsString();
             authServer.getAsJsonArray("Urls").forEach(url -> {
-                var parts = url.getAsString().split(":");
+                String[] parts = url.getAsString().split(":");
                 String type = parts[0];
                 String host = parts[1];
                 int port = Integer.parseInt(parts[2]);

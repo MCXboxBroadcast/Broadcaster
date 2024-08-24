@@ -4,6 +4,7 @@ import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import io.jsonwebtoken.lang.Collections;
 import org.bouncycastle.tls.DTLSClientProtocol;
+import org.bouncycastle.tls.DTLSTransport;
 import org.bouncycastle.tls.crypto.impl.jcajce.JcaTlsCryptoProvider;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -21,6 +22,7 @@ import pe.pi.sctp4j.sctp.small.ThreadedAssociation;
 
 import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
+import javax.sdp.SessionDescription;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -46,16 +48,16 @@ public class PeerSession {
 
     public void receiveOffer(BigInteger from, String sessionId, String message) {
         try {
-            var factory = new NistSdpFactory();
+            NistSdpFactory factory = new NistSdpFactory();
 
-            var offer = factory.createSessionDescription(message);
+            SessionDescription offer = factory.createSessionDescription(message);
 
-            var stream = agent.createMediaStream("application");
+            IceMediaStream stream = agent.createMediaStream("application");
             String fingerprint = null;
             for (Object mediaDescription : offer.getMediaDescriptions(false)) {
-                var description = (MediaDescription) mediaDescription;
+                MediaDescription description = (MediaDescription) mediaDescription;
                 for (Object descriptionAttribute : description.getAttributes(false)) {
-                    var attribute = (Attribute) descriptionAttribute;
+                    Attribute attribute = (Attribute) descriptionAttribute;
                     switch (attribute.getName()) {
                         case "ice-ufrag":
                             stream.setRemoteUfrag(attribute.getValue());
@@ -72,20 +74,20 @@ public class PeerSession {
 
             component = agent.createComponent(stream, KeepAliveStrategy.SELECTED_ONLY, true);
 
-            var transport = new CustomDatagramTransport();
+            CustomDatagramTransport transport = new CustomDatagramTransport();
 
-            var client = new DtlsClient(new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong()), fingerprint, rtcWebsocket.logger());
+            DtlsClient client = new DtlsClient(new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong()), fingerprint, rtcWebsocket.logger());
 
-            var answer = factory.createSessionDescription();
+            SessionDescription answer = factory.createSessionDescription();
             answer.setOrigin(factory.createOrigin("-", Math.abs(new Random().nextLong()), 2L, "IN", "IP4", "127.0.0.1"));
 
-            var attributes = new Vector<>();
+            Vector<Attribute> attributes = new Vector<>();
             attributes.add(factory.createAttribute("group", "BUNDLE 0"));
             attributes.add(factory.createAttribute("extmap-allow-mixed", ""));
             attributes.add(factory.createAttribute("msid-semantic", " WMS"));
             answer.setAttributes(attributes);
 
-            var media = factory.createMediaDescription("application", 9, 0, "UDP/DTLS/SCTP", new String[]{"webrtc-datachannel"});
+            MediaDescription media = factory.createMediaDescription("application", 9, 0, "UDP/DTLS/SCTP", new String[]{"webrtc-datachannel"});
             media.setConnection(factory.createConnection("IN", "IP4", "0.0.0.0"));
             media.setAttribute("ice-ufrag", agent.getLocalUfrag());
             media.setAttribute("ice-pwd", agent.getLocalPassword());
@@ -97,14 +99,14 @@ public class PeerSession {
             media.setAttribute("max-message-size", "262144");
             answer.setMediaDescriptions(new Vector<>(Collections.of(media)));
 
-            var json = Constants.GSON.toJson(new WsToMessage(
+            String json = Constants.GSON.toJson(new WsToMessage(
                 1, from, "CONNECTRESPONSE " + sessionId + " " + answer
             ));
             rtcWebsocket.send(json);
 
             int i = 0;
             for (LocalCandidate candidate : component.getLocalCandidates()) {
-                var jsonAdd = Constants.GSON.toJson(new WsToMessage(
+                String jsonAdd = Constants.GSON.toJson(new WsToMessage(
                     1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + i + " network-cost 0"
                 ));
                 i++;
@@ -115,7 +117,7 @@ public class PeerSession {
                 if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
                     transport.init(component);
                     try {
-                        var dtlsTransport = new DTLSClientProtocol().connect(client, transport);
+                        DTLSTransport dtlsTransport = new DTLSClientProtocol().connect(client, transport);
 //                        Log.setLevel(Log.DEBUG);
 
                         // Log the remote public IP

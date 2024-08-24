@@ -176,7 +176,7 @@ public abstract class SessionManagerCore {
             // Update the current session XUID
             this.sessionInfo.setXuid(tokenInfo.userXUID());
 
-            var authorizationHeader = setupSession();
+            String authorizationHeader = setupSession();
 
             // Create the RTA websocket connection
             setupRtaWebsocket(token);
@@ -355,9 +355,9 @@ public abstract class SessionManagerCore {
     }
 
     protected String setupSession() {
-        var playfabTicket = this.authManager.getPlayfabSessionTicket();
+        String playfabTicket = this.authManager.getPlayfabSessionTicket();
 
-        var request = HttpRequest.newBuilder(Constants.START_SESSION)
+        HttpRequest request = HttpRequest.newBuilder(Constants.START_SESSION)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(sessionInfo, playfabTicket)))
                 .build();

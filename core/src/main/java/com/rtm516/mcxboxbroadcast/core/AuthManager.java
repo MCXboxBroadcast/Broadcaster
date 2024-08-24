@@ -9,6 +9,7 @@ import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import java.io.IOException;
 
 import net.lenni0451.commons.httpclient.HttpClient;
+import net.lenni0451.commons.httpclient.requests.HttpContentRequest;
 import net.lenni0451.commons.httpclient.requests.impl.PostRequest;
 import net.raphimc.minecraftauth.MinecraftAuth;
 import net.raphimc.minecraftauth.responsehandler.PlayFabResponseHandler;
@@ -65,7 +66,7 @@ public class AuthManager {
         StepInitialXblSession xblAuth = new StepInitialXblSession(initialAuth, new StepXblDeviceToken("Android"));
         StepXblSisuAuthentication xstsAuth = new StepXblSisuAuthentication(xblAuth, MicrosoftConstants.XBL_XSTS_RELYING_PARTY);
 
-        var httpClient = MinecraftAuth.createHttpClient();
+        HttpClient httpClient = MinecraftAuth.createHttpClient();
         return new XstsAuthData(xstsAuth.getFromInput(logger, httpClient, new StepCredentialsMsaCode.MsaCredentials(email, password)), xstsAuth);
     }
 
@@ -73,7 +74,7 @@ public class AuthManager {
      * Follow the auth flow to get the Xbox token and store it
      */
     private void initialise() {
-        var httpClient = MinecraftAuth.createHttpClient();
+        HttpClient httpClient = MinecraftAuth.createHttpClient();
 
         // Check if we have an old live_token.json file and try to import the refresh token from it
         String liveTokenData = "";
@@ -128,19 +129,19 @@ public class AuthManager {
 
     private String fetchPlayfabSessionTicket(HttpClient httpClient) throws IOException, InterruptedException {
         // TODO Use minecraftauth library using StepPlayFabToken
-        var initialSession = xboxToken.getInitialXblSession();
+        StepInitialXblSession.InitialXblSession initialSession = xboxToken.getInitialXblSession();
 
-        var authorizeRequest = new PostRequest(StepXblSisuAuthentication.XBL_SISU_URL)
+        HttpContentRequest authorizeRequest = new PostRequest(StepXblSisuAuthentication.XBL_SISU_URL)
             .setContent(new JsonContent(SisuAuthorizeBody.create(initialSession, MicrosoftConstants.BEDROCK_PLAY_FAB_XSTS_RELYING_PARTY)));
         authorizeRequest.setHeader(CryptUtil.getSignatureHeader(authorizeRequest, initialSession.getXblDeviceToken().getPrivateKey()));
-        var authorizeResponse = httpClient.execute(authorizeRequest, new XblResponseHandler());
+        JsonObject authorizeResponse = httpClient.execute(authorizeRequest, new XblResponseHandler());
 
-        var tokens = XblXstsToken.fromMicrosoftJson(authorizeResponse.getAsJsonObject("AuthorizationToken"), null);
+        XblXstsToken tokens = XblXstsToken.fromMicrosoftJson(authorizeResponse.getAsJsonObject("AuthorizationToken"), null);
 
-        var playfabRequest = new PostRequest(Constants.PLAYFAB_LOGIN)
+        HttpContentRequest playfabRequest = new PostRequest(Constants.PLAYFAB_LOGIN)
             .setContent(new JsonContent(PlayfabLoginBody.create(tokens.getServiceToken())));
 
-        var playfabResponse = httpClient.execute(playfabRequest, new PlayFabResponseHandler());
+        JsonObject playfabResponse = httpClient.execute(playfabRequest, new PlayFabResponseHandler());
 
         return playfabResponse.getAsJsonObject("data").get("SessionTicket").getAsString();
     }

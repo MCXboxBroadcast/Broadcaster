@@ -56,7 +56,7 @@ public class DtlsClient extends DefaultTlsClient {
         this.logger = logger.prefixed("DtlsClient");
 
         // Generate the RSA key pair
-        var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
         this.keyPair = keyPairGenerator.generateKeyPair();
 
@@ -94,8 +94,8 @@ public class DtlsClient extends DefaultTlsClient {
                     logger.error("Invalid certificate: " + serverCertificate);
                     throw new TlsFatalAlert(AlertDescription.bad_certificate);
                 }
-                var cert = serverCertificate.getCertificate().getCertificateAt(0).getEncoded();
-                var fp = fingerprintFor(cert);
+                byte[] cert = serverCertificate.getCertificate().getCertificateAt(0).getEncoded();
+                String fp = fingerprintFor(cert);
 
                 if (!fp.equals(finalFingerprint)) {
                     logger.error("Fingerprint does not match! Expected " + finalFingerprint + " got " + fp);
@@ -116,19 +116,18 @@ public class DtlsClient extends DefaultTlsClient {
     }
 
     private String fingerprintFor(byte[] input) {
-        var digest = new SHA256Digest();
+        SHA256Digest digest = new SHA256Digest();
         digest.update(input, 0, input.length);
-        var result = new byte[digest.getDigestSize()];
+        byte[] result = new byte[digest.getDigestSize()];
         digest.doFinal(result, 0);
 
-        var hexBytes = Hex.encode(result);
+        byte[] hexBytes = Hex.encode(result);
         String hex = new String(hexBytes, StandardCharsets.US_ASCII).toUpperCase();
 
-        var fp = new StringBuilder();
+        StringBuilder fp = new StringBuilder();
         int i = 0;
         fp.append(hex, i, i + 2);
-        while ((i += 2) < hex.length())
-        {
+        while ((i += 2) < hex.length()) {
             fp.append(':');
             fp.append(hex, i, i + 2);
         }

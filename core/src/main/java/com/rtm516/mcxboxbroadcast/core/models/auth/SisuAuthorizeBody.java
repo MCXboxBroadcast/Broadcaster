@@ -6,7 +6,7 @@ import net.raphimc.minecraftauth.util.CryptUtil;
 
 public final class SisuAuthorizeBody {
     public static JsonObject create(InitialXblSession initialSession, String relyingParty) {
-        var content = new JsonObject();
+        JsonObject content = new JsonObject();
         content.addProperty("AccessToken", "t=" + initialSession.getMsaToken().getAccessToken());
         content.addProperty("DeviceToken", initialSession.getXblDeviceToken().getToken());
         content.addProperty("AppId", "00000000402b5328");
