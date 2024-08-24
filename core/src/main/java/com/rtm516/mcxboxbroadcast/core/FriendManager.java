@@ -30,7 +30,7 @@ public class FriendManager {
     private final Map<String, String> toRemove;
 
     private List<FollowerResponse.Person> lastFriendCache;
-    private Future<Void> internalScheduledFuture;
+    private Future<?> internalScheduledFuture;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;

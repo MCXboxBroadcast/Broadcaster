@@ -51,10 +51,24 @@ docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/rtm516/mcxboxbroa
 4. Follow the link and enter the code
 5. Login to the account you want to use
 6. Follow the account on Xbox LIVE
-7. Check the friends tab ingame and you should see the server listed
+7. Edit the `config.yml` to have the correct ip and port for the target server
+8. Restart the tool
+9. Check the friends tab ingame and you should see the server listed
 
 ### Manager
-See [manager readme](bootstrap/manager/README.md)
+There is a web manager available for donators. After joining the relevent GitHub sponsors tier you will be able to access its builds at https://github.com/MCXboxBroadcast/Manager/releases
+
+Note: This also requires a MongoDB instance to be running
+
+<details>
+   <summary>Screenshots</summary>
+
+   ![Bots view](https://github.com/user-attachments/assets/e4760c93-a146-45b9-b029-fd3c5c6e7bea)
+   ![Bot info](https://github.com/user-attachments/assets/462f1d8b-c8ab-42e0-ab0e-cb335fc00ab4)
+   ![Bot options](https://github.com/user-attachments/assets/f603d51f-f59e-4a49-b2a5-ffeb074109e8)
+   ![Server options](https://github.com/user-attachments/assets/e203eac3-7190-4510-9f5b-ef87de507cab)
+   ![Manager settings](https://github.com/user-attachments/assets/11f85c70-9b50-4039-bddb-961833b7d11e)
+</details>
 
 ## Commands
 For the extension version prefix with `/mcxboxbroadcast`
