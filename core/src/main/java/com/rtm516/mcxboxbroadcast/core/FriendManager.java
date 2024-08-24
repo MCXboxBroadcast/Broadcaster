@@ -30,7 +30,7 @@ public class FriendManager {
     private final Map<String, String> toRemove;
 
     private List<FollowerResponse.Person> lastFriendCache;
-    private Future internalScheduledFuture;
+    private Future<Void> internalScheduledFuture;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
@@ -281,9 +281,7 @@ public class FriendManager {
 
                             // Update the user in the cache
                             Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
-                            if (friend.isPresent()) {
-                                friend.get().isFollowedByCaller = true;
-                            }
+                            friend.ifPresent(person -> person.isFollowedByCaller = true);
                         } else if (response.statusCode() == 429) {
                             // The friend wasn't added successfully so get the retry after header
                             Optional<String> header = response.headers().firstValue("Retry-After");
@@ -358,9 +356,7 @@ public class FriendManager {
 
                             // Update the user in the cache
                             Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
-                            if (friend.isPresent()) {
-                                friend.get().isFollowedByCaller = false;
-                            }
+                            friend.ifPresent(person -> person.isFollowedByCaller = false);
                         } else if (response.statusCode() == 429) {
                             // The friend wasn't removed successfully so get the retry after header
                             Optional<String> header = response.headers().firstValue("Retry-After");

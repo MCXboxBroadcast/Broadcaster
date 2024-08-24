@@ -37,7 +37,7 @@ public class ClientPingHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    public void handlerAdded(ChannelHandlerContext ctx) {
         this.timeoutFuture = ctx.channel().eventLoop().schedule(() -> this.onTimeout(ctx.channel()), this.timeout, this.timeUnit);
     }
 

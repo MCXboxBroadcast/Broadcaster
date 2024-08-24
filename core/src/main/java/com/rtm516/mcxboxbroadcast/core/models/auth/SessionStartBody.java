@@ -18,7 +18,7 @@ public final class SessionStartBody {
                 put("storePlatform", "uwp.store");
                 put("treatmentOverrides", null);
                 put("type", "Windows10");
-            }});;
+            }});
             put("user", new HashMap<>() {{
                 put("language", "en");
                 put("languageCode", "en-US");

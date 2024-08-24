@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class JoinSessionRequest {
-    public Map<String, SessionMember> members;
+    public final Map<String, SessionMember> members;
 
     public JoinSessionRequest(ExpandedSessionInfo sessionInfo) {
         Map<String, MemberConstantsSystem> constants = new HashMap<>() {{

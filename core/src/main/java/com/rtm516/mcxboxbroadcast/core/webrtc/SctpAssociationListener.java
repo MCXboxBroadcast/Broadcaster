@@ -29,7 +29,7 @@ public class SctpAssociationListener implements AssociationListener {
     }
 
     @Override
-    public void onDCEPStream(SCTPStream sctpStream, String label, int i) throws Exception {
+    public void onDCEPStream(SCTPStream sctpStream, String label, int i) {
         if (label == null) {
             return;
         }

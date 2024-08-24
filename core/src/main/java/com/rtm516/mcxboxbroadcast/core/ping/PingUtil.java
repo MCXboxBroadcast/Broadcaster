@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class PingUtil {
-    private static EventLoopGroup workerEventLoopGroup;
+    private static final EventLoopGroup workerEventLoopGroup;
     private static boolean webPingEnabled = false;
 
     static {

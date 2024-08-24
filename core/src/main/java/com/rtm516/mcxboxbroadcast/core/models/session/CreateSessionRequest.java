@@ -5,7 +5,7 @@ import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import java.util.Collections;
 
 public class CreateSessionRequest extends JoinSessionRequest {
-    public SessionProperties properties;
+    public final SessionProperties properties;
 
     public CreateSessionRequest(ExpandedSessionInfo sessionInfo) {
         super(sessionInfo);

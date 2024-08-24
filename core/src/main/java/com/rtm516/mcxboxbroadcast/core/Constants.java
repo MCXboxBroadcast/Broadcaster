@@ -41,10 +41,10 @@ public class Constants {
     /**
      * Gathered from scraped web requests
      */
-    public static int ConnectionTypeWebRTC = 3;
+    public static final int ConnectionTypeWebRTC = 3;
 
     /**
      * Used to be 1000, but the limit was increased in Aug 2024
      */
-    public static int MAX_FRIENDS = 2000;
+    public static final int MAX_FRIENDS = 2000;
 }

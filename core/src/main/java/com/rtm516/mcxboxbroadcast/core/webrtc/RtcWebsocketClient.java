@@ -39,7 +39,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private final Logger logger;
-    private SessionInfo sessionInfo;
+    private final SessionInfo sessionInfo;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Map<String, PeerSession> activeSessions;
     private final List<CandidateHarvester> candidateHarvesters;
@@ -50,7 +50,9 @@ public class RtcWebsocketClient extends WebSocketClient {
      * Create a new websocket and add the Authorization header
      *
      * @param authenticationToken      The token to use for authentication
-     * @param scheduledExecutorService
+     * @param sessionInfo The session info to use for the connection
+     * @param logger The logger to use for outputting messages
+     * @param scheduledExecutorService The executor service to use for scheduling tasks
      */
     public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger, ScheduledExecutorService scheduledExecutorService) {
         super(URI.create(Constants.RTC_WEBSOCKET_FORMAT.formatted(sessionInfo.getWebrtcNetworkId())));

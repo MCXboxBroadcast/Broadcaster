@@ -5,14 +5,14 @@ import io.netty.buffer.Unpooled;
 
 public class NoneCompressionCodec implements CompressionCodec {
     @Override
-    public ByteBuf encode(ByteBuf msg) throws Exception {
+    public ByteBuf encode(ByteBuf msg) {
         return Unpooled.buffer(msg.readableBytes() + 1)
                 .writeByte(compressionIdentifier())
                 .writeBytes(msg);
     }
 
     @Override
-    public ByteBuf decode(ByteBuf msg) throws Exception {
+    public ByteBuf decode(ByteBuf msg) {
         if (msg.readUnsignedByte() != compressionIdentifier()) {
             throw new IllegalArgumentException("Unexpected compression identifier");
         }

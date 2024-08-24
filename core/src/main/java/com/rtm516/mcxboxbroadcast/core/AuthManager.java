@@ -127,7 +127,7 @@ public class AuthManager {
         }
     }
 
-    private String fetchPlayfabSessionTicket(HttpClient httpClient) throws IOException, InterruptedException {
+    private String fetchPlayfabSessionTicket(HttpClient httpClient) throws IOException {
         // TODO Use minecraftauth library using StepPlayFabToken
         StepInitialXblSession.InitialXblSession initialSession = xboxToken.getInitialXblSession();
 

@@ -29,11 +29,9 @@ import org.bouncycastle.util.encoders.Hex;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -137,4 +135,4 @@ public class DtlsClient extends DefaultTlsClient {
     public String getClientFingerprint() throws CertificateEncodingException {
         return fingerprintFor(cert.getEncoded());
     }
-};
+}
