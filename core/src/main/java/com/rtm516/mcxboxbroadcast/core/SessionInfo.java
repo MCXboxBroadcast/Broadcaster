@@ -50,12 +50,6 @@ public class SessionInfo {
     }
 
     public void setVersion(String version) {
-        // If we are given a version with a slash, we only want the last part
-        // EG 1.21.20/1.21.21
-        if (version.contains("/")) {
-            String[] split = version.split("/");
-            version = split[split.length - 1].trim();
-        }
         this.version = version;
     }
 

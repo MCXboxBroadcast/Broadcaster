@@ -64,7 +64,7 @@ public abstract class SessionManagerCore {
         this.coreLogger = logger.prefixed("");
         this.storageManager = storageManager;
 
-        this.authManager = new AuthManager(storageManager, httpClient, logger);
+        this.authManager = new AuthManager(storageManager, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
 
@@ -359,7 +359,7 @@ public abstract class SessionManagerCore {
 
         var request = HttpRequest.newBuilder(Constants.START_SESSION)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.sessionStart(sessionInfo, playfabTicket)))
+                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(sessionInfo, playfabTicket)))
                 .build();
 
         HttpResponse<String> response;
@@ -385,7 +385,7 @@ public abstract class SessionManagerCore {
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
         }
-        rtaWebsocket = new RtaWebsocketClient(token, sessionInfo, getTokenHeader(), logger);
+        rtaWebsocket = new RtaWebsocketClient(token, logger);
         rtaWebsocket.connect();
     }
 

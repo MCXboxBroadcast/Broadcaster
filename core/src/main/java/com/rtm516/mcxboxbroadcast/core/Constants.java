@@ -24,7 +24,7 @@ public class Constants {
     public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/MinecraftLobby/sessions/%s";
     public static final String JOIN_SESSION = "https://sessiondirectory.xboxlive.com/handles/%s/session";
 
-    public static final URI PLAYFAB_LOGIN = URI.create("https://20ca2.playfabapi.com/Client/LoginWithXbox");
+    public static final String PLAYFAB_LOGIN = "https://20ca2.playfabapi.com/Client/LoginWithXbox";
     public static final URI START_SESSION = URI.create("https://authorization.franchise.minecraft-services.net/api/v1.0/session/start");
     public static final String RTC_WEBSOCKET_FORMAT = "wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/%s";
 

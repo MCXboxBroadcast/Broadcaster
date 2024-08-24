@@ -5,9 +5,7 @@ import net.raphimc.minecraftauth.step.xbl.session.StepInitialXblSession.InitialX
 import net.raphimc.minecraftauth.util.CryptUtil;
 
 public final class SisuAuthorizeBody {
-    private SisuAuthorizeBody() {}
-
-    public static JsonObject sisuAuthorizedBody(InitialXblSession initialSession, String relyingParty) {
+    public static JsonObject create(InitialXblSession initialSession, String relyingParty) {
         var content = new JsonObject();
         content.addProperty("AccessToken", "t=" + initialSession.getMsaToken().getAccessToken());
         content.addProperty("DeviceToken", initialSession.getXblDeviceToken().getToken());

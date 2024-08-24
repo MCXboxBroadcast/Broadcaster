@@ -1,13 +1,12 @@
 package com.rtm516.mcxboxbroadcast.core.models.auth;
 
+import com.google.gson.JsonObject;
 import com.rtm516.mcxboxbroadcast.core.Constants;
 import java.util.HashMap;
 
 public final class PlayfabLoginBody {
-    private PlayfabLoginBody() {}
-
-    public static String playfabLoginBody(String xboxToken) {
-        return Constants.GSON_NULLS.toJson(new HashMap<>() {{
+    public static JsonObject create(String xboxToken) {
+        return Constants.GSON_NULLS.toJsonTree(new HashMap<>() {{
             put("CreateAccount", true);
             put("EncryptedRequest", null);
             put("InfoRequestParameters", new HashMap<>() {{
@@ -30,6 +29,6 @@ public final class PlayfabLoginBody {
             put("PlayerSecret", null);
             put("TitleId", "20CA2");
             put("XboxToken", "XBL3.0 x=" + xboxToken);
-        }});
+        }}).getAsJsonObject();
     }
 }

@@ -5,9 +5,7 @@ import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import java.util.HashMap;
 
 public final class SessionStartBody {
-    private SessionStartBody() {}
-
-    public static String sessionStart(ExpandedSessionInfo info, String playfabSessionTicket) {
+    public static String create(ExpandedSessionInfo info, String playfabSessionTicket) {
         return Constants.GSON_NULLS.toJson(new HashMap<>() {{
             put("device", new HashMap<>() {{
                 put("applicationType", "MinecraftPE");

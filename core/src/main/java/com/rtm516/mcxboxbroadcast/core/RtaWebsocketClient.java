@@ -15,8 +15,6 @@ import java.util.Map;
  */
 public class RtaWebsocketClient extends WebSocketClient {
     private String connectionId;
-    private ExpandedSessionInfo sessionInfo;
-    private String tokenHeader;
     private final Logger logger;
     private boolean firstConnectionId = true;
 
@@ -25,11 +23,9 @@ public class RtaWebsocketClient extends WebSocketClient {
      *
      * @param authenticationToken The token to use for authentication
      */
-    public RtaWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, String tokenHeader, Logger logger) {
+    public RtaWebsocketClient(String authenticationToken, Logger logger) {
         super(Constants.RTA_WEBSOCKET);
         addHeader("Authorization", authenticationToken);
-        this.sessionInfo = sessionInfo;
-        this.tokenHeader = tokenHeader;
         this.logger = logger;
     }
 
@@ -69,7 +65,7 @@ public class RtaWebsocketClient extends WebSocketClient {
             connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
             firstConnectionId = false;
         } else {
-            logger.debug("RTA Websocket message: " + message);
+            logger.debug("RTA Websocket received: " + message);
         }
     }
 
@@ -78,7 +74,7 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        logger.debug("RTAWebsocket disconnected: " + reason + " (" + code + ")");
+        logger.debug("RTA Websocket disconnected: " + reason + " (" + code + ")");
     }
 
     /**
@@ -86,6 +82,6 @@ public class RtaWebsocketClient extends WebSocketClient {
      **/
     @Override
     public void onError(Exception ex) {
-        logger.debug("RTAWebsocket error: " + ex.getMessage());
+        logger.debug("RTA Websocket error: " + ex.getMessage());
     }
 }

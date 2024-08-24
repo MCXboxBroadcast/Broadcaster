@@ -1,19 +1,17 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import static com.rtm516.mcxboxbroadcast.core.models.auth.SisuAuthorizeBody.sisuAuthorizedBody;
-
 import com.google.gson.JsonObject;
 import com.rtm516.mcxboxbroadcast.core.models.auth.PlayfabLoginBody;
-import com.rtm516.mcxboxbroadcast.core.models.auth.PlayfabLoginResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.SisuAuthorizeBody;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XstsAuthData;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import java.io.IOException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+
+import net.lenni0451.commons.httpclient.HttpClient;
 import net.lenni0451.commons.httpclient.requests.impl.PostRequest;
 import net.raphimc.minecraftauth.MinecraftAuth;
+import net.raphimc.minecraftauth.responsehandler.PlayFabResponseHandler;
 import net.raphimc.minecraftauth.responsehandler.XblResponseHandler;
 import net.raphimc.minecraftauth.step.AbstractStep;
 import net.raphimc.minecraftauth.step.msa.MsaCodeStep;
@@ -33,11 +31,9 @@ import net.raphimc.minecraftauth.util.logging.ILogger;
 
 public class AuthManager {
     private final StorageManager storageManager;
-    private final HttpClient client;
     private final Logger logger;
 
     private StepXblSisuAuthentication.XblSisuTokens xboxToken;
-//    private StepFullBedrockSession.FullBedrockSession bedrockSession;
     private XboxTokenInfo xboxTokenInfo;
     private String playfabSessionTicket;
 
@@ -47,9 +43,8 @@ public class AuthManager {
      * @param storageManager The storage manager to use for storing data
      * @param logger The logger to use for outputting messages
      */
-    public AuthManager(StorageManager storageManager, HttpClient client, Logger logger) {
+    public AuthManager(StorageManager storageManager, Logger logger) {
         this.storageManager = storageManager;
-        this.client = client;
         this.logger = logger.prefixed("Auth");
 
         this.xboxToken = null;
@@ -104,14 +99,7 @@ public class AuthManager {
         // Load in cache.json if we haven't loaded one from the old auth token
         try {
             String cacheData = storageManager.cache();
-            if (xboxToken == null && !cacheData.isBlank()) {
-                xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.fromJson(JsonUtil.parseString(cacheData).getAsJsonObject());
-//                var lines = cacheData.lines().toList();
-//                xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.fromJson(JsonUtil.parseString(lines.get(0)).getAsJsonObject());
-//                if (lines.size() > 1) {
-//                    bedrockSession = MinecraftAuth.BEDROCK_DEVICE_CODE_LOGIN.fromJson(JsonUtil.parseString(lines.get(1)).getAsJsonObject());
-//                }
-            }
+            if (xboxToken == null && !cacheData.isBlank()) xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.fromJson(JsonUtil.parseString(cacheData).getAsJsonObject());
         } catch (IOException e) {
             logger.error("Failed to load cache.json", e);
         }
@@ -126,47 +114,35 @@ public class AuthManager {
                 xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.refresh(logger, httpClient, xboxToken);
             }
 
-//            if (bedrockSession == null) {
-//                bedrockSession = MinecraftAuth.BEDROCK_DEVICE_CODE_LOGIN.getFromInput(logger, httpClient, xboxToken);
-//            }
-
             // Save to cache.json
             storageManager.cache(Constants.GSON.toJson(MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.toJson(xboxToken)));
 
             // Construct and store the Xbox token info
             xboxTokenInfo = new XboxTokenInfo(xboxToken.getDisplayClaims().get("xid"), xboxToken.getUserHash(), xboxToken.getDisplayClaims().get("gtg"), xboxToken.getToken(), String.valueOf(xboxToken.getExpireTimeMs()));
 
-            playfabSessionTicket = fetchPlayfabSessionTicket();
+            playfabSessionTicket = fetchPlayfabSessionTicket(httpClient);
         } catch (Exception e) {
             logger.error("Failed to get/refresh auth token", e);
         }
     }
 
-    private String fetchPlayfabSessionTicket() throws IOException, InterruptedException {
-        // TODO Use minecraftauth library
+    private String fetchPlayfabSessionTicket(HttpClient httpClient) throws IOException, InterruptedException {
+        // TODO Use minecraftauth library using StepPlayFabToken
         var initialSession = xboxToken.getInitialXblSession();
 
-        var authorizeRequest = new PostRequest(StepXblSisuAuthentication.XBL_SISU_URL);
-        authorizeRequest
-                .setContent(new JsonContent(sisuAuthorizedBody(initialSession, "https://b980a380.minecraft.playfabapi.com/")))
-                .setHeader(CryptUtil.getSignatureHeader(authorizeRequest, initialSession.getXblDeviceToken().getPrivateKey()));
-        var authorizeResponse = MinecraftAuth.createHttpClient().execute(authorizeRequest, new XblResponseHandler());
+        var authorizeRequest = new PostRequest(StepXblSisuAuthentication.XBL_SISU_URL)
+            .setContent(new JsonContent(SisuAuthorizeBody.create(initialSession, MicrosoftConstants.BEDROCK_PLAY_FAB_XSTS_RELYING_PARTY)));
+        authorizeRequest.setHeader(CryptUtil.getSignatureHeader(authorizeRequest, initialSession.getXblDeviceToken().getPrivateKey()));
+        var authorizeResponse = httpClient.execute(authorizeRequest, new XblResponseHandler());
 
         var tokens = XblXstsToken.fromMicrosoftJson(authorizeResponse.getAsJsonObject("AuthorizationToken"), null);
 
-        var loginRequest = HttpRequest.newBuilder(Constants.PLAYFAB_LOGIN)
-                .header("Accept-Language", "en-US")
-                .header("Content-Type", "application/json; charset=utf-8")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(PlayfabLoginBody.playfabLoginBody(tokens.getServiceToken())))
-                .build();
+        var playfabRequest = new PostRequest(Constants.PLAYFAB_LOGIN)
+            .setContent(new JsonContent(PlayfabLoginBody.create(tokens.getServiceToken())));
 
-        var loginResponse = client.send(loginRequest, HttpResponse.BodyHandlers.ofString());
-        if (loginResponse.statusCode() != 200) {
-            logger.debug("Playfab response: " + loginResponse.body());
-            throw new IllegalStateException("Unable to login to playfab!");
-        }
-        return Constants.GSON.fromJson(loginResponse.body(), PlayfabLoginResponse.class).data().SessionTicket();
+        var playfabResponse = httpClient.execute(playfabRequest, new PlayFabResponseHandler());
+
+        return playfabResponse.getAsJsonObject("data").get("SessionTicket").getAsString();
     }
 
     /**

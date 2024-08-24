@@ -90,7 +90,7 @@ public class RtcWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onMessage(String message) {
-        logger.debug("RTC Websocket message: " + message);
+        logger.debug("RTC Websocket received: " + message);
         var messageWrapper = Constants.GSON.fromJson(message, WsFromMessage.class);
 
         if (messageWrapper.Type() == 2) {
@@ -174,12 +174,12 @@ public class RtcWebsocketClient extends WebSocketClient {
     public void onClose(int code, String reason, boolean remote) {
         heartbeatFuture.cancel(true);
 
-        logger.info("RTCWebsocket disconnected: " + reason + " (" + code + ")");
+        logger.info("RTC Websocket disconnected: " + reason + " (" + code + ")");
     }
 
     @Override
     public void onError(Exception ex) {
-        logger.info("RTCWebsocket error: " + ex.getMessage());
+        logger.info("RTC Websocket error: " + ex.getMessage());
     }
 
     public SessionInfo sessionInfo() {

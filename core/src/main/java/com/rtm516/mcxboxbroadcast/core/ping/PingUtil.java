@@ -25,12 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Licenced under GPL-2.0
- * Modified to fit MCXboxBroadcast
- *
- * https://github.com/WaterdogPE/WaterdogPE/blob/4e2b3cd1a3d5e4d3599476fd907b6bd3186783eb/src/main/java/dev/waterdog/waterdogpe/network/serverinfo/BedrockServerInfo.java
- */
 public class PingUtil {
     private static EventLoopGroup workerEventLoopGroup;
     private static boolean webPingEnabled = false;
@@ -59,6 +53,12 @@ public class PingUtil {
         return promise;
     }
 
+    /**
+     * Licenced under GPL-2.0
+     * Modified to fit MCXboxBroadcast
+     *
+     * https://github.com/WaterdogPE/WaterdogPE/blob/4e2b3cd1a3d5e4d3599476fd907b6bd3186783eb/src/main/java/dev/waterdog/waterdogpe/network/serverinfo/BedrockServerInfo.java
+     */
     private static Promise<BedrockPong> raknetPing(InetSocketAddress server, long timeout, TimeUnit timeUnit) {
         EventLoop eventLoop = workerEventLoopGroup.next();
         Promise<BedrockPong> promise = eventLoop.newPromise();
