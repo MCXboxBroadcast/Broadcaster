@@ -270,14 +270,14 @@ public class SessionManager extends SessionManagerCore {
 
         messages.add("Primary Session:");
         messages.add(" - Gamertag: " + getXboxToken().gamertag());
-        messages.add("   Following: " + socialSummary().targetFollowingCount() + "/1000");
+        messages.add("   Following: " + socialSummary().targetFollowingCount() + "/" + Constants.MAX_FRIENDS);
 
         if (!subSessionManagers.isEmpty()) {
             messages.add("Sub-sessions: (" + subSessionManagers.size() + ")");
             for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
                 messages.add(" - ID: " + subSession.getKey());
                 messages.add("   Gamertag: " + subSession.getValue().getXboxToken().gamertag());
-                messages.add("   Following: " + subSession.getValue().socialSummary().targetFollowingCount() + "/1000");
+                messages.add("   Following: " + subSession.getValue().socialSummary().targetFollowingCount() + "/" + Constants.MAX_FRIENDS);
             }
         } else {
             messages.add("No sub-sessions");
