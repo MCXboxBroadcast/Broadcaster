@@ -56,7 +56,7 @@ docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/rtm516/mcxboxbroa
 9. Check the friends tab ingame and you should see the server listed
 
 ### Manager
-There is a web manager available for donators. After joining the relevent GitHub sponsors tier you will be able to access its builds at https://github.com/MCXboxBroadcast/Manager/releases
+There is a web manager available for donators. After joining the relevent [GitHub sponsors](https://github.com/sponsors/rtm516) tier you will be able to access its builds at https://github.com/MCXboxBroadcast/Manager/releases
 
 Note: This also requires a MongoDB instance to be running
 
