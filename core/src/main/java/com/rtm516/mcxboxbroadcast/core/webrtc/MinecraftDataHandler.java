@@ -48,7 +48,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     @Override
     public void onMessage(SCTPStream sctpStream, byte[] bytes) {
         try {
-//            System.out.println("binary message (" + sctpStream.getLabel() + "): " + Hex.toHexString(bytes));
             if (bytes.length == 0) {
                 throw new IllegalStateException("Expected at least 2 bytes");
             }
@@ -57,7 +56,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             buf.writeBytes(bytes);
 
             byte remainingSegments = buf.readByte();
-//            System.out.println("first 100 bytes: " + Hex.toHexString(bytes, 0, Math.min(100, bytes.length)));
 
             if (remainingSegments > 0) {
                 if (concat == null) {
@@ -79,6 +77,7 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             }
 
             expectedLength = VarInts.readUnsignedInt(buf);
+            // TODO Implement this check
 //            if (buf.readableBytes() != expectedLength) {
 //                System.out.println("expected " + expectedLength + " bytes but got " + buf.readableBytes());
 //                var disconnect = new DisconnectPacket();
@@ -119,7 +118,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             dataBuf.writerIndex(shiftedBytes);
 
             int packetId = codec.getPacketDefinition(packet.getClass()).getId();
-//            System.out.println("packet id: " + packetId);
             packetCodec.encodeHeader(
                     dataBuf,
                     BedrockPacketWrapper.create(packetId, 0, 0, null, null)
@@ -128,7 +126,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
 
             var lastPacketByte = dataBuf.writerIndex();
             dataBuf.readerIndex(shiftedBytes);
-//            System.out.println("packet: " + Hex.toHexString(encode(dataBuf)));
 
             var packetLength = lastPacketByte - shiftedBytes;
             // read from the first actual byte
@@ -143,14 +140,12 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
             }
 
             var ri = dataBuf.readerIndex();
-//            System.out.println("encoding: " + Hex.toHexString(encode(dataBuf)));
             dataBuf.readerIndex(ri);
 
             if (encryptionEncoder != null) {
                 dataBuf = encryptionEncoder.encode(dataBuf);
 
                 ri = dataBuf.readerIndex();
-//                System.out.println("encrypted: " + Hex.toHexString(encode(dataBuf)));
                 dataBuf.readerIndex(ri);
             }
 
@@ -162,7 +157,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
                 sendBuf.writeBytes(dataBuf, segmentLength);
 
                 var data = encode(sendBuf);
-//                System.out.println("final: " + Hex.toHexString(data));
                 sctpStream.send(data);
             }
         } catch (Exception e) {
@@ -179,7 +173,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     private BedrockPacket readPacket(ByteBuf buf) {
         BedrockPacketWrapper wrapper = BedrockPacketWrapper.create();
         packetCodec.decodeHeader(buf, wrapper);
-//        System.out.println("sender/target: " + wrapper.getSenderSubClientId() + " " + wrapper.getTargetSubClientId());
         var packet = codec.tryDecode(helper, buf.slice(), wrapper.getPacketId());
         // release it
         wrapper.getHandle().recycle(wrapper);

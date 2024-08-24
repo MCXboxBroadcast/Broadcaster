@@ -32,13 +32,13 @@ import java.util.Vector;
 public class PeerSession {
     private final RtcWebsocketClient rtcWebsocket;
 
-    private Agent agent;
+    private final Agent agent;
     private Component component;
 
     public PeerSession(RtcWebsocketClient rtcWebsocket, List<CandidateHarvester> candidateHarvesters) {
         this.rtcWebsocket = rtcWebsocket;
 
-        agent = new Agent();
+        this.agent = new Agent();
         for (CandidateHarvester harvester : candidateHarvesters) {
             agent.addCandidateHarvester(harvester);
         }
@@ -74,7 +74,7 @@ public class PeerSession {
 
             var transport = new CustomDatagramTransport();
 
-            var client = new DtlsClient(new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong()), fingerprint);
+            var client = new DtlsClient(new JcaTlsCryptoProvider().create(SecureRandom.getInstanceStrong()), fingerprint, rtcWebsocket.logger());
 
             var answer = factory.createSessionDescription();
             answer.setOrigin(factory.createOrigin("-", Math.abs(new Random().nextLong()), 2L, "IN", "IP4", "127.0.0.1"));
@@ -112,7 +112,6 @@ public class PeerSession {
             }
 
             agent.addStateChangeListener(evt -> {
-//                System.out.println("state change! " + evt);
                 if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
                     transport.init(component);
                     try {

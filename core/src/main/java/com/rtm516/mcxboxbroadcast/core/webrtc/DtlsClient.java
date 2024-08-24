@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
+import com.rtm516.mcxboxbroadcast.core.Logger;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -41,15 +42,18 @@ import java.util.Date;
 public class DtlsClient extends DefaultTlsClient {
     private final JcaTlsCrypto crypto;
     private final String finalFingerprint;
+    private final Logger logger;
+
     private final KeyPair keyPair;
     private final X509Certificate cert;
     private final Certificate bcCert;
 
-    public DtlsClient(JcaTlsCrypto crypto, String serverFingerprint) throws NoSuchAlgorithmException, CertificateException, SignatureException, InvalidKeyException, OperatorCreationException {
+    public DtlsClient(JcaTlsCrypto crypto, String serverFingerprint, Logger logger) throws NoSuchAlgorithmException, CertificateException, OperatorCreationException {
         super(crypto);
 
         this.crypto = crypto;
         this.finalFingerprint = serverFingerprint;
+        this.logger = logger.prefixed("DtlsClient");
 
         // Generate the RSA key pair
         var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
@@ -87,14 +91,14 @@ public class DtlsClient extends DefaultTlsClient {
             @Override
             public void notifyServerCertificate(TlsServerCertificate serverCertificate) throws IOException {
                 if (serverCertificate == null || serverCertificate.getCertificate() == null || serverCertificate.getCertificate().isEmpty()) {
-                    System.out.println("invalid cert: " + serverCertificate);
+                    logger.error("Invalid certificate: " + serverCertificate);
                     throw new TlsFatalAlert(AlertDescription.bad_certificate);
                 }
                 var cert = serverCertificate.getCertificate().getCertificateAt(0).getEncoded();
                 var fp = fingerprintFor(cert);
 
                 if (!fp.equals(finalFingerprint)) {
-                    System.out.println("fingerprint does not match! expected " + finalFingerprint + " got " + fp);
+                    logger.error("Fingerprint does not match! Expected " + finalFingerprint + " got " + fp);
                     throw new TlsFatalAlert(AlertDescription.bad_certificate);
                 }
             }

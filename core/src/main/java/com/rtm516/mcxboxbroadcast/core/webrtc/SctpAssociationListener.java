@@ -21,12 +21,10 @@ public class SctpAssociationListener implements AssociationListener {
     @Override
     public void onAssociated(Association association) {
         logger.debug("SCTP session associated");
-//        System.out.println("Association associated: " + association.toString());
     }
 
     @Override
     public void onDisAssociated(Association association) {
-//        System.out.println("Association disassociated: " + association.toString());
         onDisconnect.run();
     }
 
@@ -44,6 +42,5 @@ public class SctpAssociationListener implements AssociationListener {
 
     @Override
     public void onRawStream(SCTPStream sctpStream) {
-//        System.out.println("Received raw SCTP stream: " + sctpStream.toString());
     }
 }
