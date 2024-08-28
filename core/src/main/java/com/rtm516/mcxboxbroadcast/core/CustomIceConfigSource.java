@@ -177,7 +177,7 @@ public class CustomIceConfigSource implements ConfigSource {
             logger.error("Failed to disable Jitsi logger, may see more logs than expected", e);
         }
 
-        // TODO Disable the logger for config
+        // Set the config to use our custom source
         JitsiConfig.Companion.useDebugNewConfig(new CustomIceConfigSource());
     }
 

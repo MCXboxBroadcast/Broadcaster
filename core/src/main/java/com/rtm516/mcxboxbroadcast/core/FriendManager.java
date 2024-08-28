@@ -309,6 +309,7 @@ public class FriendManager {
                             // 1015 - An invalid request was attempted.
                             // 1028 - The attempted People request was rejected because it would exceed the People list limit.
                             // 1039 - Request could not be completed due to another request taking precedence.
+                            // 1049 - Target user privacy settings do not allow friend requests to be received.
 
                             if (modifyResponse.code() == 1028) {
                                 logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
@@ -320,7 +321,7 @@ public class FriendManager {
                                 // Remove these people from following us (block and unblock)
                                 forceUnfollow(entry.getKey());
 
-                                logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to account restrictions");
+                                logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to restrictions on their account");
                             } else {
                                 logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                             }
@@ -396,15 +397,19 @@ public class FriendManager {
         try {
             block(xuid);
 
-            // Wait 2.5s else the unblock request will not get processed
-            Thread.sleep(2500);
+            try {
+                // Wait 2.5s else the unblock request will not get processed
+                Thread.sleep(2500);
+            } catch (InterruptedException e) {
+                logger.warn("Failed to wait to unblock user, this may cause issues (" + xuid + "): " + e.getMessage());
+            }
 
             unblock(xuid);
 
             // Remove the user from the cache
             lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
         } catch (Exception e) {
-            logger.error("Failed to force unfollow user: " + e.getMessage());
+            logger.error("Failed to force unfollow user", e);
         }
     }
 
