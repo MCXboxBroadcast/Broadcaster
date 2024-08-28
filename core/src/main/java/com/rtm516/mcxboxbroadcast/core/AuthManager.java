@@ -119,7 +119,7 @@ public class AuthManager {
             storageManager.cache(Constants.GSON.toJson(MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.toJson(xboxToken)));
 
             // Construct and store the Xbox token info
-            xboxTokenInfo = new XboxTokenInfo(xboxToken.getDisplayClaims().get("xid"), xboxToken.getUserHash(), xboxToken.getDisplayClaims().get("gtg"), xboxToken.getToken(), String.valueOf(xboxToken.getExpireTimeMs()));
+            xboxTokenInfo = new XboxTokenInfo(xboxToken);
 
             playfabSessionTicket = fetchPlayfabSessionTicket(httpClient);
         } catch (Exception e) {
@@ -164,5 +164,18 @@ public class AuthManager {
             initialise();
         }
         return playfabSessionTicket;
+    }
+
+    public void updateGamertag(String gamertag) {
+        try {
+            JsonObject xboxTokenJson = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.toJson(xboxToken);
+            xboxTokenJson.getAsJsonObject("xstsToken").getAsJsonObject("displayClaims").addProperty("gtg", gamertag);
+            xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.fromJson(xboxTokenJson);
+
+            storageManager.cache(Constants.GSON.toJson(MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.toJson(xboxToken)));
+            xboxTokenInfo = new XboxTokenInfo(xboxToken);
+        } catch (Exception e) {
+            logger.error("Failed to update gamertag", e);
+        }
     }
 }
