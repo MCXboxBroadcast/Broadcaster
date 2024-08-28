@@ -22,7 +22,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!\/bin\/bash\r\n# MCXboxBroadcast install script.\r\n#\r\n# Server Files: \/mnt\/server\r\ncd \/mnt\/server\r\ncurl -o ${SERVER_JARFILE} \"https:\\/\\/github.com\\/rtm516\\/MCXboxBroadcast\\/releases\\/latest\\/download\\/MCXboxBroadcastStandalone.jar\"",
+            "script": "#!\/bin\/bash\r\n# MCXboxBroadcast install script.\r\n#\r\n# Server Files: \/mnt\/server\r\ncd \/mnt\/server\r\ncurl -o ${SERVER_JARFILE} \"https:\\/\\/github.com\\/MCXboxBroadcast\\/Broadcaster\\/releases\\/latest\\/download\\/MCXboxBroadcastStandalone.jar\"",
             "container": "ghcr.io\/pterodactyl\/installers:alpine",
             "entrypoint": "ash"
         }
