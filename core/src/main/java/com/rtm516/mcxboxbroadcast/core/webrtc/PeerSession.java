@@ -40,7 +40,7 @@ public class PeerSession {
     public PeerSession(RtcWebsocketClient rtcWebsocket, List<CandidateHarvester> candidateHarvesters) {
         this.rtcWebsocket = rtcWebsocket;
 
-        this.agent = new Agent();
+        this.agent = new Agent(new IceLogger(rtcWebsocket.logger()));
         for (CandidateHarvester harvester : candidateHarvesters) {
             agent.addCandidateHarvester(harvester);
         }

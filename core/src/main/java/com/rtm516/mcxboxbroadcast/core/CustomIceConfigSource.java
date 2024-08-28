@@ -2,14 +2,20 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import kotlin.jvm.functions.Function1;
 import kotlin.reflect.KType;
+import org.ice4j.ice.harvest.MappingCandidateHarvesters;
 import org.jetbrains.annotations.NotNull;
 import org.jitsi.config.JitsiConfig;
 import org.jitsi.metaconfig.ConfigSource;
+import org.jitsi.utils.logging2.LoggerImpl;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class CustomIceConfigSource implements ConfigSource {
     /**
@@ -152,7 +158,32 @@ public class CustomIceConfigSource implements ConfigSource {
         return typeName;
     }
 
-    public static void install() {
+    public static void install(com.rtm516.mcxboxbroadcast.core.Logger logger) {
+        // Disable the Jitsi loggers
+        try {
+            Function<String, Logger> newLoggerFactory = s -> {
+                Logger newLogger = Logger.getLogger(s);
+                newLogger.setLevel(Level.OFF);
+                return newLogger;
+            };
+
+            Field loggerFactoryField = LoggerImpl.class.getDeclaredField("loggerFactory");
+            loggerFactoryField.setAccessible(true);
+            loggerFactoryField.set(null, newLoggerFactory);
+
+            // Disable the MappingCandidateHarvesters logger
+            disableClassLogger(MappingCandidateHarvesters.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            logger.error("Failed to disable Jitsi logger, may see more logs than expected", e);
+        }
+
+        // TODO Disable the logger for config
         JitsiConfig.Companion.useDebugNewConfig(new CustomIceConfigSource());
+    }
+
+    private static void disableClassLogger(Class<?> clazz) throws IllegalAccessException, NoSuchFieldException {
+        Field loggerField = clazz.getDeclaredField("logger");
+        loggerField.setAccessible(true);
+        ((Logger)loggerField.get(null)).setLevel(Level.OFF);
     }
 }

@@ -17,13 +17,5 @@
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
-
-        <!-- Disable logging for ice4j and jitsi -->
-        <Logger name="org.ice4j" level="OFF">
-        </Logger>
-        <Logger name="org.jitsi" level="OFF">
-        </Logger>
-        <Logger name="JitsiConfig" level="OFF">
-        </Logger>
     </Loggers>
 </Configuration>
