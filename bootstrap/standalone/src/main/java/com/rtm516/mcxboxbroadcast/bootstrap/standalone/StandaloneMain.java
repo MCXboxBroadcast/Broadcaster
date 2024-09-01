@@ -100,7 +100,11 @@ public class StandaloneMain {
             try {
                 // Update the session
                 sessionManager.updateSession(sessionInfo);
-                sessionManager.logger().info("Updated session!");
+                if (config.suppressSessionUpdateInfo()) {
+                    sessionManager.logger().debug("Updated session!");
+                } else {
+                    sessionManager.logger().info("Updated session!");
+                }
             } catch (SessionUpdateException e) {
                 sessionManager.logger().error("Failed to update session", e);
             }

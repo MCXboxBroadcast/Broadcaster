@@ -36,3 +36,6 @@ friend-sync:
 
 # Enable debug logs
 debug-log: false
+
+# Suppresses "Updated session!" log into debug
+suppress-session-update-info: false
