@@ -6,6 +6,7 @@ relocate("org.yaml.snakeyaml")
 relocate("com.fasterxml.jackson")
 relocate("com.google.gson")
 relocate("net.raphimc.minecraftauth")
+relocate("org.bouncycastle")
 
 dependencies {
     api(project(":core"))
