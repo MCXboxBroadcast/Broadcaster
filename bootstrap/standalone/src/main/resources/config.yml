@@ -37,5 +37,5 @@ friend-sync:
 # Enable debug logs
 debug-log: false
 
-# Suppresses "Updated session!" log that can get spamy over time (feature request https://github.com/MCXboxBroadcast/Broadcaster/issues/142)
+# Suppresses "Updated session!" log into debug
 suppress-session-update-info: false
