@@ -45,7 +45,7 @@ public class SlackNotificationManager {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(config.webhookUrl()))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString("{\"text\": \"" + message + "\"}"))
+                .POST(HttpRequest.BodyPublishers.ofString("{\"text\": \"" + message.replace("\n", "\\n") + "\"}"))
                 .build();
 
         try (HttpClient httpClient = HttpClient.newHttpClient()) {
