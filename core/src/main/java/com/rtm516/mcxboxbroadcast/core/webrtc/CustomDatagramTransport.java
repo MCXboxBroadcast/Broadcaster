@@ -31,6 +31,7 @@ public class CustomDatagramTransport implements DatagramTransport {
     public int receive(byte[] buf, int off, int len, int waitMillis) throws IOException {
         if (socket.isClosed()) {
             this.close();
+            return -1;
         }
         DatagramPacket packet = new DatagramPacket(buf, off, len);
         socket.receive(packet);
@@ -41,6 +42,7 @@ public class CustomDatagramTransport implements DatagramTransport {
     public void send(byte[] buf, int off, int len) throws IOException {
         if (socket.isClosed()) {
             this.close();
+            return;
         }
         socket.send(new DatagramPacket(buf, off, len));
     }
