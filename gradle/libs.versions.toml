@@ -12,7 +12,7 @@ minecraftauth = "4.1.1-20240822.193417-8"
 gson = "2.11.0"
 ice4j = "15836a645f"
 bouncycastle = "1.78.1"
-sctp4j = "de0117f737"
+sctp4j = "166efaab3b"
 
 shadow = "8.3.0"
 indra = "3.1.3"
