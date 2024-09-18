@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Repository Dispatch
+        if: ${{ github.repository == 'MCXboxBroadcast/Broadcaster' && github.ref_name == 'master' }}
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.TRIGGER_PAT }}

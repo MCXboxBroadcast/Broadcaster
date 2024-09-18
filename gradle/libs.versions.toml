@@ -1,5 +1,5 @@
 [versions]
-protocol = "3.0.0.Beta3-20240814.133201-7"
+protocol = "3.0.0.Beta5-20240916.181041-6"
 geyser ="2.4.1-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
@@ -12,7 +12,7 @@ minecraftauth = "4.1.1-20240822.193417-8"
 gson = "2.11.0"
 ice4j = "15836a645f"
 bouncycastle = "1.78.1"
-sctp4j = "c0c23cd1c8"
+sctp4j = "166efaab3b"
 
 shadow = "8.3.0"
 indra = "3.1.3"
