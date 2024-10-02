@@ -4,7 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
-    "exported_at": "2022-07-10T10:48:50+00:00",
+    "exported_at": "2024-10-02T12:05:30+01:00",
     "name": "MCXboxBroadcast",
     "author": "panel@rtm516.co.uk",
     "description": "Show a server on the friends tab in Minecraft for easier connection to remote servers",
@@ -22,7 +22,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!\/bin\/bash\r\n# MCXboxBroadcast install script.\r\n#\r\n# Server Files: \/mnt\/server\r\ncd \/mnt\/server\r\ncurl -o ${SERVER_JARFILE} \"https:\\/\\/github.com\\/MCXboxBroadcast\\/Broadcaster\\/releases\\/latest\\/download\\/MCXboxBroadcastStandalone.jar\"",
+            "script": "#!\/bin\/bash\r\n# MCXboxBroadcast install script.\r\n#\r\n# Server Files: \/mnt\/server\r\ncd \/mnt\/server\r\ncurl -L -o ${SERVER_JARFILE} https:\/\/github.com\/MCXboxBroadcast\/Broadcaster\/releases\/latest\/download\/MCXboxBroadcastStandalone.jar",
             "container": "ghcr.io\/pterodactyl\/installers:alpine",
             "entrypoint": "ash"
         }
