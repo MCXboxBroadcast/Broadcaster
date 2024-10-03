@@ -6,5 +6,6 @@ public record ExtensionConfig(
     @JsonProperty("remote-address") String remoteAddress,
     @JsonProperty("remote-port") String remotePort,
     @JsonProperty("update-interval") int updateInterval,
-    @JsonProperty("friend-sync") FriendSyncConfig friendSync) {
+    @JsonProperty("friend-sync") FriendSyncConfig friendSync,
+    @JsonProperty("slack-webhook") SlackWebhookConfig slackWebhook) {
 }

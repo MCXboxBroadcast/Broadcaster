@@ -40,6 +40,7 @@ public abstract class SessionManagerCore {
     protected final Logger logger;
     protected final Logger coreLogger;
     protected final StorageManager storageManager;
+    protected final SlackNotificationManager slackNotificationManager;
 
     protected RtaWebsocketClient rtaWebsocket;
     protected ExpandedSessionInfo sessionInfo;
@@ -52,9 +53,10 @@ public abstract class SessionManagerCore {
      * Create an instance of SessionManager
      *
      * @param storageManager The storage manager to use for storing data
+     * @param slackNotificationManager The Slack notification manager to use for sending messages
      * @param logger The logger to use for outputting messages
      */
-    public SessionManagerCore(StorageManager storageManager, Logger logger) {
+    public SessionManagerCore(StorageManager storageManager, SlackNotificationManager slackNotificationManager, Logger logger) {
         this.httpClient = Methanol.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -64,8 +66,9 @@ public abstract class SessionManagerCore {
         this.logger = logger;
         this.coreLogger = logger.prefixed("");
         this.storageManager = storageManager;
+        this.slackNotificationManager = slackNotificationManager;
 
-        this.authManager = new AuthManager(storageManager, logger);
+        this.authManager = new AuthManager(slackNotificationManager, storageManager, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
 
@@ -80,6 +83,15 @@ public abstract class SessionManagerCore {
      */
     public FriendManager friendManager() {
         return friendManager;
+    }
+
+    /**
+     * Get the Slack notification manager for this session manager
+     *
+     * @return The Slack notification manager
+     */
+    public SlackNotificationManager slackNotificationManager() {
+        return slackNotificationManager;
     }
 
     /**
