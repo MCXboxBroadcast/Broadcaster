@@ -128,7 +128,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     private void handleConnectRequest(BigInteger from, String sessionId, String message) {
         PeerSession session = new PeerSession(this, candidateHarvesters);
         activeSessions.put(sessionId, session);
-        session.receiveOffer(from, sessionId, message);
+        session.receiveOffer(from, sessionId, message); // TODO Make this part of the constructor?
     }
 
     private void handleCandidateAdd(String sessionId, String message) {
@@ -191,5 +191,9 @@ public class RtcWebsocketClient extends WebSocketClient {
 
     public Logger logger() {
         return logger;
+    }
+
+    public ScheduledExecutorService scheduledExecutorService() {
+        return scheduledExecutorService;
     }
 }

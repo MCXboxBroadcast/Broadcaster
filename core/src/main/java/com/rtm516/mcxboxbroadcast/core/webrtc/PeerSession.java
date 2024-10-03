@@ -30,12 +30,18 @@ import java.util.List;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 public class PeerSession {
     private final RtcWebsocketClient rtcWebsocket;
 
     private final Agent agent;
     private Component component;
+    private DTLSTransport dtlsTransport;
+    private String sessionId;
+
+    private boolean hadFirstCandidate = false;
+    private long lastCandidateTime = 0;
 
     public PeerSession(RtcWebsocketClient rtcWebsocket, List<CandidateHarvester> candidateHarvesters) {
         this.rtcWebsocket = rtcWebsocket;
@@ -47,6 +53,7 @@ public class PeerSession {
     }
 
     public void receiveOffer(BigInteger from, String sessionId, String message) {
+        this.sessionId = sessionId;
         try {
             NistSdpFactory factory = new NistSdpFactory();
 
@@ -104,6 +111,13 @@ public class PeerSession {
             ));
             rtcWebsocket.send(json);
 
+            // If we don't receive a candidate within 15 seconds, disconnect
+            rtcWebsocket.scheduledExecutorService().schedule(() -> {
+                if (!hadFirstCandidate) {
+                    disconnect();
+                }
+            }, 15, TimeUnit.SECONDS);
+
             int i = 0;
             for (LocalCandidate candidate : component.getLocalCandidates()) {
                 String jsonAdd = Constants.GSON.toJson(new WsToMessage(
@@ -114,10 +128,11 @@ public class PeerSession {
             }
 
             agent.addStateChangeListener(evt -> {
-                if ("IceProcessingState".equals(evt.getPropertyName()) && IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
+                if (!"IceProcessingState".equals(evt.getPropertyName())) return;
+                if (IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
                     transport.init(component);
                     try {
-                        DTLSTransport dtlsTransport = new DTLSClientProtocol().connect(client, transport);
+                        dtlsTransport = new DTLSClientProtocol().connect(client, transport);
 //                        Log.setLevel(Log.DEBUG);
 
                         // Log the remote public IP
@@ -128,29 +143,19 @@ public class PeerSession {
 //                        });
 
                         // TODO Pass some form of close handler to the association so we can clean up properly in the RtcWebsocketClient
-                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), () -> {
-                            try {
-                                dtlsTransport.close();
-                                agent.free();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            rtcWebsocket.handleDisconnect(sessionId);
-                        }));
+                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+                } else if (IceProcessingState.FAILED.equals(evt.getNewValue())) {
+                    disconnect();
                 }
             });
-
-//        } catch (SdpException | FileNotFoundException | CertificateException | NoSuchAlgorithmException e) {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    boolean hadFirstCandidate = false;
-    long lastCandidateTime = 0;
     public void addCandidate(String message) {
         component.addRemoteCandidate(parseCandidate(message, component.getParentStream()));
         lastCandidateTime = System.currentTimeMillis();
@@ -231,5 +236,15 @@ public class PeerSession {
         }
 
         return port;
+    }
+
+    private void disconnect() {
+        try {
+            if (dtlsTransport != null) dtlsTransport.close();
+            agent.free();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        rtcWebsocket.handleDisconnect(sessionId);
     }
 }
