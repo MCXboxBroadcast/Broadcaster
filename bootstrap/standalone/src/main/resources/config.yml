@@ -15,11 +15,11 @@ session:
   session-info:
     host-name: "Geyser Test Server"
     world-name: "\u00A7aGeyserMC \u00A7bDemo \u00A7f& \u00A7cTest \u00A7fServer"
-    version: 1.19.2
-    protocol: 527
+    version: 1.21.40
+    protocol: 748
     players: 0
     max-players: 20
-    ip: 51.210.124.95
+    ip: test.geysermc.org
     port: 19132
 
 # Friend/follower list sync settings
