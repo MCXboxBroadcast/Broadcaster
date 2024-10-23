@@ -4,6 +4,7 @@ import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
+import com.rtm516.mcxboxbroadcast.core.SlackNotificationManager;
 import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
@@ -113,7 +114,7 @@ public class MCXboxBroadcastExtension implements Extension {
     private void restart() {
         sessionManager.shutdown();
 
-        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), logger);
+        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), new SlackNotificationManager(logger, config.slackWebhook()), logger);
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(this::createSession);
@@ -125,7 +126,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION);
 
-        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), logger);
+        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), new SlackNotificationManager(logger, config.slackWebhook()), logger);
 
         // Load the config file
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);

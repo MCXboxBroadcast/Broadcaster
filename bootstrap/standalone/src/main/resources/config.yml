@@ -34,6 +34,25 @@ friend-sync:
   # Should we automatically unfollow people that no longer follow us
   auto-unfollow: true
 
+# Slack webhook settings
+slack-webhook:
+  # Should we send a message to a slack webhook when the session is updated
+  enabled: false
+
+  # The webhook url to send the message to
+  webhook-url: ""
+
+  # The message to send when the session is expired and needs to be updated
+  session-expired-message: |
+    <!here> Xbox Session expired, sign in again to update it.
+    
+    Use the following link to sign in: %s
+    Enter the code: %s
+
+  # The message to send when a friend has restrictions in place that prevent them from be friend with our account
+  friend-restriction-message: |
+    %s (%s) has restrictions in place that prevent them from be friend with our account.
+
 # Enable debug logs
 debug-log: false
 
