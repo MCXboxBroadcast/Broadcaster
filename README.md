@@ -25,7 +25,7 @@ You use this project at your own risk, the contributors are not responsible for 
 There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`
 
 ## Docker
-There is a docker image available for the standalone version of the tool, this can be found at `ghcr.io/rtm516/mcxboxbroadcast:latest`
+There is a docker image available for the standalone version of the tool, this can be found at `ghcr.io/mcxboxbroadcast/standalone:latest`
 
 ```bash
 docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/rtm516/mcxboxbroadcast:latest
