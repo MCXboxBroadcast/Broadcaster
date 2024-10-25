@@ -12,6 +12,7 @@ import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
+import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
 import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
@@ -40,7 +41,7 @@ public abstract class SessionManagerCore {
     protected final Logger logger;
     protected final Logger coreLogger;
     protected final StorageManager storageManager;
-    protected final SlackNotificationManager slackNotificationManager;
+    protected final NotificationManager notificationManager;
 
     protected RtaWebsocketClient rtaWebsocket;
     protected ExpandedSessionInfo sessionInfo;
@@ -53,10 +54,10 @@ public abstract class SessionManagerCore {
      * Create an instance of SessionManager
      *
      * @param storageManager The storage manager to use for storing data
-     * @param slackNotificationManager The Slack notification manager to use for sending messages
+     * @param notificationManager The notification manager to use for sending messages
      * @param logger The logger to use for outputting messages
      */
-    public SessionManagerCore(StorageManager storageManager, SlackNotificationManager slackNotificationManager, Logger logger) {
+    public SessionManagerCore(StorageManager storageManager, NotificationManager notificationManager, Logger logger) {
         this.httpClient = Methanol.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -66,9 +67,9 @@ public abstract class SessionManagerCore {
         this.logger = logger;
         this.coreLogger = logger.prefixed("");
         this.storageManager = storageManager;
-        this.slackNotificationManager = slackNotificationManager;
+        this.notificationManager = notificationManager;
 
-        this.authManager = new AuthManager(slackNotificationManager, storageManager, logger);
+        this.authManager = new AuthManager(notificationManager, storageManager, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
 
@@ -86,12 +87,12 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Get the Slack notification manager for this session manager
+     * Get the notification manager for this session manager
      *
-     * @return The Slack notification manager
+     * @return The notification manager
      */
-    public SlackNotificationManager slackNotificationManager() {
-        return slackNotificationManager;
+    public NotificationManager notificationManager() {
+        return notificationManager;
     }
 
     /**

@@ -5,6 +5,7 @@ import com.rtm516.mcxboxbroadcast.core.models.auth.PlayfabLoginBody;
 import com.rtm516.mcxboxbroadcast.core.models.auth.SisuAuthorizeBody;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XstsAuthData;
+import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import java.io.IOException;
 
@@ -31,7 +32,7 @@ import net.raphimc.minecraftauth.util.OAuthEnvironment;
 import net.raphimc.minecraftauth.util.logging.ILogger;
 
 public class AuthManager {
-    private final SlackNotificationManager slackNotificationManager;
+    private final NotificationManager notificationManager;
     private final StorageManager storageManager;
     private final Logger logger;
 
@@ -42,12 +43,12 @@ public class AuthManager {
     /**
      * Create an instance of AuthManager
      *
-     * @param slackNotificationManager The Slack notification manager to use for sending messages
+     * @param notificationManager The notification manager to use for sending messages
      * @param storageManager The storage manager to use for storing data
      * @param logger The logger to use for outputting messages
      */
-    public AuthManager(SlackNotificationManager slackNotificationManager, StorageManager storageManager, Logger logger) {
-        this.slackNotificationManager = slackNotificationManager;
+    public AuthManager(NotificationManager notificationManager, StorageManager storageManager, Logger logger) {
+        this.notificationManager = notificationManager;
         this.storageManager = storageManager;
         this.logger = logger.prefixed("Auth");
 
@@ -113,7 +114,7 @@ public class AuthManager {
             if (xboxToken == null) {
                 xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.getFromInput(logger, httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(msaDeviceCode -> {
                     logger.info("To sign in, use a web browser to open the page " + msaDeviceCode.getVerificationUri() + " and enter the code " + msaDeviceCode.getUserCode() + " to authenticate.");
-                    slackNotificationManager.sendSessionExpiredNotification(msaDeviceCode.getVerificationUri(), msaDeviceCode.getUserCode());
+                    notificationManager.sendSessionExpiredNotification(msaDeviceCode.getVerificationUri(), msaDeviceCode.getUserCode());
                 }));
             } else if (xboxToken.isExpired()) {
                 xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.refresh(logger, httpClient, xboxToken);

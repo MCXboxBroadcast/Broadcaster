@@ -2,7 +2,7 @@ package com.rtm516.mcxboxbroadcast.core.configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record SlackWebhookConfig(
+public record NotificationConfig(
         @JsonProperty("enabled") boolean enabled,
         @JsonProperty("webhook-url") String webhookUrl,
         @JsonProperty("session-expired-message") String sessionExpiredMessage,

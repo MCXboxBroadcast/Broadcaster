@@ -7,5 +7,5 @@ public record StandaloneConfig(
     @JsonProperty("debug-log") boolean debugLog,
     @JsonProperty("suppress-session-update-info") boolean suppressSessionUpdateInfo,
     @JsonProperty("friend-sync") FriendSyncConfig friendSync,
-    @JsonProperty("slack-webhook") SlackWebhookConfig slackWebhook) {
+    @JsonProperty("slack-webhook") NotificationConfig slackWebhook) {
 }

@@ -4,7 +4,8 @@ import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
-import com.rtm516.mcxboxbroadcast.core.SlackNotificationManager;
+import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
+import com.rtm516.mcxboxbroadcast.core.notifications.SlackNotificationManager;
 import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
     Logger logger;
+    NotificationManager notificationManager;
     SessionManager sessionManager;
     SessionInfo sessionInfo;
     ExtensionConfig config;
@@ -114,7 +116,8 @@ public class MCXboxBroadcastExtension implements Extension {
     private void restart() {
         sessionManager.shutdown();
 
-        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), new SlackNotificationManager(logger, config.slackWebhook()), logger);
+        // Create a new session manager, but reuse the notification manager as config hasn't been reloaded
+        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), notificationManager, logger);
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(this::createSession);
@@ -126,10 +129,14 @@ public class MCXboxBroadcastExtension implements Extension {
 
         logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION);
 
-        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), new SlackNotificationManager(logger, config.slackWebhook()), logger);
-
         // Load the config file
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
+
+        // TODO Support multiple notification types
+        notificationManager = new SlackNotificationManager(logger, config.slackWebhook());
+
+        // Create the session manager
+        sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString()), notificationManager, logger);
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(() -> {

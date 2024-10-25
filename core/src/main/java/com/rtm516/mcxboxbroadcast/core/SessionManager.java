@@ -6,6 +6,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
+import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import org.java_websocket.util.NamedThreadFactory;
 
@@ -35,11 +36,11 @@ public class SessionManager extends SessionManagerCore {
      * Create an instance of SessionManager
      *
      * @param storageManager The storage manager to use for storing data
-     * @param slackNotificationManager The Slack notification manager to use for sending messages
+     * @param notificationManager The notification manager to use for sending messages
      * @param logger The logger to use for outputting messages
      */
-    public SessionManager(StorageManager storageManager, SlackNotificationManager slackNotificationManager, Logger logger) {
-        super(storageManager, slackNotificationManager, logger.prefixed("Primary Session"));
+    public SessionManager(StorageManager storageManager, NotificationManager notificationManager, Logger logger) {
+        super(storageManager, notificationManager, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
         this.subSessionManagers = new HashMap<>();
     }
@@ -100,7 +101,7 @@ public class SessionManager extends SessionManagerCore {
             // Create the sub-session manager for each sub-session
             for (String subSession : finalSubSessions) {
                 try {
-                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager.subSession(subSession), slackNotificationManager, logger);
+                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager.subSession(subSession), notificationManager, logger);
                     subSessionManager.init();
                     subSessionManager.friendManager().initAutoFriend(this.friendSyncConfig);
                     subSessionManagers.put(subSession, subSessionManager);
@@ -204,7 +205,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Create the sub-session manager
         try {
-            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager.subSession(id), slackNotificationManager,logger);
+            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager.subSession(id), notificationManager, logger);
             subSessionManager.init();
             subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
             subSessionManagers.put(id, subSessionManager);

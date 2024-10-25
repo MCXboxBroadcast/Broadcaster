@@ -322,7 +322,7 @@ public class FriendManager {
                                 forceUnfollow(entry.getKey());
 
                                 logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to restrictions on their account");
-                                sessionManager.slackNotificationManager().sendFriendRestrictionNotification(entry.getValue(), entry.getKey());
+                                sessionManager.notificationManager().sendFriendRestrictionNotification(entry.getValue(), entry.getKey());
                             } else {
                                 logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                             }

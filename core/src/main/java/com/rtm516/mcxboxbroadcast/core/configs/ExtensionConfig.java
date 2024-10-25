@@ -7,5 +7,5 @@ public record ExtensionConfig(
     @JsonProperty("remote-port") String remotePort,
     @JsonProperty("update-interval") int updateInterval,
     @JsonProperty("friend-sync") FriendSyncConfig friendSync,
-    @JsonProperty("slack-webhook") SlackWebhookConfig slackWebhook) {
+    @JsonProperty("slack-webhook") NotificationConfig slackWebhook) { // TODO Rename once we support multiple notification types
 }
