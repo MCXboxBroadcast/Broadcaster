@@ -18,10 +18,11 @@ public class SubSessionManager extends SessionManagerCore {
      * @param id The id of the sub-session
      * @param parent The parent session manager
      * @param storageManager The storage manager to use for storing data
+     * @param slackNotificationManager The Slack notification manager to use for sending messages
      * @param logger The logger to use for outputting messages
      */
-    public SubSessionManager(String id, SessionManager parent, StorageManager storageManager, Logger logger) {
-        super(storageManager, logger.prefixed("Sub-Session " + id));
+    public SubSessionManager(String id, SessionManager parent, StorageManager storageManager, SlackNotificationManager slackNotificationManager, Logger logger) {
+        super(storageManager, slackNotificationManager, logger.prefixed("Sub-Session " + id));
         this.parent = parent;
     }
 
