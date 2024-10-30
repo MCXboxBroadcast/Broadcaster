@@ -28,7 +28,7 @@ There is an egg for easy instance creation supplied for [Pterodactyl Panel](http
 There is a docker image available for the standalone version of the tool, this can be found at `ghcr.io/mcxboxbroadcast/standalone:latest`
 
 ```bash
-docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/rtm516/mcxboxbroadcast:latest
+docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/mcxboxbroadcast/standalone:latest
 ```
 
 ## Installation
