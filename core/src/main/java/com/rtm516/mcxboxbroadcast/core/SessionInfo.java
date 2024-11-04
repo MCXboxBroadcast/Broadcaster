@@ -50,6 +50,18 @@ public class SessionInfo {
     }
 
     public void setVersion(String version) {
+        // Parse version codes following these examples, this is because geyser can give us lots of different version formats
+        // 1.21.20
+        // 1.21.20/1.21.21
+        // 1.21.20 - 1.21.22
+        if (version.contains("-")) {
+            String[] split = version.split("-");
+            version = split[split.length - 1].trim();
+        } else if (version.contains("/")) {
+            String[] split = version.split("/");
+            version = split[split.length - 1].trim();
+        }
+
         this.version = version;
     }
 
