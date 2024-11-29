@@ -196,7 +196,7 @@ public abstract class SessionManagerCore {
             String authorizationHeader = setupSession();
 
             // Create the RTA websocket connection
-            setupRtaWebsocket(token);
+            setupRtaWebsocket();
 
             try {
                 // Wait and get the connection ID from the websocket
@@ -395,14 +395,12 @@ public abstract class SessionManagerCore {
 
     /**
      * Setup the RTA websocket connection
-     *
-     * @param token The authentication token to use
      */
-    protected void setupRtaWebsocket(String token) {
+    protected void setupRtaWebsocket() {
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
         }
-        rtaWebsocket = new RtaWebsocketClient(token, logger);
+        rtaWebsocket = new RtaWebsocketClient(this);
         rtaWebsocket.connect();
     }
 
@@ -505,5 +503,14 @@ public abstract class SessionManagerCore {
         } catch (IOException | InterruptedException e) {
             logger.error("Failed to check profile settings", e);
         }
+    }
+
+    /**
+     * Get the XUID of the current user
+     *
+     * @return The XUID of the current user
+     */
+    public String userXUID() {
+        return getXboxToken().userXUID();
     }
 }

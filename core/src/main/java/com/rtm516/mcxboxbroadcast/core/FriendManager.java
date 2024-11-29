@@ -6,6 +6,8 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.friend.BlockRequest;
 import com.rtm516.mcxboxbroadcast.core.models.friend.BlockedUsersResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendModifyResponse;
+import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestAcceptResponse;
+import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendStatusResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 
@@ -21,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class FriendManager {
     private final HttpClient httpClient;
@@ -476,5 +479,50 @@ public class FriendManager {
      */
     public List<FollowerResponse.Person> lastFriendCache() {
         return lastFriendCache;
+    }
+
+    public void acceptPendingFriendRequests() {
+        try {
+            // Get the pending friend requests
+            HttpRequest friendRequests = HttpRequest.newBuilder()
+                .uri(URI.create("https://peoplehub.xboxlive.com/users/me/people/friendrequests(received)"))
+                .header("Authorization", sessionManager.getTokenHeader())
+                .header("x-xbl-contract-version", "7")
+                .header("accept-language", "en-GB")
+                .GET()
+                .build();
+
+            // Parse and extract the xuids
+            HttpResponse<String> response = httpClient.send(friendRequests, HttpResponse.BodyHandlers.ofString());
+            FriendRequestResponse friendRequestResponse = Constants.GSON.fromJson(response.body(), FriendRequestResponse.class);
+            List<String> xuids = friendRequestResponse.people.stream().map(person -> person.xuid).collect(Collectors.toUnmodifiableList());
+
+            // Don't try and accept if there are no requests
+            if (xuids.isEmpty()) {
+                return;
+            }
+
+            // Accept the friend requests
+            HttpRequest acceptRequests = HttpRequest.newBuilder()
+                .uri(URI.create("https://social.xboxlive.com/bulk/users/me/people/friends/v2?method=add"))
+                .header("Authorization", sessionManager.getTokenHeader())
+                .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(Map.of("xuids", xuids))))
+                .build();
+
+            // Parse the response
+            HttpResponse<String> acceptResponse = httpClient.send(acceptRequests, HttpResponse.BodyHandlers.ofString());
+            FriendRequestAcceptResponse friendRequestAcceptResponse = Constants.GSON.fromJson(acceptResponse.body(), FriendRequestAcceptResponse.class);
+
+            // Let the user know we accepted the friend requests
+            for (String xuid : friendRequestAcceptResponse.updatedPeople) {
+                Optional<FollowerResponse.Person> friend = friendRequestResponse.people.stream().filter(p -> p.xuid.equals(xuid)).findFirst();
+                if (friend.isEmpty()) {
+                    continue;
+                }
+                logger.info("Added " + friend.get().gamertag + " (" + xuid + ") as a friend");
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to accept friend requests", e);
+        }
     }
 }
