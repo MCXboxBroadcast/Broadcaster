@@ -227,7 +227,7 @@ public abstract class SessionManagerCore {
             "activity",
             new SessionRef(
                 Constants.SERVICE_CONFIG_ID,
-                "MinecraftLobby",
+                Constants.TEMPLATE_NAME,
                 getSessionId()
             )
         );

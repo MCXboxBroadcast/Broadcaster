@@ -23,7 +23,9 @@ public class Constants {
         .create();
 
     public static final String SERVICE_CONFIG_ID = "4fc10100-5f7a-4470-899b-280835760c07"; // The service config ID for Minecraft
-    public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/MinecraftLobby/sessions/%s";
+    public static final String TEMPLATE_NAME = "MinecraftLobby";
+    public static final String TITLE_ID = "896928775"; // The title ID for Minecraft Windows Edition
+    public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/" + TEMPLATE_NAME + "/sessions/%s";
     public static final String JOIN_SESSION = "https://sessiondirectory.xboxlive.com/handles/%s/session";
 
     public static final String PLAYFAB_LOGIN = "https://20ca2.playfabapi.com/Client/LoginWithXbox";

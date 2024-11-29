@@ -9,7 +9,9 @@ import com.rtm516.mcxboxbroadcast.core.models.friend.FriendModifyResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestAcceptResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendStatusResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 
 import java.io.IOException;
 import java.net.URI;
@@ -34,6 +36,7 @@ public class FriendManager {
 
     private List<FollowerResponse.Person> lastFriendCache;
     private Future<?> internalScheduledFuture;
+    private boolean initialInvite;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
@@ -199,6 +202,7 @@ public class FriendManager {
      * @param friendSyncConfig The config to use for the auto friend sync
      */
     public void initAutoFriend(FriendSyncConfig friendSyncConfig) {
+        this.initialInvite = friendSyncConfig.initialInvite();
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
                 // Cleanup any blocked users
@@ -281,6 +285,7 @@ public class FriendManager {
 
                             // Let the user know we added a friend
                             logger.info("Added " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
+                            sendInvite(entry.getKey());
 
                             // Update the user in the cache
                             Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
@@ -520,9 +525,48 @@ public class FriendManager {
                     continue;
                 }
                 logger.info("Added " + friend.get().gamertag + " (" + xuid + ") as a friend");
+                sendInvite(xuid);
             }
         } catch (IOException | InterruptedException e) {
             logger.error("Failed to accept friend requests", e);
+        }
+    }
+
+    /**
+     * Send an invite to a given xuid for the current game session
+     *
+     * @param xuid The XUID of the user to invite
+     */
+    public void sendInvite(String xuid) {
+        // Only invite if enabled
+        if (!initialInvite) {
+            return;
+        }
+
+        try {
+            CreateHandleRequest createHandleContent = new CreateHandleRequest(
+                1,
+                "invite",
+                new SessionRef(
+                    Constants.SERVICE_CONFIG_ID,
+                    Constants.TEMPLATE_NAME,
+                    sessionManager.getSessionId()
+                ),
+                xuid,
+                Map.of("titleId", Constants.TITLE_ID) // Minecraft Windows title Id
+            );
+
+            HttpRequest sendInvite = HttpRequest.newBuilder()
+                .uri(Constants.CREATE_HANDLE)
+                .header("Authorization", sessionManager.getTokenHeader())
+                .header("x-xbl-contract-version", "107")
+                .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createHandleContent)))
+                .build();
+
+            HttpResponse<String> inviteResponse = httpClient.send(sendInvite, HttpResponse.BodyHandlers.ofString());
+            logger.debug(inviteResponse.body());
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to send invite to " + xuid + ": " + e.getMessage());
         }
     }
 }

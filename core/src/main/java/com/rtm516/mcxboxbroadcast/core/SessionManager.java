@@ -81,7 +81,7 @@ public class SessionManager extends SessionManagerCore {
         // Set up the auto friend sync
         if (friendSyncConfig.updateInterval() < 20) {
             logger.warn("Friend sync update interval is less than 20 seconds, setting to 20 seconds");
-            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow());
+            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow(), friendSyncConfig.initialInvite());
         }
         this.friendSyncConfig = friendSyncConfig;
         friendManager().initAutoFriend(this.friendSyncConfig);

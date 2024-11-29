@@ -23,6 +23,9 @@ friend-sync:
   # Should we automatically unfollow people that no longer follow us
   auto-unfollow: true
 
+  # Should we automatically send an invite when a friend is added
+  initial-invite: true
+
 # Slack webhook settings
 slack-webhook:
   # Should we send a message to a slack webhook when the session is updated
