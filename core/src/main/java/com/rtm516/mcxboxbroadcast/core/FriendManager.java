@@ -3,8 +3,6 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
-import com.rtm516.mcxboxbroadcast.core.models.friend.BlockRequest;
-import com.rtm516.mcxboxbroadcast.core.models.friend.BlockedUsersResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendModifyResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestAcceptResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestResponse;
@@ -121,7 +119,7 @@ public class FriendManager {
             }
         }
 
-        List<FollowerResponse.Person> outPeopleList = outPeople.values().stream().toList();
+        List<FollowerResponse.Person> outPeopleList = new ArrayList<>(outPeople.values());
         lastFriendCache = outPeopleList;
         return outPeopleList;
     }
@@ -205,13 +203,10 @@ public class FriendManager {
         this.initialInvite = friendSyncConfig.initialInvite();
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
-                // Cleanup any blocked users
-                cleanupBlocked();
-
                 try {
                     for (FollowerResponse.Person person : get()) {
                         // Make sure we are not targeting a subaccount (eg: split screen)
-                        if (isSubAccount(person.xuid)) {
+                        if (isGuestAccount(person.xuid)) {
                             continue;
                         }
 
@@ -233,20 +228,20 @@ public class FriendManager {
     }
 
     /**
-     * Internal function to check if the XUID is a subaccount (used by split screen)
+     * Internal function to check if the XUID is a guest account (used by split screen)
      *
-     * @return True if the XUID is a sub account
+     * @return True if the XUID is a guest account
      */
-    private boolean isSubAccount(long xuid) {
+    private boolean isGuestAccount(long xuid) {
         return xuid >> 52 == 1;
     }
 
     /**
-     * @see #isSubAccount(long)
+     * @see #isGuestAccount(long)
      */
-    private boolean isSubAccount(String xuid) {
+    private boolean isGuestAccount(String xuid) {
         try {
-            return isSubAccount(Long.parseLong(xuid));
+            return isGuestAccount(Long.parseLong(xuid));
         } catch (NumberFormatException e) {
             return false;
         }
@@ -361,7 +356,7 @@ public class FriendManager {
                             // The friend was removed successfully so remove them from the list
                             toRemove.remove(entry.getKey());
 
-                            // Let the user know we added a friend
+                            // Let the user know we removed a friend
                             logger.info("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
 
                             // Update the user in the cache
@@ -404,75 +399,21 @@ public class FriendManager {
      */
     public void forceUnfollow(String xuid) {
         try {
-            block(xuid);
+            HttpRequest followerDeleteRequest = HttpRequest.newBuilder()
+                .uri(URI.create(Constants.FOLLOWER.formatted(xuid)))
+                .header("Authorization", sessionManager.getTokenHeader())
+                .DELETE()
+                .build();
 
-            try {
-                // Wait 2.5s else the unblock request will not get processed
-                Thread.sleep(2500);
-            } catch (InterruptedException e) {
-                logger.warn("Failed to wait to unblock user, this may cause issues (" + xuid + "): " + e.getMessage());
+            HttpResponse<String> response = httpClient.send(followerDeleteRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 204) {
+                // Remove the user from the cache
+                lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
+            } else {
+                throw new RuntimeException(response.statusCode() + ": " + response.body());
             }
-
-            unblock(xuid);
-
-            // Remove the user from the cache
-            lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
         } catch (Exception e) {
             logger.error("Failed to force unfollow user", e);
-        }
-    }
-
-    private void block(String xuid) throws IOException, InterruptedException, RuntimeException {
-        HttpRequest blockRequest = HttpRequest.newBuilder()
-            .uri(Constants.BLOCK)
-            .header("Authorization", sessionManager.getTokenHeader())
-            .PUT(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(new BlockRequest(xuid))))
-            .build();
-
-        HttpResponse<Void> blockResponse = httpClient.send(blockRequest, HttpResponse.BodyHandlers.discarding());
-        if (blockResponse.statusCode() != 200) {
-            throw new RuntimeException("Failed to block user: " + blockResponse.statusCode());
-        }
-    }
-
-    private void unblock(String xuid) throws IOException, InterruptedException, RuntimeException {
-        HttpRequest unblockRequest = HttpRequest.newBuilder()
-            .uri(Constants.BLOCK)
-            .header("Authorization", sessionManager.getTokenHeader())
-            .method("DELETE", HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(new BlockRequest(xuid))))
-            .build();
-
-        HttpResponse<Void> unblockResponse = httpClient.send(unblockRequest, HttpResponse.BodyHandlers.discarding());
-        if (unblockResponse.statusCode() != 200) {
-            throw new RuntimeException("Failed to unblock user: " + unblockResponse.statusCode());
-        }
-    }
-
-    /**
-     * Cleanup any blocked users
-     *
-     * This is due to xbox taking time to process block requests and sometimes we are too early to unblock
-     */
-    private void cleanupBlocked() {
-        try {
-            HttpRequest blockedUsers = HttpRequest.newBuilder()
-                .uri(Constants.BLOCK)
-                .header("Authorization", sessionManager.getTokenHeader())
-                .GET()
-                .build();
-            HttpResponse<String> response = httpClient.send(blockedUsers, HttpResponse.BodyHandlers.ofString());
-            BlockedUsersResponse blockedUsersResponse = Constants.GSON.fromJson(response.body(), BlockedUsersResponse.class);
-
-            for (BlockedUsersResponse.User user : blockedUsersResponse.users()) {
-                try {
-                    unblock(user.xuid());
-                    logger.info("Unblocked " + user.xuid() + " as they were blocked previously");
-                } catch (Exception e) {
-                    // Silently continue
-                }
-            }
-        } catch (IOException | InterruptedException e) {
-            // Silently fail as it's not too important if this doesn't work
         }
     }
 

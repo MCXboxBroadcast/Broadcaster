@@ -95,7 +95,6 @@ public class RtaWebsocketClient extends WebSocketClient {
                     break;
                 case Resync:
                     logger.debug("RTA Websocket resync message: " + message);
-                    // Maybe only send type 0 heartbeat for this?
                     break;
                 default:
                     logger.debug("RTA Websocket unknown message: " + message);
