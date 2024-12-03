@@ -131,6 +131,8 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         dataHandler.sendPacket(status);
 
         ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
+        info.setWorldTemplateId(UUID.randomUUID());
+        info.setWorldTemplateVersion("*");
         dataHandler.sendPacket(info);
 
         try {
