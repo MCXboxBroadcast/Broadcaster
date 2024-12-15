@@ -132,6 +132,13 @@ public class MCXboxBroadcastExtension implements Extension {
         // Load the config file
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
 
+        // Make sure we loaded a config and disable the extension if we didn't
+        if (config == null) {
+            logger.error("Failed to load config, extension will not start!");
+            this.disable();
+            return;
+        }
+
         // TODO Support multiple notification types
         notificationManager = new SlackNotificationManager(logger, config.slackWebhook());
 
