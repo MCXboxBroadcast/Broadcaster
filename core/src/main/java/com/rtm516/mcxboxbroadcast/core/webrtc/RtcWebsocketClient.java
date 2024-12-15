@@ -55,7 +55,7 @@ public class RtcWebsocketClient extends WebSocketClient {
      * @param scheduledExecutorService The executor service to use for scheduling tasks
      */
     public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger, ScheduledExecutorService scheduledExecutorService) {
-        super(URI.create(Constants.RTC_WEBSOCKET_FORMAT.formatted(sessionInfo.getWebrtcNetworkId())));
+        super(URI.create(Constants.RTC_WEBSOCKET_FORMAT.formatted(sessionInfo.getNetherNetId())));
         addHeader("Authorization", authenticationToken);
         // both seem random
         addHeader("Session-Id", UUID.randomUUID().toString());

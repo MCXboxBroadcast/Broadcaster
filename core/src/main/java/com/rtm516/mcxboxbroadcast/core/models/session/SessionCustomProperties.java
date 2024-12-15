@@ -17,7 +17,6 @@ public record SessionCustomProperties(
     String hostName,
     String ownerId,
     String rakNetGUID,
-    long WebRTCNetworkId,
     String worldName,
     String worldType,
     int protocol,

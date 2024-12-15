@@ -376,7 +376,7 @@ public abstract class SessionManagerCore {
 
         HttpRequest request = HttpRequest.newBuilder(Constants.START_SESSION)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(sessionInfo, playfabTicket)))
+                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(sessionInfo.getDeviceId(), playfabTicket)))
                 .build();
 
         HttpResponse<String> response;

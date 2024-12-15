@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import java.math.BigInteger;
 import java.util.Random;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ public class ExpandedSessionInfo extends SessionInfo {
     private String sessionId;
     private String handleId;
 
-    private long webrtcNetworkId;
+    private BigInteger netherNetId;
     private String deviceId;
 
     ExpandedSessionInfo(String connectionId, String xuid, SessionInfo sessionInfo) {
@@ -21,7 +22,7 @@ public class ExpandedSessionInfo extends SessionInfo {
         this.rakNetGUID = "";
 
         this.sessionId = UUID.randomUUID().toString();
-        this.webrtcNetworkId = Math.abs(RANDOM.nextLong());
+        this.netherNetId = BigInteger.valueOf(Math.abs(RANDOM.nextLong()));
         this.deviceId = UUID.randomUUID().toString();
 
         setHostName(sessionInfo.getHostName());
@@ -77,8 +78,8 @@ public class ExpandedSessionInfo extends SessionInfo {
         this.sessionId = sessionId;
     }
 
-    public long getWebrtcNetworkId() {
-        return webrtcNetworkId;
+    public BigInteger getNetherNetId() {
+        return netherNetId;
     }
 
     public String getDeviceId() {
