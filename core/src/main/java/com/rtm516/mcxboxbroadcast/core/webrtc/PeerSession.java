@@ -148,6 +148,7 @@ public class PeerSession {
                         throw new RuntimeException(e);
                     }
                 } else if (IceProcessingState.FAILED.equals(evt.getNewValue())) {
+                    rtcWebsocket.logger().error("Failure to establish ICE connection, likely due to a network issue. Please check Xbox Live status and firewall configuration.");
                     disconnect();
                 }
             });

@@ -10,7 +10,7 @@ terminalconsoleappender = "1.3.0"
 methanol = "1.7.0"
 minecraftauth = "4.1.2-SNAPSHOT"
 gson = "2.11.0"
-ice4j = "15836a645f"
+ice4j = "b3242a613c"
 bouncycastle = "1.78.1"
 sctp4j = "166efaab3b"
 
