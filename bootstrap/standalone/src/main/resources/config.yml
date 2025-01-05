@@ -11,6 +11,9 @@ session:
   # This can be useful in the case of docker networks or routing problems causing the native ping to fail
   web-query-fallback: false
 
+  # Fallback to config values if all other server query methods fail
+  config-fallback: false
+
   # The data to broadcast over xbox live, this is the default if querying is enabled
   session-info:
     host-name: "Geyser Test Server"

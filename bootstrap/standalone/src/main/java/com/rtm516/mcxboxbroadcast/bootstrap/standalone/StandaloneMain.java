@@ -72,7 +72,7 @@ public class StandaloneMain {
 
         sessionManager = new SessionManager(new FileStorageManager("./cache"), notificationManager, logger);
 
-        sessionInfo = config.session().sessionInfo();
+        sessionInfo = (SessionInfo) config.session().sessionInfo().copy();
 
         PingUtil.setWebPingEnabled(config.session().webQueryFallback());
 
@@ -132,7 +132,18 @@ public class StandaloneMain {
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
             } catch (InterruptedException | ExecutionException e) {
-                sessionManager.logger().error("Failed to ping server", e);
+                if (config.session().configFallback()) {
+                    sessionManager.logger().error("Failed to ping server, falling back to config values", e);
+
+                    sessionInfo.setHostName(config.session().sessionInfo().getHostName());
+                    sessionInfo.setWorldName(config.session().sessionInfo().getWorldName());
+                    sessionInfo.setVersion(config.session().sessionInfo().getVersion());
+                    sessionInfo.setProtocol(config.session().sessionInfo().getProtocol());
+                    sessionInfo.setPlayers(config.session().sessionInfo().getPlayers());
+                    sessionInfo.setMaxPlayers(config.session().sessionInfo().getMaxPlayers());
+                } else {
+                    sessionManager.logger().error("Failed to ping server", e);
+                }
             }
         }
     }

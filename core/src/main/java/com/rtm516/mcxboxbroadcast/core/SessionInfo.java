@@ -104,4 +104,8 @@ public class SessionInfo {
     public void setPort(int port) {
         this.port = port;
     }
+
+    public SessionInfo copy() {
+        return new SessionInfo(hostName, worldName, version, protocol, players, maxPlayers, ip, port);
+    }
 }
