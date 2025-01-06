@@ -1,10 +1,10 @@
 include(":core")
 include(":bootstrap-standalone")
 include(":bootstrap-geyser")
-include(":bootstrap-manager")
+include(":bootstrap-tester")
 project(":bootstrap-standalone").projectDir = file("bootstrap/standalone")
 project(":bootstrap-geyser").projectDir = file("bootstrap/geyser")
-project(":bootstrap-manager").projectDir = file("bootstrap/manager")
+project(":bootstrap-tester").projectDir = file("bootstrap/tester")
 
 pluginManagement {
     repositories {

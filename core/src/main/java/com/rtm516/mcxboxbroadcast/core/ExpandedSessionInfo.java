@@ -16,7 +16,7 @@ public class ExpandedSessionInfo extends SessionInfo {
     private BigInteger netherNetId;
     private String deviceId;
 
-    ExpandedSessionInfo(String connectionId, String xuid, SessionInfo sessionInfo) {
+    public ExpandedSessionInfo(String connectionId, String xuid, SessionInfo sessionInfo) {
         this.connectionId = connectionId;
         this.xuid = xuid;
         this.rakNetGUID = "";
