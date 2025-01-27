@@ -5,6 +5,7 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Handle the connection and authentication with the RTA websocket
@@ -16,6 +17,7 @@ public class RtaWebsocketClient extends WebSocketClient {
     private final Logger logger;
     private final String xuid;
     private boolean firstConnectionId = true;
+    private CompletableFuture<String> connectionIdFuture = new CompletableFuture<>();
 
     /**
      * Create a new websocket and add the Authorization header
@@ -37,6 +39,10 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     public String getConnectionId() {
         return connectionId;
+    }
+
+    public CompletableFuture<String> getConnectionIdFuture() {
+        return connectionIdFuture;
     }
 
     /**
@@ -64,6 +70,7 @@ public class RtaWebsocketClient extends WebSocketClient {
         if (message.contains("ConnectionId") && firstConnectionId) {
             Object[] parts = Constants.GSON.fromJson(message, Object[].class);
             connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
+            connectionIdFuture.complete(connectionId);
             firstConnectionId = false;
 
             // Let xbox know we want friend updates

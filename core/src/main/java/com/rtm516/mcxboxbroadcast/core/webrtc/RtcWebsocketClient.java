@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +46,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     private final List<CandidateHarvester> candidateHarvesters;
 
     private ScheduledFuture<?> heartbeatFuture;
+    private CompletableFuture<Void> onOpenFuture = new CompletableFuture<>();
 
     /**
      * Create a new websocket and add the Authorization header
@@ -69,6 +71,10 @@ public class RtcWebsocketClient extends WebSocketClient {
         this.candidateHarvesters = new ArrayList<>();
     }
 
+    public CompletableFuture<Void> onOpenFuture() {
+        return onOpenFuture;
+    }
+
     /**
      * When the web socket connects start the heartbeat to keep the connection alive
      *
@@ -82,6 +88,7 @@ public class RtcWebsocketClient extends WebSocketClient {
         heartbeatFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             send(Constants.GSON.toJson(new WsToMessage(0, null, null)));
         }, 40, 40, TimeUnit.SECONDS);
+        onOpenFuture.complete(null);
     }
 
     /**
