@@ -6,17 +6,15 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartBody;
 import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartResponse;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.models.other.ProfileSettingsResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
-import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
-
 import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
-import org.java_websocket.enums.ReadyState;
 
 import java.io.IOException;
 import java.net.URI;
@@ -24,9 +22,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -342,33 +338,11 @@ public abstract class SessionManagerCore {
      * @return The received connection ID
      */
     protected Future<String> waitForConnectionId() {
-        CompletableFuture<String> completableFuture = new CompletableFuture<>();
-
-        Executors.newCachedThreadPool().submit(() -> {
-            while (rtaWebsocket.getConnectionId() == null) {
-                Thread.sleep(100);
-            }
-            completableFuture.complete(rtaWebsocket.getConnectionId());
-
-            return null;
-        });
-
-        return completableFuture;
+        return this.rtaWebsocket.getConnectionIdFuture();
     }
 
     protected Future<Void> waitForRTCConnection() {
-        CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-
-        Executors.newCachedThreadPool().submit(() -> {
-            while (rtcWebsocket.getReadyState() == ReadyState.NOT_YET_CONNECTED) {
-                Thread.sleep(100);
-            }
-            completableFuture.complete(null);
-
-            return null;
-        });
-
-        return completableFuture;
+        return this.rtcWebsocket.onOpenFuture();
     }
 
     protected String setupSession() {
