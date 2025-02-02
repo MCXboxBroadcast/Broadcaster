@@ -11,9 +11,8 @@ dependencies {
     api(libs.minecraftauth)
     api(libs.bundles.protocol)
 
-    api(libs.ice4j)
-    api(libs.bundles.bouncycastle)
-    api(libs.sctp4j)
+    api(libs.webrtc)
+    api(variantOf(libs.webrtc) { classifier("windows-x86_64") })
 }
 
 sourceSets {

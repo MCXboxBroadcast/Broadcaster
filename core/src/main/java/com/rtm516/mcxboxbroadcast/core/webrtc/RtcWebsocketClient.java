@@ -21,13 +21,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.ice4j.Transport;
-import org.ice4j.TransportAddress;
-import org.ice4j.ice.harvest.CandidateHarvester;
-import org.ice4j.ice.harvest.StunCandidateHarvester;
-import org.ice4j.ice.harvest.TurnCandidateHarvester;
-import org.ice4j.security.LongTermCredential;
+
+import dev.onvoid.webrtc.PeerConnectionFactory;
+import dev.onvoid.webrtc.RTCConfiguration;
+import dev.onvoid.webrtc.RTCIceServer;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -35,18 +32,17 @@ import org.java_websocket.handshake.ServerHandshake;
  * Handle the connection and authentication with the RTA websocket
  */
 public class RtcWebsocketClient extends WebSocketClient {
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     private final Logger logger;
     private final SessionInfo sessionInfo;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Map<String, PeerSession> activeSessions;
-    private final List<CandidateHarvester> candidateHarvesters;
 
     private ScheduledFuture<?> heartbeatFuture;
     private CompletableFuture<Void> onOpenFuture = new CompletableFuture<>();
+
+    private PeerConnectionFactory factory = new PeerConnectionFactory();
+    private RTCIceServer iceServer = new RTCIceServer();
 
     /**
      * Create a new websocket and add the Authorization header
@@ -68,7 +64,6 @@ public class RtcWebsocketClient extends WebSocketClient {
         this.scheduledExecutorService = scheduledExecutorService;
 
         this.activeSessions = new HashMap<>();
-        this.candidateHarvesters = new ArrayList<>();
     }
 
     public CompletableFuture<Void> onOpenFuture() {
@@ -133,7 +128,10 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void handleConnectRequest(BigInteger from, String sessionId, String message) {
-        PeerSession session = new PeerSession(this, candidateHarvesters);
+        RTCConfiguration config = new RTCConfiguration();
+        config.iceServers.add(iceServer);
+
+        PeerSession session = new PeerSession(this, factory, config);
         activeSessions.put(sessionId, session);
         session.receiveOffer(from, sessionId, message); // TODO Make this part of the constructor?
     }
@@ -152,30 +150,20 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void initialize(JsonObject message) {
-        // In the event we are sent another set of auth servers, clear the current list
-        candidateHarvesters.clear();
+        // In the event we are sent another set of auth servers, clear the current server
+        iceServer = new RTCIceServer();
 
         JsonArray turnAuthServers = message.getAsJsonArray("TurnAuthServers");
         for (JsonElement authServerElement : turnAuthServers) {
             JsonObject authServer = authServerElement.getAsJsonObject();
             String username = authServer.get("Username").getAsString();
             String password = authServer.get("Password").getAsString();
-            authServer.getAsJsonArray("Urls").forEach(url -> {
-                String[] parts = url.getAsString().split(":");
-                String type = parts[0];
-                String host = parts[1];
-                int port = Integer.parseInt(parts[2]);
 
-                if ("stun".equals(type)) {
-                    candidateHarvesters.add(new StunCandidateHarvester(new TransportAddress(host, port, Transport.UDP)));
-                } else if ("turn".equals(type)) {
-                    candidateHarvesters.add(new TurnCandidateHarvester(
-                            new TransportAddress(host, port, Transport.UDP),
-                            new LongTermCredential(username, password)
-                    ));
-                } else {
-                    throw new IllegalStateException("Unexpected value: " + type);
-                }
+            iceServer.username = username;
+            iceServer.password = password;
+
+            authServer.getAsJsonArray("Urls").forEach(url -> {
+                iceServer.urls.add(url.getAsString());
             });
         }
     }

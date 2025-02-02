@@ -5,6 +5,9 @@ import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.webrtc.bedrock.RedirectPacketHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.compression.CompressionHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.encryption.BedrockEncryptionEncoder;
+import dev.onvoid.webrtc.RTCDataChannel;
+import dev.onvoid.webrtc.RTCDataChannelBuffer;
+import dev.onvoid.webrtc.RTCDataChannelObserver;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import javax.crypto.SecretKey;
@@ -19,12 +22,10 @@ import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
 import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 import org.cloudburstmc.protocol.common.util.VarInts;
-import pe.pi.sctp4j.sctp.SCTPByteStreamListener;
-import pe.pi.sctp4j.sctp.SCTPStream;
 
-public class MinecraftDataHandler implements SCTPByteStreamListener {
+public class MinecraftDataHandler implements RTCDataChannelObserver {
     private final BedrockPacketCodec packetCodec = new BedrockPacketCodec_v3();
-    private final SCTPStream sctpStream;
+    private final RTCDataChannel dataChannel;
     private final BedrockCodec codec;
     private final BedrockCodecHelper helper;
     private final RedirectPacketHandler redirectPacketHandler;
@@ -36,8 +37,8 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     private ByteBuf concat;
     private int expectedLength;
 
-    public MinecraftDataHandler(SCTPStream sctpStream, BedrockCodec codec, SessionInfo sessionInfo, Logger logger) {
-        this.sctpStream = sctpStream;
+    public MinecraftDataHandler(RTCDataChannel dataChannel, BedrockCodec codec, SessionInfo sessionInfo, Logger logger) {
+        this.dataChannel = dataChannel;
         this.codec = codec;
         this.helper = codec.createHelper();
         this.logger = logger.prefixed("MinecraftDataHandler");
@@ -46,14 +47,24 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
     }
 
     @Override
-    public void onMessage(SCTPStream sctpStream, byte[] bytes) {
+    public void onBufferedAmountChange(long previousAmount) {
+
+    }
+
+    @Override
+    public void onStateChange() {
+
+    }
+
+    @Override
+    public void onMessage(RTCDataChannelBuffer buffer) {
         try {
-            if (bytes.length == 0) {
+            if (buffer.data.capacity() == 0) {
                 throw new IllegalStateException("Expected at least 2 bytes");
             }
             // TODO Only do this if segmentcount > 0
-            ByteBuf buf = Unpooled.buffer(bytes.length);
-            buf.writeBytes(bytes);
+            ByteBuf buf = Unpooled.buffer(buffer.data.capacity());
+            buf.writeBytes(buffer.data);
 
             byte remainingSegments = buf.readByte();
 
@@ -102,14 +113,6 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
         }
     }
 
-    @Override
-    public void onMessage(SCTPStream sctpStream, String s) {
-    }
-
-    @Override
-    public void close(SCTPStream sctpStream) {
-    }
-
     public void sendPacket(BedrockPacket packet) {
         logger.debug("S -> C: " + packet);
         try {
@@ -156,8 +159,8 @@ public class MinecraftDataHandler implements SCTPByteStreamListener {
                 sendBuf.writeByte(remainingSegements);
                 sendBuf.writeBytes(dataBuf, segmentLength);
 
-                byte[] data = encode(sendBuf);
-                sctpStream.send(data);
+//                byte[] data = encode(sendBuf);
+                dataChannel.send(new RTCDataChannelBuffer(sendBuf.nioBuffer(), true));
             }
         } catch (Exception e) {
             logger.error("Failed to send packet to NetherNet", e);

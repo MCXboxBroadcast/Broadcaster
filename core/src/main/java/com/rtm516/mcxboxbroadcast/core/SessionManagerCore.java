@@ -72,11 +72,8 @@ public abstract class SessionManagerCore {
         this.authManager = new AuthManager(notificationManager, storageManager, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
-
+        
         this.galleryManager = new GalleryManager(httpClient, logger, this);
-
-        // Load the ICE configuration
-        CustomIceConfigSource.install(logger);
     }
 
     /**
