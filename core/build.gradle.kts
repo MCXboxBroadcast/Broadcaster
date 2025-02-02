@@ -13,6 +13,7 @@ dependencies {
 
     api(libs.webrtc)
     api(variantOf(libs.webrtc) { classifier("windows-x86_64") })
+    api(variantOf(libs.webrtc) { classifier("linux-x86_64") })
 }
 
 sourceSets {
