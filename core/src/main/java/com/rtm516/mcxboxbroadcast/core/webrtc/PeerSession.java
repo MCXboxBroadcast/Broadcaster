@@ -76,8 +76,6 @@ public class PeerSession implements PeerConnectionObserver {
 
     @Override
     public void onIceCandidate(RTCIceCandidate candidate) {
-        rtcWebsocket.logger().debug("ICE candidate: " + candidate);
-
         String jsonAdd = Constants.GSON.toJson(new WsToMessage(
             1, from, "CANDIDATEADD " + sessionId + " " + candidate.sdp
         ));
@@ -126,7 +124,7 @@ public class PeerSession implements PeerConnectionObserver {
 
     @Override
     public void onIceCandidateError(RTCPeerConnectionIceErrorEvent event) {
-        rtcWebsocket.logger().error("ICE candidate error: " + event);
+        rtcWebsocket.logger().error("ICE candidate error: " + event.getAddress() + ":"  + event.getPort() + " -> " + event.getUrl() + " = " + event.getErrorCode() + ": " + event.getErrorText());
     }
 
     @Override
