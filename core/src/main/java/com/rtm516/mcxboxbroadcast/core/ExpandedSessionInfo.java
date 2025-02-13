@@ -25,8 +25,8 @@ public class ExpandedSessionInfo extends SessionInfo {
         this.netherNetId = BigInteger.valueOf(Math.abs(RANDOM.nextLong()));
         this.deviceId = UUID.randomUUID().toString();
 
-        setHostName(sessionInfo.getHostName());
-        setWorldName(sessionInfo.getWorldName());
+        setHostName(sessionInfo.getHostName().isEmpty() ? "MCXboxBroadcast" : sessionInfo.getHostName());
+        setWorldName(sessionInfo.getWorldName().isEmpty() ? getHostName() : sessionInfo.getWorldName());
         setVersion(sessionInfo.getVersion());
         setProtocol(sessionInfo.getProtocol());
         setPlayers(sessionInfo.getPlayers());
@@ -36,8 +36,8 @@ public class ExpandedSessionInfo extends SessionInfo {
     }
 
     public void updateSessionInfo(SessionInfo sessionInfo) {
-        setHostName(sessionInfo.getHostName());
-        setWorldName(sessionInfo.getWorldName().isEmpty() ? sessionInfo.getHostName() : sessionInfo.getWorldName());
+        setHostName(sessionInfo.getHostName().isEmpty() ? "MCXboxBroadcast" : sessionInfo.getHostName());
+        setWorldName(sessionInfo.getWorldName().isEmpty() ? getHostName() : sessionInfo.getWorldName());
         setVersion(sessionInfo.getVersion());
         setProtocol(sessionInfo.getProtocol());
         setPlayers(sessionInfo.getPlayers());
