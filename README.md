@@ -73,6 +73,7 @@ Note: This also requires a MongoDB instance to be running
 
 ## Custom Image
 ![Custom image](https://github.com/user-attachments/assets/b00832fd-8fa6-4c7a-b764-342bcf6fc037)
+
 You can add a custom image to the profile page for the account by placing a `screenshot.jpg` in the same directory as the `config.yml`.
 
 The best settings for this image are `1200x675`, quality `90` and chroma subsampling `4:2:0`.
