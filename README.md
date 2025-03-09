@@ -20,6 +20,7 @@ You use this project at your own risk, the contributors are not responsible for 
  - Shows as online and playing Minecraft in the Xbox app and website
  - Multi-account support
  - Web manager for larger networks
+ - Uploading of a custom image for the account (see below for more info)
 
 ## Pterodactyl Panel
 There is an egg for easy instance creation supplied for [Pterodactyl Panel](https://pterodactyl.io/), this being `egg-m-c-xbox-broadcast.json`
@@ -69,6 +70,14 @@ Note: This also requires a MongoDB instance to be running
    ![Server options](https://github.com/user-attachments/assets/e203eac3-7190-4510-9f5b-ef87de507cab)
    ![Manager settings](https://github.com/user-attachments/assets/11f85c70-9b50-4039-bddb-961833b7d11e)
 </details>
+
+## Custom Image
+![Custom image](https://github.com/user-attachments/assets/b00832fd-8fa6-4c7a-b764-342bcf6fc037)
+You can add a custom image to the profile page for the account by placing a `screenshot.jpg` in the same directory as the `config.yml`.
+
+The best settings for this image are `1200x675`, quality `90` and chroma subsampling `4:2:0`.
+
+This can take a few minutes to update on the Xbox Live servers and show ingame.
 
 ## Commands
 For the extension version prefix with `/mcxboxbroadcast`

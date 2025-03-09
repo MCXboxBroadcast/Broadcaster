@@ -43,6 +43,8 @@ public class Constants {
     public static final String FOLLOWER = "https://social.xboxlive.com/users/me/people/follower/xuid(%s)";
     public static final String PROFILE_SETTINGS = "https://profile.xboxlive.com/users/xuid(%s)/profile/settings?settings=Gamertag";
 
+    public static final String GALLERY = "https://persona.franchise.minecraft-services.net/api/v1.0/gallery";
+
     /**
      * Gathered from scraped web requests
      */

@@ -70,7 +70,7 @@ public class StandaloneMain {
         // TODO Support multiple notification types
         notificationManager = new SlackNotificationManager(logger, config.slackWebhook());
 
-        sessionManager = new SessionManager(new FileStorageManager("./cache"), notificationManager, logger);
+        sessionManager = new SessionManager(new FileStorageManager("./cache", "./screenshot.jpg"), notificationManager, logger);
 
         sessionInfo = (SessionInfo) config.session().sessionInfo().copy();
 
@@ -89,7 +89,7 @@ public class StandaloneMain {
             sessionManager.shutdown();
 
             // Create a new session manager, but reuse the notification manager as config hasn't been reloaded
-            sessionManager = new SessionManager(new FileStorageManager("./cache"), notificationManager, logger);
+            sessionManager = new SessionManager(new FileStorageManager("./cache", "./screenshot.jpg"), notificationManager, logger);
 
             createSession();
         } catch (SessionCreationException | SessionUpdateException e) {

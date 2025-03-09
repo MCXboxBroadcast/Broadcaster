@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core.storage;
 
+import java.io.File;
 import java.io.IOException;
 
 public interface StorageManager {
@@ -16,6 +17,8 @@ public interface StorageManager {
     void currentSessionResponse(String data) throws IOException;
 
     StorageManager subSession(String id);
+
+    File screenshot();
 
     void cleanup() throws IOException;
 

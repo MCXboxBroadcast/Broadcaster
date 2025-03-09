@@ -9,9 +9,11 @@ import java.util.stream.Stream;
 
 public class FileStorageManager implements StorageManager {
     private final String cacheFolder;
+    private final String screenshotPath;
 
-    public FileStorageManager(String cacheFolder) {
+    public FileStorageManager(String cacheFolder, String screenshotPath) {
         this.cacheFolder = cacheFolder;
+        this.screenshotPath = screenshotPath;
 
         try {
             Files.createDirectories(Paths.get(cacheFolder));
@@ -82,7 +84,12 @@ public class FileStorageManager implements StorageManager {
 
     @Override
     public StorageManager subSession(String id) {
-        return new FileStorageManager(Paths.get(cacheFolder, id).toString());
+        return new FileStorageManager(Paths.get(cacheFolder, id).toString(), screenshotPath);
+    }
+
+    @Override
+    public File screenshot() {
+        return new File(screenshotPath);
     }
 
     @Override
