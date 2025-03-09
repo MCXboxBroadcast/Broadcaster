@@ -23,6 +23,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -203,7 +204,7 @@ public abstract class SessionManagerCore {
             // Update the current session XUID
             this.sessionInfo.setXuid(tokenInfo.userXUID());
 
-            mcToken = setupSession();
+            mcToken = setupSession(this.sessionInfo.getDeviceId());
 
             // Create the RTA websocket connection
             setupRtaWebsocket();
@@ -226,14 +227,16 @@ public abstract class SessionManagerCore {
             } catch (InterruptedException | ExecutionException e) {
                 throw new SessionCreationException("Unable to connect to WebRTC for session: " + e.getMessage());
             }
+        } else {
+            mcToken = setupSession(UUID.randomUUID().toString());
+        }
 
-            // Set the showcase image to the current screenshot
-            File imageFile = storageManager.screenshot();
-            if (imageFile.exists()) {
-                logger.info("Setting showcase image");
-                if (galleryManager.setShowcase(imageFile)) {
-                    logger.info("Successfully set showcase image");
-                }
+        // Set the showcase image to the current screenshot
+        File imageFile = storageManager.screenshot();
+        if (imageFile.exists()) {
+            logger.info("Setting showcase image");
+            if (galleryManager.setShowcase(imageFile)) {
+                logger.info("Successfully set showcase image");
             }
         }
 
@@ -368,12 +371,12 @@ public abstract class SessionManagerCore {
         return this.rtcWebsocket.onOpenFuture();
     }
 
-    protected String setupSession() {
+    protected String setupSession(String deviceId) {
         String playfabTicket = this.authManager.getPlayfabSessionTicket();
 
         HttpRequest request = HttpRequest.newBuilder(Constants.START_SESSION)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(sessionInfo.getDeviceId(), playfabTicket)))
+                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(deviceId, playfabTicket)))
                 .build();
 
         HttpResponse<String> response;
