@@ -28,6 +28,7 @@ public class CreateSessionRequest extends JoinSessionRequest {
             "Survival",
             sessionInfo.getProtocol(),
             sessionInfo.getVersion(),
+            false,
             false
         ));
     }

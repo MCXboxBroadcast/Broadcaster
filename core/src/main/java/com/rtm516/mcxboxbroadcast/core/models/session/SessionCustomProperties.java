@@ -21,6 +21,7 @@ public record SessionCustomProperties(
     String worldType,
     int protocol,
     String version,
-    boolean isEditorWorld
+    boolean isEditorWorld,
+    boolean isHardcore
 ) {
 }
