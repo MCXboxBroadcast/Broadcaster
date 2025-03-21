@@ -487,20 +487,27 @@ public abstract class SessionManagerCore {
      */
     private void checkGamertagUpdate(XboxTokenInfo tokenInfo) {
         try {
-            ProfileSettingsResponse response = Constants.GSON.fromJson(httpClient.send(HttpRequest.newBuilder()
+            HttpResponse<String> response = httpClient.send(HttpRequest.newBuilder()
                 .uri(URI.create(Constants.PROFILE_SETTINGS.formatted(tokenInfo.userXUID())))
                 .header("Content-Type", "application/json")
                 .header("Authorization", tokenInfo.tokenHeader())
                 .header("x-xbl-contract-version", "3")
                 .GET()
-                .build(), HttpResponse.BodyHandlers.ofString()).body(), ProfileSettingsResponse.class);
+                .build(), HttpResponse.BodyHandlers.ofString());
 
-            String newGamertag = response.profileUsers().get(0).settings().get(0).value();
+            ProfileSettingsResponse profileSettingsResponse = Constants.GSON.fromJson(response.body(), ProfileSettingsResponse.class);
+
+            if (profileSettingsResponse == null) {
+                logger.error("Unable to get profile settings (" + response.statusCode() + "): " + response.body());
+                return;
+            }
+
+            String newGamertag = profileSettingsResponse.profileUsers().get(0).settings().get(0).value();
             if (!newGamertag.equals(tokenInfo.gamertag())) {
                 logger.info("Gamertag changed from " + tokenInfo.gamertag() + " to " + newGamertag);
                 authManager.updateGamertag(newGamertag);
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException | InterruptedException | NullPointerException e) {
             logger.error("Failed to check profile settings", e);
         }
     }
