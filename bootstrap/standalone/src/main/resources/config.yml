@@ -19,7 +19,7 @@ session:
     host-name: "Geyser Test Server"
     world-name: "\u00A7aGeyserMC \u00A7bDemo \u00A7f& \u00A7cTest \u00A7fServer"
     version: 1.21.70
-    protocol: 784
+    protocol: 786
     players: 0
     max-players: 20
     ip: test.geysermc.org
