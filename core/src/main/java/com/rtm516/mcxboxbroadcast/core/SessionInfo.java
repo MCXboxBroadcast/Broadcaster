@@ -74,6 +74,10 @@ public class SessionInfo {
     }
 
     public int getPlayers() {
+        // Allows the join button on 1.21.70 to show up
+        if (players <= 0) {
+            return 1;
+        }
         return players;
     }
 
@@ -82,6 +86,10 @@ public class SessionInfo {
     }
 
     public int getMaxPlayers() {
+        // Prevents the server from showing as full
+        if (maxPlayers <= getPlayers()) {
+            return getPlayers() + 1;
+        }
         return maxPlayers;
     }
 
