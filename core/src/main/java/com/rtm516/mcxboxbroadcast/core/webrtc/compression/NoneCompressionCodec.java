@@ -13,8 +13,9 @@ public class NoneCompressionCodec implements CompressionCodec {
 
     @Override
     public ByteBuf decode(ByteBuf msg) {
-        if (msg.readUnsignedByte() != compressionIdentifier()) {
-            throw new IllegalArgumentException("Unexpected compression identifier");
+        short compIdent = msg.readUnsignedByte();
+        if (compIdent != compressionIdentifier()) {
+            throw new IllegalArgumentException("Unexpected compression identifier: got " + String.format("0x%02X", compIdent) + ", expected " + String.format("0x%02X", compressionIdentifier()));
         }
         return msg;
     }
