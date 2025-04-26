@@ -285,7 +285,7 @@ public abstract class SessionManagerCore {
         // Check to make sure the handle was created
         if (createHandleResponse.statusCode() != 200 && createHandleResponse.statusCode() != 201) {
             logger.debug("Failed to create session handle '"  + lastSessionResponse + "' (" + createHandleResponse.statusCode() + ")");
-            throw new SessionCreationException("Unable to create session handle, got status " + createHandleResponse.statusCode() + " trying to create");
+            throw new SessionCreationException("Unable to create session handle, got status " + createHandleResponse.statusCode() + " trying to create: " + createHandleResponse.body());
         }
     }
 
@@ -327,7 +327,7 @@ public abstract class SessionManagerCore {
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
             logger.debug("Got update session response: " + createSessionResponse.body());
-            throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
+            throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update: " + createSessionResponse.body());
         }
 
         return createSessionResponse.body();
