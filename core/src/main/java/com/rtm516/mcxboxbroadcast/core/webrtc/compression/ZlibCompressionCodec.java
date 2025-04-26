@@ -25,8 +25,9 @@ public class ZlibCompressionCodec implements CompressionCodec {
 
     @Override
     public ByteBuf decode(ByteBuf msg) throws Exception {
-        if (msg.readUnsignedByte() != compressionIdentifier()) {
-            throw new IllegalArgumentException("Unexpected compression identifier");
+        short compIdent = msg.readUnsignedByte();
+        if (compIdent != compressionIdentifier()) {
+            throw new IllegalArgumentException("Unexpected compression identifier: got " + String.format("0x%02X", compIdent) + ", expected " + String.format("0x%02X", compressionIdentifier()));
         }
         return zlib.inflate(msg, MAX_DECOMPRESSED_BYTES);
     }

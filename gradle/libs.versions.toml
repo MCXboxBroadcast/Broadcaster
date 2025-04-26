@@ -13,7 +13,7 @@ gson = "2.11.0"
 ice4j = "b3242a613c"
 bouncycastle = "1.78.1"
 sctp4j = "166efaab3b"
-webrtc = "0.9.0"
+webrtc = "0.10.0"
 
 shadow = "8.3.0"
 indra = "3.1.3"
