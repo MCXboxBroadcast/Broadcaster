@@ -227,7 +227,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         startGamePacket.setMultiplayerCorrelationId("");
         startGamePacket.setVanillaVersion("*");
 
-        startGamePacket.setAuthoritativeMovementMode(AuthoritativeMovementMode.CLIENT);
+        startGamePacket.setAuthoritativeMovementMode(AuthoritativeMovementMode.SERVER);
         startGamePacket.setRewindHistorySize(0);
         startGamePacket.setServerAuthoritativeBlockBreaking(false);
 
