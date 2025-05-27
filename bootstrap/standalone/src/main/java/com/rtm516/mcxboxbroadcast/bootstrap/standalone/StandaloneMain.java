@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.rtm516.mcxboxbroadcast.core.BuildData;
@@ -59,7 +60,9 @@ public class StandaloneMain {
         }
 
         try {
-            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, StandaloneConfig.class);
+            config = new ObjectMapper(new YAMLFactory())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .readValue(configFile, StandaloneConfig.class);
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
@@ -127,8 +130,6 @@ public class StandaloneMain {
                 // Update the session information
                 sessionInfo.setHostName(pong.motd());
                 sessionInfo.setWorldName(pong.subMotd());
-                sessionInfo.setVersion(pong.version());
-                sessionInfo.setProtocol(pong.protocolVersion());
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
             } catch (InterruptedException | ExecutionException e) {
@@ -137,8 +138,6 @@ public class StandaloneMain {
 
                     sessionInfo.setHostName(config.session().sessionInfo().getHostName());
                     sessionInfo.setWorldName(config.session().sessionInfo().getWorldName());
-                    sessionInfo.setVersion(config.session().sessionInfo().getVersion());
-                    sessionInfo.setProtocol(config.session().sessionInfo().getProtocol());
                     sessionInfo.setPlayers(config.session().sessionInfo().getPlayers());
                     sessionInfo.setMaxPlayers(config.session().sessionInfo().getMaxPlayers());
                 } else {

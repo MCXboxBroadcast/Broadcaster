@@ -7,8 +7,6 @@ public class SessionInfo {
     private String hostName;
     @JsonProperty("world-name")
     private String worldName;
-    private String version;
-    private int protocol;
     private int players;
     @JsonProperty("max-players")
     private int maxPlayers;
@@ -18,11 +16,9 @@ public class SessionInfo {
     public SessionInfo() {
     }
 
-    public SessionInfo(String hostName, String worldName, String version, int protocol, int players, int maxPlayers, String ip, int port) {
+    public SessionInfo(String hostName, String worldName, int players, int maxPlayers, String ip, int port) {
         this.hostName = hostName;
         this.worldName = worldName;
-        this.version = version;
-        this.protocol = protocol;
         this.players = players;
         this.maxPlayers = maxPlayers;
         this.ip = ip;
@@ -46,31 +42,11 @@ public class SessionInfo {
     }
 
     public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        // Parse version codes following these examples, this is because geyser can give us lots of different version formats
-        // 1.21.20
-        // 1.21.20/1.21.21
-        // 1.21.20 - 1.21.22
-        if (version.contains("-")) {
-            String[] split = version.split("-");
-            version = split[split.length - 1].trim();
-        } else if (version.contains("/")) {
-            String[] split = version.split("/");
-            version = split[split.length - 1].trim();
-        }
-
-        this.version = version;
+        return Constants.BEDROCK_CODEC.getMinecraftVersion();
     }
 
     public int getProtocol() {
-        return protocol;
-    }
-
-    public void setProtocol(int protocol) {
-        this.protocol = protocol;
+        return Constants.BEDROCK_CODEC.getProtocolVersion();
     }
 
     public int getPlayers() {
@@ -114,6 +90,6 @@ public class SessionInfo {
     }
 
     public SessionInfo copy() {
-        return new SessionInfo(hostName, worldName, version, protocol, players, maxPlayers, ip, port);
+        return new SessionInfo(hostName, worldName, players, maxPlayers, ip, port);
     }
 }
