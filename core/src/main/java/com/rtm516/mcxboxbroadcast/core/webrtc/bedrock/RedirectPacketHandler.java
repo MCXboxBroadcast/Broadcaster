@@ -18,6 +18,7 @@ import org.cloudburstmc.protocol.bedrock.data.GameType;
 import org.cloudburstmc.protocol.bedrock.data.PacketCompressionAlgorithm;
 import org.cloudburstmc.protocol.bedrock.data.PlayerPermission;
 import org.cloudburstmc.protocol.bedrock.data.SpawnBiomeType;
+import org.cloudburstmc.protocol.bedrock.data.auth.CertificateChainPayload;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacketHandler;
 import org.cloudburstmc.protocol.bedrock.packet.ClientCacheStatusPacket;
@@ -133,12 +134,13 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
         info.setWorldTemplateId(UUID.randomUUID());
         info.setWorldTemplateVersion("*");
+        info.setVibrantVisualsForceDisabled(true);
+        info.setForcedToAccept(false);
         dataHandler.sendPacket(info);
 
         try {
             //todo use encryption
-            Utils.validateConnection(dataHandler, packet.getChain(), packet.getExtra());
-
+            Utils.validateConnection(dataHandler, packet.getAuthPayload(), packet.getClientJwt());
         } catch (AssertionError | Exception error) {
             disconnect("disconnect.loginFailed");
         }
@@ -234,6 +236,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         startGamePacket.setServerId("");
         startGamePacket.setWorldId("");
         startGamePacket.setScenarioId("");
+        startGamePacket.setOwnerId("");
 
         dataHandler.sendPacket(startGamePacket);
 

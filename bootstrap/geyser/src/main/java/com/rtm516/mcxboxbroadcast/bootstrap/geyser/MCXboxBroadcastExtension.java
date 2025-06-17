@@ -1,6 +1,7 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
 import com.rtm516.mcxboxbroadcast.core.BuildData;
+import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -126,7 +127,7 @@ public class MCXboxBroadcastExtension implements Extension {
     public void onPostInitialize(GeyserPostInitializeEvent event) {
         logger = new ExtensionLoggerImpl(this.logger());
 
-        logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION);
+        logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION + " for Bedrock " + Constants.BEDROCK_CODEC.getMinecraftVersion() + " (" + Constants.BEDROCK_CODEC.getProtocolVersion() + ")");
 
         // Load the config file
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
