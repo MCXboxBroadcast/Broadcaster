@@ -22,20 +22,4 @@ public interface StorageManager {
 
     void cleanup() throws IOException;
 
-    /**
-     * @deprecated Use {@link #cache()} instead
-     */
-    @Deprecated
-    String liveToken() throws IOException;
-    /**
-     * @deprecated Use {@link #cache()} instead
-     */
-    @Deprecated
-    void liveToken(String data) throws IOException;
-
-    /**
-     * @deprecated Use {@link #cache()} instead
-     */
-    @Deprecated
-    void xboxToken(String data) throws IOException;
 }

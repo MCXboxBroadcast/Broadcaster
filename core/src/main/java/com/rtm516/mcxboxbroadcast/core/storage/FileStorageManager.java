@@ -101,19 +101,4 @@ public class FileStorageManager implements StorageManager {
             cache.toFile().delete();
         }
     }
-
-    @Override
-    public String liveToken() throws IOException {
-        return read("live_token.json");
-    }
-
-    @Override
-    public void liveToken(String data) throws IOException {
-        write("live_token.json", data);
-    }
-
-    @Override
-    public void xboxToken(String data) throws IOException {
-        write("xbox_token.json", data);
-    }
 }
