@@ -3,6 +3,9 @@ package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.webrtc.MinecraftDataHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.Utils;
+
+import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
 import org.cloudburstmc.math.vector.Vector2f;
 import org.cloudburstmc.math.vector.Vector3f;
@@ -32,12 +35,15 @@ import org.cloudburstmc.protocol.bedrock.packet.ResourcePackStackPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ResourcePacksInfoPacket;
 import org.cloudburstmc.protocol.bedrock.packet.StartGamePacket;
 import org.cloudburstmc.protocol.bedrock.packet.TransferPacket;
+import org.cloudburstmc.protocol.bedrock.util.ChainValidationResult;
 import org.cloudburstmc.protocol.common.PacketSignal;
 import org.cloudburstmc.protocol.common.util.OptionalBoolean;
 
 public class RedirectPacketHandler implements BedrockPacketHandler {
     private final MinecraftDataHandler dataHandler;
     private final SessionInfo sessionInfo;
+
+    private ChainValidationResult.IdentityData identityData;
 
     /**
      * In Protocol V554 and above, RequestNetworkSettingsPacket is sent before LoginPacket.
@@ -140,7 +146,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         try {
             //todo use encryption
-            Utils.validateConnection(dataHandler, packet.getAuthPayload(), packet.getClientJwt());
+            identityData = Utils.validateConnection(dataHandler, packet.getAuthPayload(), packet.getClientJwt());
         } catch (AssertionError | Exception error) {
             disconnect("disconnect.loginFailed");
         }
@@ -239,6 +245,12 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         startGamePacket.setOwnerId("");
 
         dataHandler.sendPacket(startGamePacket);
+
+        try {
+            if (identityData != null) {
+                dataHandler.sessionManager().storageManager().playerHistory().lastSeen(identityData.xuid, Instant.now());
+            }
+        } catch (IOException ignored) { }
 
         // can only start transferring after the StartGame packet
         TransferPacket transferPacket = new TransferPacket();

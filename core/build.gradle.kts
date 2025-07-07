@@ -14,6 +14,7 @@ dependencies {
     api(libs.ice4j)
     api(libs.bundles.bouncycastle)
     api(libs.sctp4j)
+    api(libs.sqlite)
 }
 
 sourceSets {

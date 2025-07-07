@@ -38,8 +38,8 @@ public abstract class SessionManagerCore {
     protected final HttpClient httpClient;
     protected final Logger logger;
     protected final Logger coreLogger;
-    protected final StorageManager storageManager;
-    protected final NotificationManager notificationManager;
+    private final StorageManager storageManager;
+    private final NotificationManager notificationManager;
     private final GalleryManager galleryManager;
 
     protected RtaWebsocketClient rtaWebsocket;
@@ -408,7 +408,7 @@ public abstract class SessionManagerCore {
         if (rtcWebsocket != null) {
             rtcWebsocket.close();
         }
-        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread());
+        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread(), this);
         rtcWebsocket.connect();
     }
 
@@ -528,5 +528,14 @@ public abstract class SessionManagerCore {
      */
     public String getMCTokenHeader() {
         return mcToken;
+    }
+
+    /**
+     * Get the storage manager for this session manager
+     *
+     * @return The storage manager
+     */
+    public StorageManager storageManager() {
+        return storageManager;
     }
 }

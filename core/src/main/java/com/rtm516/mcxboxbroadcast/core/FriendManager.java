@@ -10,12 +10,14 @@ import com.rtm516.mcxboxbroadcast.core.models.friend.FriendStatusResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.FollowerResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
+import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -192,12 +194,53 @@ public class FriendManager {
         callInternalProcess();
     }
 
+    public void init(FriendSyncConfig friendSyncConfig) {
+        // Initialize the auto friend sync if enabled
+        initAutoFriend(friendSyncConfig);
+
+        if (!friendSyncConfig.shouldExpire()) return;
+
+        StorageManager.PlayerHistoryStorage playerHistory = sessionManager.storageManager().playerHistory();
+        if (playerHistory.isFirstRun()) {
+            logger.info("Player history is being initialized for the first time, this may take a few seconds");
+            try {
+                for (FollowerResponse.Person friend : sessionManager.friendManager().get()) {
+                    playerHistory.lastSeen(friend.xuid, Instant.now());
+                }
+            } catch (Exception e) {
+                logger.error("Failed to initialize player history", e);
+            }
+        } else {
+            // TODO cleanup entries that are no longer friends
+        }
+
+        sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
+            try {
+                Map<String, String> xuidGamertagMap = new HashMap<>();
+                lastFriendCache().forEach(person -> xuidGamertagMap.put(person.xuid, person.gamertag));
+
+                playerHistory.all().forEach((xuid, lastSeen) -> {
+                    if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expireDays() * 24 * 3600))) {
+                        try {
+                            logger.info("Queuing removal of player " + xuid + " from friends due to inactivity");
+                            remove(xuid, xuidGamertagMap.getOrDefault(xuid, "NOT CACHED"));
+                        } catch (Exception e) {
+                            logger.error("Failed to remove player " + xuid + " from friends for inactivity", e);
+                        }
+                    }
+                });
+            } catch (IOException e) {
+                logger.error("Failed to clean up friends list", e);
+            }
+        }, 10, friendSyncConfig.expireCheck(), TimeUnit.SECONDS);
+    }
+
     /**
      * Set up a scheduled task to automatically follow/unfollow friends
      *
      * @param friendSyncConfig The config to use for the auto friend sync
      */
-    public void initAutoFriend(FriendSyncConfig friendSyncConfig) {
+    private void initAutoFriend(FriendSyncConfig friendSyncConfig) {
         this.initialInvite = friendSyncConfig.initialInvite();
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
