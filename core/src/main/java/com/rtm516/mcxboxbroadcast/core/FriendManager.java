@@ -138,7 +138,7 @@ public class FriendManager {
         toAdd.put(xuid, gamertag);
 
         // Process the add/remove requests
-        internalProcess();
+        callInternalProcess();
     }
 
     /**
@@ -191,7 +191,7 @@ public class FriendManager {
         toRemove.put(xuid, gamertag);
 
         // Process the add/remove requests
-        internalProcess();
+        callInternalProcess();
     }
 
     /**
@@ -248,147 +248,157 @@ public class FriendManager {
     }
 
     /**
-     * Internal function to process the add/remove requests
-     * This will also handle retrying requests if they fail due to rate limits or other errors
+     * Calls the internal process to handle adding/removing friends if it isn't already running
      */
-    private void internalProcess() {
+    private void callInternalProcess() {
         // If we are already running then don't run again
         if (internalScheduledFuture != null && !internalScheduledFuture.isDone()) {
             return;
         }
 
-        internalScheduledFuture = sessionManager.scheduledThread().submit(() -> {
-            int retryAfter = 0;
+        internalScheduledFuture = sessionManager.scheduledThread().submit(this::internalProcess);
+    }
 
-            // If we have friends to add then add them
-            if (!toAdd.isEmpty()) {
-                // Create a copy of the list to iterate over, so we don't get a concurrent modification exception
-                Map<String, String> toProcess = new HashMap<>(toAdd);
-                for (Map.Entry<String, String> entry : toProcess.entrySet()) {
-                    // Create the request for adding the friend
-                    HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
+    /**
+     * Internal function to process the add/remove requests
+     * This will also handle retrying requests if they fail due to rate limits or other errors
+     */
+    private void internalProcess() {
+        int retryAfter = 0;
+
+        // Initialize the cache if it is null
+        if (lastFriendCache == null) lastFriendCache = new ArrayList<>();
+
+        // If we have friends to add then add them
+        if (!toAdd.isEmpty()) {
+            // Create a copy of the list to iterate over, so we don't get a concurrent modification exception
+            Map<String, String> toProcess = new HashMap<>(toAdd);
+            for (Map.Entry<String, String> entry : toProcess.entrySet()) {
+                // Create the request for adding the friend
+                HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
                         .uri(URI.create(Constants.PEOPLE.formatted(entry.getKey())))
                         .header("Authorization", sessionManager.getTokenHeader())
                         .PUT(HttpRequest.BodyPublishers.noBody())
                         .build();
 
-                    try {
-                        HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
-                        if (response.statusCode() == 204) {
-                            // The friend was added successfully so remove them from the list
+                try {
+                    HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 204) {
+                        // The friend was added successfully so remove them from the list
+                        toAdd.remove(entry.getKey());
+
+                        // Let the user know we added a friend
+                        logger.info("Added " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
+                        sendInvite(entry.getKey());
+
+                        // Update the user in the cache
+                        Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
+                        friend.ifPresent(person -> person.isFollowedByCaller = true);
+                    } else if (response.statusCode() == 429) {
+                        // The friend wasn't added successfully so get the retry after header
+                        Optional<String> header = response.headers().firstValue("Retry-After");
+                        if (header.isPresent()) {
+                            retryAfter = Integer.parseInt(header.get());
+                        }
+
+                        // Log the error
+                        logger.debug("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+
+                        // Break out of the loop, so we don't try to add more friends
+                        break;
+                    } else if (response.statusCode() == 400) {
+                        FriendModifyResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendModifyResponse.class);
+                        if (modifyResponse.code() == 1028) {
+                            logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
+                            break;
+                        }
+
+                        logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                    } else {
+                        FriendModifyResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendModifyResponse.class);
+
+                        // 1011 - The requested friend operation was forbidden.
+                        // 1015 - An invalid request was attempted.
+                        // 1028 - The attempted People request was rejected because it would exceed the People list limit.
+                        // 1039 - Request could not be completed due to another request taking precedence.
+                        // 1049 - Target user privacy settings do not allow friend requests to be received.
+
+                        if (modifyResponse.code() == 1028) {
+                            logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
+                        } else if (modifyResponse.code() == 1011 || modifyResponse.code() == 1049) {
+                            // The friend wasn't added successfully so remove them from the list
+                            // This seems to happen in some cases, I assume from the user blocking us or having account restrictions
                             toAdd.remove(entry.getKey());
 
-                            // Let the user know we added a friend
-                            logger.info("Added " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
-                            sendInvite(entry.getKey());
+                            // Remove these people from following us (block and unblock)
+                            forceUnfollow(entry.getKey());
 
-                            // Update the user in the cache
-                            Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
-                            friend.ifPresent(person -> person.isFollowedByCaller = true);
-                        } else if (response.statusCode() == 429) {
-                            // The friend wasn't added successfully so get the retry after header
-                            Optional<String> header = response.headers().firstValue("Retry-After");
-                            if (header.isPresent()) {
-                                retryAfter = Integer.parseInt(header.get());
-                            }
-
-                            // Log the error
-                            logger.debug("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
-
-                            // Break out of the loop, so we don't try to add more friends
-                            break;
-                        } else if (response.statusCode() == 400) {
-                            FriendModifyResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendModifyResponse.class);
-                            if (modifyResponse.code() == 1028) {
-                                logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
-                                break;
-                            }
-
-                            logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                            logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to restrictions on their account");
+                            sessionManager.notificationManager().sendFriendRestrictionNotification(entry.getValue(), entry.getKey());
                         } else {
-                            FriendModifyResponse modifyResponse = Constants.GSON.fromJson(response.body(), FriendModifyResponse.class);
-
-                            // 1011 - The requested friend operation was forbidden.
-                            // 1015 - An invalid request was attempted.
-                            // 1028 - The attempted People request was rejected because it would exceed the People list limit.
-                            // 1039 - Request could not be completed due to another request taking precedence.
-                            // 1049 - Target user privacy settings do not allow friend requests to be received.
-
-                            if (modifyResponse.code() == 1028) {
-                                logger.error("Friend list full, unable to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
-                            } else if (modifyResponse.code() == 1011 || modifyResponse.code() == 1049) {
-                                // The friend wasn't added successfully so remove them from the list
-                                // This seems to happen in some cases, I assume from the user blocking us or having account restrictions
-                                toAdd.remove(entry.getKey());
-
-                                // Remove these people from following us (block and unblock)
-                                forceUnfollow(entry.getKey());
-
-                                logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to restrictions on their account");
-                                sessionManager.notificationManager().sendFriendRestrictionNotification(entry.getValue(), entry.getKey());
-                            } else {
-                                logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
-                            }
+                            logger.warn("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                         }
-                    } catch (IOException | InterruptedException e) {
-                        logger.error("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());
-                        break;
                     }
+                } catch (IOException | InterruptedException e) {
+                    logger.error("Failed to add " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());
+                    break;
                 }
             }
+        }
 
-            // If we have friends to remove then remove them
-            // Note: This can be run even if add hits the rate limit as it seems to be separate
-            if (!toRemove.isEmpty()) {
-                // Create a copy of the list to iterate over, so we don't get a concurrent modification exception
-                Map<String, String> toProcess = new HashMap<>(toRemove);
-                for (Map.Entry<String, String> entry : toProcess.entrySet()) {
-                    // Create the request for removing the friend
-                    HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
+        // If we have friends to remove then remove them
+        // Note: This can be run even if add hits the rate limit as it seems to be separate
+        if (!toRemove.isEmpty()) {
+            // Create a copy of the list to iterate over, so we don't get a concurrent modification exception
+            Map<String, String> toProcess = new HashMap<>(toRemove);
+            for (Map.Entry<String, String> entry : toProcess.entrySet()) {
+                // Create the request for removing the friend
+                HttpRequest xboxFriendRequest = HttpRequest.newBuilder()
                         .uri(URI.create(Constants.PEOPLE.formatted(entry.getKey())))
                         .header("Authorization", sessionManager.getTokenHeader())
                         .DELETE()
                         .build();
 
-                    try {
-                        HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
-                        if (response.statusCode() == 204) {
-                            // The friend was removed successfully so remove them from the list
-                            toRemove.remove(entry.getKey());
+                try {
+                    HttpResponse<String> response = httpClient.send(xboxFriendRequest, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 204) {
+                        // The friend was removed successfully so remove them from the list
+                        toRemove.remove(entry.getKey());
 
-                            // Let the user know we removed a friend
-                            logger.info("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
+                        // Let the user know we removed a friend
+                        logger.info("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
 
-                            // Update the user in the cache
-                            Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
-                            friend.ifPresent(person -> person.isFollowedByCaller = false);
-                        } else if (response.statusCode() == 429) {
-                            // The friend wasn't removed successfully so get the retry after header
-                            Optional<String> header = response.headers().firstValue("Retry-After");
-                            if (header.isPresent()) {
-                                retryAfter = Integer.parseInt(header.get());
-                            }
+                        sessionManager.storageManager().playerHistory().clear(entry.getKey());
 
-                            // Log the error
-                            logger.debug("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
-
-                            // Break out of the loop, so we don't try to remove more friends
-                            break;
-                        } else {
-                            logger.warn("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+                        // Update the user in the cache
+                        Optional<FollowerResponse.Person> friend = lastFriendCache.stream().filter(p -> p.xuid.equals(entry.getKey())).findFirst();
+                        friend.ifPresent(person -> person.isFollowedByCaller = false);
+                    } else if (response.statusCode() == 429) {
+                        // The friend wasn't removed successfully so get the retry after header
+                        Optional<String> header = response.headers().firstValue("Retry-After");
+                        if (header.isPresent()) {
+                            retryAfter = Integer.parseInt(header.get());
                         }
-                    } catch (IOException | InterruptedException e) {
-                        logger.error("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());
+
+                        // Log the error
+                        logger.debug("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
+
+                        // Break out of the loop, so we don't try to remove more friends
                         break;
+                    } else {
+                        logger.warn("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: (" + response.statusCode() + ") " + response.body());
                     }
+                } catch (IOException | InterruptedException e) {
+                    logger.error("Failed to remove " + entry.getValue() + " (" + entry.getKey() + ") as a friend: " + e.getMessage());
+                    break;
                 }
             }
+        }
 
-            // If we still have friends to add or remove then schedule another run after the retry after time
-            if (!toAdd.isEmpty() || !toRemove.isEmpty()) {
-                internalScheduledFuture = sessionManager.scheduledThread().schedule(this::internalProcess, retryAfter, TimeUnit.SECONDS);
-            }
-        });
+        // If we still have friends to add or remove then schedule another run after the retry after time
+        if (!toAdd.isEmpty() || !toRemove.isEmpty()) {
+            internalScheduledFuture = sessionManager.scheduledThread().schedule(this::internalProcess, retryAfter, TimeUnit.SECONDS);
+        }
     }
 
     /**
