@@ -43,8 +43,6 @@ public class FriendManager {
 
         this.toAdd = new HashMap<>();
         this.toRemove = new HashMap<>();
-
-        this.lastFriendCache = new ArrayList<>();
     }
 
     /**
@@ -434,6 +432,16 @@ public class FriendManager {
      * @return The last friend cache
      */
     public List<FollowerResponse.Person> lastFriendCache() {
+        if (lastFriendCache == null) {
+            try {
+                // If the cache is empty then get the current friends from Xbox Live
+                lastFriendCache = get();
+            } catch (XboxFriendsException e) {
+                logger.error("Failed to get friends from Xbox Live", e);
+                lastFriendCache = new ArrayList<>();
+            }
+        }
+
         return lastFriendCache;
     }
 
