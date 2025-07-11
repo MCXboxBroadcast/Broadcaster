@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
+import com.rtm516.mcxboxbroadcast.core.SessionManagerCore;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsFromMessage;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import java.math.BigInteger;
@@ -44,6 +45,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     private final ScheduledExecutorService scheduledExecutorService;
     private final Map<String, PeerSession> activeSessions;
     private final List<CandidateHarvester> candidateHarvesters;
+    private final SessionManagerCore sessionManager;
 
     private ScheduledFuture<?> heartbeatFuture;
     private CompletableFuture<Void> onOpenFuture = new CompletableFuture<>();
@@ -56,7 +58,7 @@ public class RtcWebsocketClient extends WebSocketClient {
      * @param logger The logger to use for outputting messages
      * @param scheduledExecutorService The executor service to use for scheduling tasks
      */
-    public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger, ScheduledExecutorService scheduledExecutorService) {
+    public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger, ScheduledExecutorService scheduledExecutorService, SessionManagerCore sessionManager) {
         super(URI.create(Constants.RTC_WEBSOCKET_FORMAT.formatted(sessionInfo.getNetherNetId())));
         addHeader("Authorization", authenticationToken);
         // both seem random
@@ -66,6 +68,7 @@ public class RtcWebsocketClient extends WebSocketClient {
         this.logger = logger;
         this.sessionInfo = sessionInfo;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.sessionManager = sessionManager;
 
         this.activeSessions = new HashMap<>();
         this.candidateHarvesters = new ArrayList<>();
@@ -133,7 +136,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void handleConnectRequest(BigInteger from, String sessionId, String message) {
-        PeerSession session = new PeerSession(this, candidateHarvesters);
+        PeerSession session = new PeerSession(this, candidateHarvesters, sessionManager);
         activeSessions.put(sessionId, session);
         session.receiveOffer(from, sessionId, message); // TODO Make this part of the constructor?
     }

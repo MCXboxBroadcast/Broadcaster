@@ -2,6 +2,8 @@ package com.rtm516.mcxboxbroadcast.core.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
+import java.util.Map;
 
 public interface StorageManager {
     String cache() throws IOException;
@@ -22,20 +24,13 @@ public interface StorageManager {
 
     void cleanup() throws IOException;
 
-    /**
-     * @deprecated Use {@link #cache()} instead
-     */
-    @Deprecated
-    String liveToken() throws IOException;
-    /**
-     * @deprecated Use {@link #cache()} instead
-     */
-    @Deprecated
-    void liveToken(String data) throws IOException;
+    PlayerHistoryStorage playerHistory();
 
-    /**
-     * @deprecated Use {@link #cache()} instead
-     */
-    @Deprecated
-    void xboxToken(String data) throws IOException;
+    interface PlayerHistoryStorage {
+        boolean isFirstRun();
+        Instant lastSeen(String xuid) throws IOException;
+        void lastSeen(String xuid, Instant lastSeen) throws IOException;
+        void clear(String xuid) throws IOException;
+        Map<String, Instant> all() throws IOException;
+    }
 }

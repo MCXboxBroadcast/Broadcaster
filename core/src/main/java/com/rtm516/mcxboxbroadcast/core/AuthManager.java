@@ -80,27 +80,6 @@ public class AuthManager {
     private void initialise() {
         HttpClient httpClient = MinecraftAuth.createHttpClient();
 
-        // Check if we have an old live_token.json file and try to import the refresh token from it
-        String liveTokenData = "";
-        try {
-            liveTokenData = storageManager.liveToken();
-        } catch (IOException e) {
-            // Ignore
-        }
-        if (!liveTokenData.isBlank()) {
-            logger.info("Trying to convert from old live_token.json to new cache.json");
-            try {
-                JsonObject liveToken = JsonUtil.parseString(liveTokenData).getAsJsonObject();
-                JsonObject tokenData = liveToken.getAsJsonObject("token");
-
-                xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.getFromInput(logger, httpClient, new StepMsaToken.RefreshToken(tokenData.get("refresh_token").getAsString()));
-
-                storageManager.xboxToken("");
-            } catch (Exception e) {
-                logger.error("Failed to convert old auth token, if this keeps happening please remove live_token.json and reauthenticate", e);
-            }
-        }
-
         // Load in cache.json if we haven't loaded one from the old auth token
         try {
             String cacheData = storageManager.cache();
