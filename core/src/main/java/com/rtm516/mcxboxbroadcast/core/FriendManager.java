@@ -222,8 +222,8 @@ public class FriendManager {
                 playerHistory.all().forEach((xuid, lastSeen) -> {
                     if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expireDays() * 24 * 3600))) {
                         try {
-                            logger.info("Queuing removal of player " + xuid + " from friends due to inactivity");
-                            remove(xuid, xuidGamertagMap.getOrDefault(xuid, "NOT CACHED"));
+                            logger.info("Removing player " + xuid + " from friends due to inactivity");
+                            forceUnfollow(xuid);
                         } catch (Exception e) {
                             logger.error("Failed to remove player " + xuid + " from friends for inactivity", e);
                         }
