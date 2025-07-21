@@ -75,8 +75,8 @@ public abstract class SessionManagerCore {
 
         this.galleryManager = new GalleryManager(httpClient, logger, this);
 
-        // Load the ICE configuration
-        CustomIceConfigSource.install(logger);
+        // Disable the Jitsi logger to prevent spam
+        IceLoggerDisabler.disable(logger);
     }
 
     /**

@@ -11,7 +11,9 @@ dependencies {
     api(libs.minecraftauth)
     api(libs.bundles.protocol)
 
-    api(libs.ice4j)
+    api(libs.ice4j) {
+        exclude("org.jetbrains.kotlin")
+    }
     api(libs.bundles.bouncycastle)
     api(libs.sctp4j)
 }
