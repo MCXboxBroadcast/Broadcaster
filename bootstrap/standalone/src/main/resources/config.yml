@@ -38,6 +38,15 @@ friend-sync:
   # Should we automatically send an invite when a friend is added
   initial-invite: true
 
+  # Should we unfriend people that haven't joined the server in a while
+  should-expire: true
+  
+  # The amount of time in days before a friend is considered expired
+  expire-days: 15
+
+  # How often to check in seconds for expired friends
+  expire-check: 1800
+
 # Slack webhook settings
 slack-webhook:
   # Should we send a message to a slack webhook when the session is updated
