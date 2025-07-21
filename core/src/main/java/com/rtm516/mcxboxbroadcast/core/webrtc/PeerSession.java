@@ -1,6 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
 import com.rtm516.mcxboxbroadcast.core.Constants;
+import com.rtm516.mcxboxbroadcast.core.SessionManagerCore;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
 import io.jsonwebtoken.lang.Collections;
 import org.bouncycastle.tls.DTLSClientProtocol;
@@ -34,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 public class PeerSession {
     private final RtcWebsocketClient rtcWebsocket;
+    private final SessionManagerCore sessionManager;
 
     private final Agent agent;
     private Component component;
@@ -43,8 +45,9 @@ public class PeerSession {
     private boolean hadFirstCandidate = false;
     private long lastCandidateTime = 0;
 
-    public PeerSession(RtcWebsocketClient rtcWebsocket, List<CandidateHarvester> candidateHarvesters) {
+    public PeerSession(RtcWebsocketClient rtcWebsocket, List<CandidateHarvester> candidateHarvesters, SessionManagerCore sessionManager) {
         this.rtcWebsocket = rtcWebsocket;
+        this.sessionManager = sessionManager;
 
         this.agent = new Agent(new IceLogger(rtcWebsocket.logger()));
         for (CandidateHarvester harvester : candidateHarvesters) {
@@ -143,7 +146,7 @@ public class PeerSession {
 //                        });
 
                         // TODO Pass some form of close handler to the association so we can clean up properly in the RtcWebsocketClient
-                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect));
+                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect, sessionManager));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
