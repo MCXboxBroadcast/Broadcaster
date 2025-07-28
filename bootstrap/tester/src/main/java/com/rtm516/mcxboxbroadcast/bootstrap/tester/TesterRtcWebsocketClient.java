@@ -62,10 +62,15 @@ public class TesterRtcWebsocketClient extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-        super.onOpen(serverHandshake);
+//        super.onOpen(serverHandshake);
 
         activeSession = new TesterSession(this, netherNetId, candidateHarvesters);
-        activeSession.sendOffer();
+        try {
+            activeSession.sendOffer();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -98,7 +103,9 @@ public class TesterRtcWebsocketClient extends WebSocketClient {
         if ("CONNECTRESPONSE".equals(type)) {
             handleConnectResponse(from, sessionId, content);
         } else if ("CANDIDATEADD".equals(type)) {
-            handleCandidateAdd(sessionId, content);
+            logger.debug("CANDIDATEADD received (" + sessionId + "): " + content);
+            activeSession.addCandidate(content.substring("candidate:".length()));
+
         }
     }
 

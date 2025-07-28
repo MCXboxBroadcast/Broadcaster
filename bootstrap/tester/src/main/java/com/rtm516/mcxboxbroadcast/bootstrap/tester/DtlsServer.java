@@ -16,6 +16,7 @@ import org.bouncycastle.tls.DefaultTlsServer;
 import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.SignatureAndHashAlgorithm;
 import org.bouncycastle.tls.TlsAuthentication;
+import org.bouncycastle.tls.TlsCredentialedSigner;
 import org.bouncycastle.tls.TlsCredentials;
 import org.bouncycastle.tls.TlsFatalAlert;
 import org.bouncycastle.tls.TlsServerCertificate;
@@ -133,5 +134,16 @@ public class DtlsServer extends DefaultTlsServer {
 
     public String getServerFingerprint() throws CertificateEncodingException {
         return fingerprintFor(cert.getEncoded());
+    }
+
+    @Override
+    protected TlsCredentialedSigner getRSASignerCredentials() throws IOException {
+        return new JcaDefaultTlsCredentialedSigner(
+            new TlsCryptoParameters(context),
+            crypto,
+            keyPair.getPrivate(),
+            bcCert,
+            SignatureAndHashAlgorithm.rsa_pss_rsae_sha256
+        );
     }
 }

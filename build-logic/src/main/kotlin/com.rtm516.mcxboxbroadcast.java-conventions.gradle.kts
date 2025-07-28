@@ -13,7 +13,6 @@ repositories {
     maven("https://repo.maven.apache.org/maven2/")
     maven("https://repo.opencollab.dev/maven-releases/")
     maven("https://repo.opencollab.dev/maven-snapshots/")
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
     maven("https://jitpack.io")
     maven("https://maven.lenni0451.net/snapshots")
 }
