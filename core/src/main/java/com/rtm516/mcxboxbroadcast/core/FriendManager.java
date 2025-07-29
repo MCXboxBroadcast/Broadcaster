@@ -460,6 +460,8 @@ public class FriendManager {
             if (response.statusCode() == 204) {
                 // Remove the user from the cache
                 lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
+
+                sessionManager.storageManager().playerHistory().clear(xuid);
             } else {
                 throw new RuntimeException(response.statusCode() + ": " + response.body());
             }
