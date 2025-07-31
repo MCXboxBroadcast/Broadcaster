@@ -43,11 +43,6 @@ public class MCXboxBroadcastExtension implements Extension {
             .name("restart")
             .description("Restart the connection to Xbox Live.")
             .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
                 restart();
             })
             .build());
@@ -57,11 +52,6 @@ public class MCXboxBroadcastExtension implements Extension {
             .name("dumpsession")
             .description("Dump the current session to json files.")
             .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
                 logger.info("Dumping session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
 
                 sessionManager.dumpSession();
@@ -73,11 +63,6 @@ public class MCXboxBroadcastExtension implements Extension {
             .name("accounts")
             .description("Manage sub-accounts.")
             .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
                 if (args.length < 2) {
                     if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
                         sessionManager.listSessions();
