@@ -59,9 +59,5 @@ public class Constants {
     /**
      * Used for the micro nethernet server that trasnfers the client to the real server
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v827.CODEC
-        .toBuilder()
-        .minecraftVersion("1.21.100")
-        .protocolVersion(827)
-        .build();
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v827.CODEC;
 }
