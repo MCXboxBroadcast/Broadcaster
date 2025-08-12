@@ -1,0 +1,13 @@
+services:
+  mcxboxbroadcast:
+    container_name: mcxboxbroadcast-standalone-dev
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev
+    restart: unless-stopped
+    volumes:
+      - ./core:/opt/app/core
+      - ./bootstrap:/opt/app/bootstrap
+      - ./build.gradle.kts:/opt/app/build.gradle.kts
+      - ./settings.gradle.kts:/opt/app/settings.gradle.kts
+      - ./gradle.properties:/opt/app/gradle.properties

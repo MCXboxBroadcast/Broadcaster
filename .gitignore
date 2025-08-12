@@ -257,3 +257,7 @@ gradle-app.setting
 
 run/
 release_notes.md
+
+bootstrap/standalone/config.yml
+bootstrap/standalone/logs/
+bootstrap/standalone/cache/

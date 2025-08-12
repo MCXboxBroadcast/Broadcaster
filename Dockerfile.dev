@@ -1,0 +1,37 @@
+# Development Dockerfile with hot reload support
+FROM eclipse-temurin:21-alpine
+
+# Install required packages for development
+RUN apk add --no-cache git inotify-tools bash
+
+# Create app user
+RUN adduser -h /opt/app -H -D app
+
+# Create directories and set ownership
+RUN mkdir -p /opt/app/src /opt/app/build && \
+    chown -R app:app /opt/app
+
+# Switch to app user
+USER app:app
+
+# Set working directory
+WORKDIR /opt/app
+
+# Copy gradle wrapper and make it executable
+COPY --chown=app:app gradlew gradlew.bat ./
+COPY --chown=app:app gradle/ gradle/
+RUN chmod +x gradlew
+
+# Copy build configuration files
+COPY --chown=app:app settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY --chown=app:app build-logic/ build-logic/
+
+# Download dependencies (this layer will be cached unless build files change)
+RUN ./gradlew dependencies --no-daemon
+
+# Copy the entrypoint script
+COPY --chown=app:app entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+# Set the entrypoint to run our hot-reload script
+ENTRYPOINT ["./entrypoint.sh"]
