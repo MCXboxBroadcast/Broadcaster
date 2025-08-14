@@ -94,5 +94,5 @@ The production image packages the standalone application with all dependencies f
 
 - **Core Library**: Xbox Live integration and session management
 - **Bootstrap Modules**: Different deployment methods (standalone app, Geyser plugin)
-- **Configuration**: YAML-based settings in `config/config.yml`
-- **Storage**: File-based token caching in `config/cache/`
+- **Configuration**: YAML-based settings in `bootstrap/standalone/config.yml`
+- **Storage**: File-based token caching in `bootstrap/standalone/cache/`
