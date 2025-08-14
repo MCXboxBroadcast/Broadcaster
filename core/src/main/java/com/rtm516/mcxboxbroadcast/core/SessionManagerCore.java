@@ -345,11 +345,13 @@ public abstract class SessionManagerCore {
         // Check if the connection is Lost
         if (!rtaIsOpen || !rtcIsOpen) {
             try {
-                logger.warn("[Lost Connection] Connection to websocket lost (RTA Open: " + rtaIsOpen + " RTC Open: " + rtcIsOpen + "). re-creating session...");
+                logger.warn("Connection to websocket lost, re-creating session...");
+                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + " RTC Open: " + rtcIsOpen);
+
                 createSession();
-                logger.warn("[Lost Connection] Re-connected!");
+                logger.info("WebSocket session reconnected");
             } catch (SessionCreationException | SessionUpdateException e) {
-                logger.error("[Lost Connection] Session is dead and hit exception trying to re-create it", e);
+                logger.error(" is dead and hit exception trying to re-create it", e);
             }
         }
     }
@@ -369,11 +371,11 @@ public abstract class SessionManagerCore {
      * @return The received connection ID
      */
     protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
-        return this.rtaWebsocket.getConnectionIdFuture().get(10, TimeUnit.SECONDS);
+        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.MILLISECONDS);
     }
 
     protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
-        this.rtcWebsocket.onOpenFuture().get(10, TimeUnit.SECONDS);
+        this.rtcWebsocket.onOpenFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
     protected String setupSession(String deviceId) {

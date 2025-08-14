@@ -6,6 +6,7 @@ import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.v827.Bedrock_v827;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
@@ -44,6 +45,8 @@ public class Constants {
     public static final String PROFILE_SETTINGS = "https://profile.xboxlive.com/users/xuid(%s)/profile/settings?settings=Gamertag";
 
     public static final String GALLERY = "https://persona.franchise.minecraft-services.net/api/v1.0/gallery";
+
+    public static final Duration WEBSOCKET_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
 
     /**
      * Gathered from scraped web requests

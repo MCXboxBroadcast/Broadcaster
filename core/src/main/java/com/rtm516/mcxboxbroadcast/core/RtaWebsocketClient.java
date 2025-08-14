@@ -35,7 +35,7 @@ public class RtaWebsocketClient extends WebSocketClient {
 
     /**
      * A helper method to get the stored connection ID
-     * 
+     *
      * @return The stored connection ID
      */
     public String getConnectionId() {
@@ -48,9 +48,9 @@ public class RtaWebsocketClient extends WebSocketClient {
 
     /**
      * When the web socket connects send the request for the connection ID
-     * 
+     *
      * @see WebSocketClient#onOpen(ServerHandshake)
-     * 
+     *
      * @param serverHandshake The handshake of the websocket instance
      */
     @Override
@@ -61,9 +61,9 @@ public class RtaWebsocketClient extends WebSocketClient {
     /**
      * When we get a message check if it's a connection ID message
      * and handle otherwise ignore it
-     * 
-     * @see WebSocketClient#onMessage(String) 
-     * 
+     *
+     * @see WebSocketClient#onMessage(String)
+     *
      * @param message The UTF-8 decoded message that was received.
      */
     @Override
