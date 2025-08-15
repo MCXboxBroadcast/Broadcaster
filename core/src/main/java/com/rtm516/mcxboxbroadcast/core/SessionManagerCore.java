@@ -351,7 +351,7 @@ public abstract class SessionManagerCore {
                 createSession();
                 logger.info("WebSocket session reconnected");
             } catch (SessionCreationException | SessionUpdateException e) {
-                logger.error(" is dead and hit exception trying to re-create it", e);
+                logger.error("Session is dead and hit exception trying to re-create it", e);
             }
         }
     }
