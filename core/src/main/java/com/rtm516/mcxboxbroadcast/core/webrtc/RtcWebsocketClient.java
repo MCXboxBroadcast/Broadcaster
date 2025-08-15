@@ -74,7 +74,6 @@ public class RtcWebsocketClient extends WebSocketClient {
         this.scheduledExecutorService = scheduledExecutorService;
         this.sessionManager = sessionManager;
 
-
         this.activeSessions = new HashMap<>();
         this.candidateHarvesters = new ArrayList<>();
     }
