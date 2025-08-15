@@ -261,3 +261,7 @@ release_notes.md
 bootstrap/standalone/config.yml
 bootstrap/standalone/logs/
 bootstrap/standalone/cache/
+
+.cursorrules
+.vscode/
+WARP.md

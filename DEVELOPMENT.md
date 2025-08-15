@@ -92,7 +92,83 @@ The production image packages the standalone application with all dependencies f
 
 ## Architecture
 
+MCXboxBroadcast acts as a **connection broker** that makes Minecraft servers discoverable through Xbox Live and facilitates friend-to-friend joining. It does **not** relay ongoing gameplay traffic.
+
+### High-Level Components
+
 - **Core Library**: Xbox Live integration and session management
 - **Bootstrap Modules**: Different deployment methods (standalone app, Geyser plugin)
 - **Configuration**: YAML-based settings in `config/config.yml`
 - **Storage**: File-based token caching in `config/cache/`
+
+### Xbox Live Integration Architecture
+
+#### RTA (Real-Time Activity) WebSocket
+**Purpose**: Xbox Live's real-time notification system
+- **Connects to**: `wss://rta.xboxlive.com/connect`
+- **Role**: Session discovery and social events
+- **Critical for**: Making your Minecraft session visible to Xbox friends
+
+**What RTA does**:
+- Subscribes to session directory events (`https://sessiondirectory.xboxlive.com/connections/`)
+- Subscribes to social/friend events (`https://social.xboxlive.com/users/xuid(...)/friends`)
+- Receives regular "shoulderTaps" (~30 second intervals) that keep session alive and visible
+- Handles friend request notifications and auto-acceptance
+- **Without RTA**: Session goes stale in Xbox Live directory → friends cannot see session
+
+#### RTC (Real-Time Communication) WebSocket
+**Purpose**: WebRTC signaling for peer-to-peer connections
+- **Connects to**: `wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/`
+- **Role**: Connection establishment between players
+- **Critical for**: Actual joining process when friends click "Join"
+
+**What RTC does**:
+- Handles WebRTC signaling (SDP offer/answer exchange) - *exchanges connection*
+- Manages ICE candidate negotiation for NAT traversal - *finds best network path through firewalls and routers*
+- Establishes DTLS/SCTP encrypted data channels - *sets up secure, private communication tunnel*
+- Sends heartbeats every 40 seconds to maintain connection
+- **Without RTC**: Friends can see session but joining fails
+
+### Connection Flow
+
+1. **Discovery**: RTA keeps your session visible in friend's Xbox app via regular shoulderTaps
+2. **Join Attempt**: Friend clicks "Join" → RTC receives `CONNECTREQUEST` message
+3. **Connection Setup**: RTC handles WebRTC P2P connection establishment
+4. **Authentication**: Brief Minecraft protocol handshake for validation
+5. **Transfer**: MCXboxBroadcast sends `TransferPacket` to redirect friend to real server
+6. **Cleanup**: MCXboxBroadcast closes its connection
+
+**Result**: Friend is now connected directly to your game server. MCXboxBroadcast is no longer involved.
+
+#### Authentication Flow
+
+1. Microsoft/Xbox Live device code authentication
+2. Token caching in `./cache/` directory
+3. Automatic token refresh when needed
+4. **RTA websocket recreation required** when tokens refresh (current limitation)
+
+
+### Troubleshooting
+
+**Friends can't see session**: Check RTA websocket health and shoulderTap flow
+**Friends can see "Join" button but can't join**: Check RTC websocket and network connectivity
+
+### Failure Scenarios
+
+#### RTA Failure (Session Discovery Broken)
+- ❌ No shoulderTaps received → session goes stale in Xbox Live directory
+- ❌ Friend requests cannot be auto-accepted (social notifications broken)
+- ❌ Friends cannot see your session in Xbox app/console
+- ❌ No "Join" button appears for friends
+- ✅ Existing players unaffected (already connected to real server)
+
+
+#### RTC Failure (Join Attempts Fail)
+- ✅ Friends can see your session in Xbox app/console (RTA working)
+- ✅ "Join" button appears for friends
+- ❌ Clicking "Join" fails with connection errors
+- ✅ Existing players unaffected (already connected to real server)
+
+#### MCXboxBroadcast Downtime
+- **Existing Players**: ✅ Unaffected (connected directly to real server)
+- **New Players**: ❌ Cannot join (no discovery or connection broker)
