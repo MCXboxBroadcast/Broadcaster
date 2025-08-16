@@ -91,7 +91,11 @@ public class GalleryManager {
 
         try {
             HttpResponse<String> response = httpClient.send(getImagesRequest, HttpResponse.BodyHandlers.ofString());
-            return Constants.GSON.fromJson(response.body(), GalleryResponse.class).result().showcasedImages();
+            GalleryResponse.Result result = Constants.GSON.fromJson(response.body(), GalleryResponse.class).result();
+            if (result == null) {
+                throw new RuntimeException("Gallery response result is null");
+            }
+            return result.showcasedImages();
         } catch (JsonParseException | InterruptedException | IOException | NullPointerException e) {
             logger.error("Failed to get gallery images: " + e.getMessage());
         }
