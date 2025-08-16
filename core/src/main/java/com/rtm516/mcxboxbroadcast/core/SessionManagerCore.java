@@ -371,7 +371,7 @@ public abstract class SessionManagerCore {
      * @return The received connection ID
      */
     protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
-        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.MILLISECONDS);
+        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
     protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
