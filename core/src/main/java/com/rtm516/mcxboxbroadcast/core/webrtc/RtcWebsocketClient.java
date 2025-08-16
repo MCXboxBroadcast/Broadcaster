@@ -41,6 +41,8 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private final Logger logger;
+    private final String requestId;
+    private final String rtaConnectionId;
     private final SessionInfo sessionInfo;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Map<String, PeerSession> activeSessions;
@@ -61,10 +63,12 @@ public class RtcWebsocketClient extends WebSocketClient {
     public RtcWebsocketClient(String authenticationToken, ExpandedSessionInfo sessionInfo, Logger logger, ScheduledExecutorService scheduledExecutorService, SessionManagerCore sessionManager) {
         super(URI.create(Constants.RTC_WEBSOCKET_FORMAT.formatted(sessionInfo.getNetherNetId())));
         addHeader("Authorization", authenticationToken);
-        // both seem random
         addHeader("Session-Id", UUID.randomUUID().toString());
-        addHeader("Request-Id", UUID.randomUUID().toString());
 
+        this.requestId = UUID.randomUUID().toString();
+        addHeader("Request-Id", requestId);
+
+        this.rtaConnectionId = sessionInfo.getConnectionId();
         this.logger = logger;
         this.sessionInfo = sessionInfo;
         this.scheduledExecutorService = scheduledExecutorService;
@@ -103,7 +107,7 @@ public class RtcWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onMessage(String message) {
-        logger.debug("RTC Websocket received: " + message);
+        logger.debug("[" + rtaConnectionId + "] RTC Websocket [" + requestId + "] received: " + message);
         WsFromMessage messageWrapper = Constants.GSON.fromJson(message, WsFromMessage.class);
 
         if (messageWrapper.Type() == 2) {
@@ -118,7 +122,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     @Override
     public void send(String text) {
         super.send(text);
-        logger.debug("RTC Websocket sent: " + text);
+        logger.debug("[" + rtaConnectionId + "] RTC Websocket [" + requestId + "] sent: " + text);
     }
 
     private void handleDataAction(BigInteger from, String message) {
@@ -150,7 +154,7 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     public void handleDisconnect(String sessionId) {
-        logger.debug("Disconnecting session: " + sessionId);
+        logger.debug("[" + rtaConnectionId + "] RTC Websocket [" + requestId + "] disconnecting session: " + sessionId);
         activeSessions.remove(sessionId);
     }
 
@@ -185,14 +189,20 @@ public class RtcWebsocketClient extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        heartbeatFuture.cancel(true);
+        if (heartbeatFuture != null) {
+            heartbeatFuture.cancel(true);
+        }
+        if (!onOpenFuture.isDone()) {
+            onOpenFuture.completeExceptionally(new IllegalStateException("RTC Websocket [" + requestId + "] disconnected before onOpen was called"));
+        }
 
-        logger.info("RTC Websocket disconnected: " + reason + " (" + code + ")");
+        String reasonString = reason.isEmpty() && code == 1000 ? "Normal close" : reason;
+        logger.info("[" + rtaConnectionId + "] RTC Websocket [" + requestId + "] disconnected: " + reasonString + " (" + code + ")");
     }
 
     @Override
     public void onError(Exception ex) {
-        logger.info("RTC Websocket error: " + ex.getMessage());
+        logger.error("[" + rtaConnectionId + "] RTC Websocket [" + requestId + "] error: " + ex.getMessage(), ex);
     }
 
     public SessionInfo sessionInfo() {

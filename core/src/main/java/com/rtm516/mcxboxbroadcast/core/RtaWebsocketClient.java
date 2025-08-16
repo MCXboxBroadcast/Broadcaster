@@ -4,6 +4,7 @@ import com.rtm516.mcxboxbroadcast.core.models.ws.MessageType;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
+import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -34,7 +35,7 @@ public class RtaWebsocketClient extends WebSocketClient {
 
     /**
      * A helper method to get the stored connection ID
-     * 
+     *
      * @return The stored connection ID
      */
     public String getConnectionId() {
@@ -47,9 +48,9 @@ public class RtaWebsocketClient extends WebSocketClient {
 
     /**
      * When the web socket connects send the request for the connection ID
-     * 
+     *
      * @see WebSocketClient#onOpen(ServerHandshake)
-     * 
+     *
      * @param serverHandshake The handshake of the websocket instance
      */
     @Override
@@ -60,9 +61,9 @@ public class RtaWebsocketClient extends WebSocketClient {
     /**
      * When we get a message check if it's a connection ID message
      * and handle otherwise ignore it
-     * 
-     * @see WebSocketClient#onMessage(String) 
-     * 
+     *
+     * @see WebSocketClient#onMessage(String)
+     *
      * @param message The UTF-8 decoded message that was received.
      */
     @Override
@@ -86,36 +87,41 @@ public class RtaWebsocketClient extends WebSocketClient {
             MessageType type = MessageType.fromValue(((Double) parts[0]).intValue());
             switch (type) {
                 case Subscribe:
-                    logger.debug("RTA Websocket subscribed message: " + message);
+                    logger.debug("RTA Websocket [" + connectionId + "] subscribed: " + message);
                     break;
                 case Unsubscribe:
-                    logger.debug("RTA Websocket unsubscribed message: " + message);
+                    logger.debug("RTA Websocket [" + connectionId + "] unsubscribed: " + message);
                     break;
                 case Event:
-                    logger.debug("RTA Websocket event message: " + message);
+                    logger.debug("RTA Websocket [" + connectionId + "] event: " + message);
                     // Get data json object
                     Map<String, Object> data = (Map<String, Object>) parts[2];
                     if (data.getOrDefault("NotificationType", "").equals("IncomingFriendRequestCountChanged")) {
-                        logger.debug("RTA Websocket friend request message: " + message);
+                        logger.debug("RTA Websocket [" + connectionId + "] friend request: " + message);
                         sessionManager.friendManager().acceptPendingFriendRequests();
                     }
                     break;
                 case Resync:
-                    logger.debug("RTA Websocket resync message: " + message);
+                    logger.debug("RTA Websocket [" + connectionId + "] resync: " + message);
                     break;
                 default:
-                    logger.debug("RTA Websocket unknown message: " + message);
+                    logger.debug("RTA Websocket [" + connectionId + "] unknown: " + message);
                     break;
             }
         }
     }
 
     /**
-     * @see WebSocketClient#onClose(int, String, boolean) 
+     * @see WebSocketClient#onClose(int, String, boolean)
      */
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        logger.debug("RTA Websocket disconnected: " + reason + " (" + code + ")");
+        if (!connectionIdFuture.isDone()) {
+            connectionIdFuture.completeExceptionally(new Exception("RTA Websocket [" + connectionId + "] disconnected before connectionId was received"));
+        }
+
+        String reasonString = reason.isEmpty() && code == 1000 ? "Normal close" : reason;
+        logger.debug("RTA Websocket [" + connectionId + "] disconnected: " + reasonString + " (" + code + ")");
     }
 
     /**
@@ -123,6 +129,6 @@ public class RtaWebsocketClient extends WebSocketClient {
      **/
     @Override
     public void onError(Exception ex) {
-        logger.debug("RTA Websocket error: " + ex.getMessage());
+        logger.error("RTA Websocket [" + connectionId + "] error: " + ex.getMessage(), ex);
     }
 }

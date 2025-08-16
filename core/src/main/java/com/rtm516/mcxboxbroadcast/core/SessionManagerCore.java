@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -211,11 +212,11 @@ public abstract class SessionManagerCore {
 
             try {
                 // Wait and get the connection ID from the websocket
-                String connectionId = waitForConnectionId().get();
+                String connectionId = waitForConnectionId();
 
                 // Update the current session connection ID
                 this.sessionInfo.setConnectionId(connectionId);
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
             }
 
@@ -223,8 +224,8 @@ public abstract class SessionManagerCore {
 
             try {
                 // Wait for the RTC websocket to connect
-                waitForRTCConnection().get();
-            } catch (InterruptedException | ExecutionException e) {
+                waitForRTCConnection();
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new SessionCreationException("Unable to connect to WebRTC for session: " + e.getMessage());
             }
         } else {
@@ -338,11 +339,17 @@ public abstract class SessionManagerCore {
      * This should be called before any updates to the session otherwise they might fail
      */
     protected void checkConnection() {
-        if ((this.rtaWebsocket != null && !rtaWebsocket.isOpen()) || (this.rtcWebsocket != null && !rtcWebsocket.isOpen())) {
+        boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
+        boolean rtcIsOpen = this.rtcWebsocket != null && this.rtcWebsocket.isOpen();
+
+        // Check if the connection is Lost
+        if (!rtaIsOpen || !rtcIsOpen) {
             try {
-                logger.info("Connection to websocket lost, re-creating session...");
+                logger.warn("Connection to websocket lost, re-creating session...");
+                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + " RTC Open: " + rtcIsOpen);
+
                 createSession();
-                logger.info("Re-connected!");
+                logger.info("WebSocket session reconnected");
             } catch (SessionCreationException | SessionUpdateException e) {
                 logger.error("Session is dead and hit exception trying to re-create it", e);
             }
@@ -363,12 +370,12 @@ public abstract class SessionManagerCore {
      *
      * @return The received connection ID
      */
-    protected Future<String> waitForConnectionId() {
-        return this.rtaWebsocket.getConnectionIdFuture();
+    protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
+        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.MILLISECONDS);
     }
 
-    protected Future<Void> waitForRTCConnection() {
-        return this.rtcWebsocket.onOpenFuture();
+    protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
+        this.rtcWebsocket.onOpenFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
     protected String setupSession(String deviceId) {
