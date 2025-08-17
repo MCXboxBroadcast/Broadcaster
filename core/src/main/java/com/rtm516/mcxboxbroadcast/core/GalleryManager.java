@@ -96,7 +96,7 @@ public class GalleryManager {
                 throw new RuntimeException("Gallery response result is null");
             }
             return result.showcasedImages();
-        } catch (JsonParseException | InterruptedException | IOException | NullPointerException e) {
+        } catch (InterruptedException | IOException | RuntimeException e) {
             logger.error("Failed to get gallery images: " + e.getMessage());
         }
 
