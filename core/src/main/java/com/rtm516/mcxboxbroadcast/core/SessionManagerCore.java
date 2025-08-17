@@ -179,6 +179,16 @@ public abstract class SessionManagerCore {
         // Let the user know we are done
         logger.info("Creation of Xbox LIVE session was successful!");
 
+        authManager.setOnDeviceTokenRefreshCallback(() -> {
+            try {
+                logger.debug("Device token refreshed, recreating session...");
+                createSession();
+                logger.debug("Session recreated after device token refresh");
+            } catch (Exception e) {
+                logger.error("Failed to recreate session after device token refresh", e);
+            }
+        });
+
         initialized = true;
     }
 

@@ -17,7 +17,7 @@ public class RtaWebsocketClient extends WebSocketClient {
     private String connectionId;
     private final Logger logger;
     private final String xuid;
-    private boolean firstConnectionId = true;
+    private boolean isFirstConnection = true;
     private CompletableFuture<String> connectionIdFuture = new CompletableFuture<>();
 
     /**
@@ -68,46 +68,44 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onMessage(String message) {
-        if (message.contains("ConnectionId") && firstConnectionId) {
-            Object[] parts = Constants.GSON.fromJson(message, Object[].class);
-            connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
-            connectionIdFuture.complete(connectionId);
-            firstConnectionId = false;
+        // [Type, SequenceId, ...]
+        // Subscribe: [type, sequenceId, status, subscriptionId, data]
+        // Unsubscribe: [type, sequenceId, status]
+        // Event: [type, sequenceId, data]
 
-            // Let xbox know we want friend updates
-            send("[1,2,\"https://social.xboxlive.com/users/xuid(" + this.xuid + ")/friends\"]");
-        } else {
-            // [Type, SequenceId, ...]
-            // Subscribe: [type, sequenceId, status, subscriptionId, data]
-            // Unsubscribe: [type, sequenceId, status]
-            // Event: [type, sequenceId, data]
+        // Handle the message
+        Object[] parts = Constants.GSON.fromJson(message, Object[].class);
+        MessageType type = MessageType.fromValue(((Double) parts[0]).intValue());
+        switch (type) {
+            case Subscribe:
+                logger.debug("RTA Websocket [" + connectionId + "] subscribed: " + message);
+                if (message.contains("ConnectionId") && isFirstConnection) {
+                    connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
+                    connectionIdFuture.complete(connectionId);
+                    isFirstConnection = false;
 
-            // Handle the message
-            Object[] parts = Constants.GSON.fromJson(message, Object[].class);
-            MessageType type = MessageType.fromValue(((Double) parts[0]).intValue());
-            switch (type) {
-                case Subscribe:
-                    logger.debug("RTA Websocket [" + connectionId + "] subscribed: " + message);
-                    break;
-                case Unsubscribe:
-                    logger.debug("RTA Websocket [" + connectionId + "] unsubscribed: " + message);
-                    break;
-                case Event:
-                    logger.debug("RTA Websocket [" + connectionId + "] event: " + message);
-                    // Get data json object
-                    Map<String, Object> data = (Map<String, Object>) parts[2];
-                    if (data.getOrDefault("NotificationType", "").equals("IncomingFriendRequestCountChanged")) {
-                        logger.debug("RTA Websocket [" + connectionId + "] friend request: " + message);
-                        sessionManager.friendManager().acceptPendingFriendRequests();
-                    }
-                    break;
-                case Resync:
-                    logger.debug("RTA Websocket [" + connectionId + "] resync: " + message);
-                    break;
-                default:
-                    logger.debug("RTA Websocket [" + connectionId + "] unknown: " + message);
-                    break;
-            }
+                    // Let xbox know we want friend updates
+                    send("[1,2,\"https://social.xboxlive.com/users/xuid(" + this.xuid + ")/friends\"]");
+                }
+                break;
+            case Unsubscribe:
+                logger.debug("RTA Websocket [" + connectionId + "] unsubscribed: " + message);
+                break;
+            case Event:
+                logger.debug("RTA Websocket [" + connectionId + "] event: " + message);
+                // Get data json object
+                Map<String, Object> data = (Map<String, Object>) parts[2];
+                if (data.getOrDefault("NotificationType", "").equals("IncomingFriendRequestCountChanged")) {
+                    logger.debug("RTA Websocket [" + connectionId + "] friend request: " + message);
+                    sessionManager.friendManager().acceptPendingFriendRequests();
+                }
+                break;
+            case Resync:
+                logger.debug("RTA Websocket [" + connectionId + "] resync: " + message);
+                break;
+            default:
+                logger.debug("RTA Websocket [" + connectionId + "] unknown: " + message);
+                break;
         }
     }
 
