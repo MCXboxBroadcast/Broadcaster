@@ -177,10 +177,15 @@ public class MCXboxBroadcastExtension implements Extension {
 
             // Create the session information based on the Geyser config
             sessionInfo = new SessionInfo();
-            sessionInfo.setHostName(this.geyserApi().bedrockListener().primaryMotd());
-            sessionInfo.setWorldName(this.geyserApi().bedrockListener().secondaryMotd());
+            sessionInfo.setHostName(this.geyserApi().bedrockListener().secondaryMotd());
+            sessionInfo.setWorldName(this.geyserApi().bedrockListener().primaryMotd());
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
             sessionInfo.setMaxPlayers(GeyserImpl.getInstance().getConfig().getMaxPlayers()); // TODO Find API equivalent
+
+            // Fallback to the gamertag if the host name is empty
+            if (sessionInfo.getHostName().isEmpty()) {
+                sessionInfo.setHostName(sessionManager.getGamertag());
+            }
 
             sessionInfo.setIp(ip);
             sessionInfo.setPort(port);
@@ -201,11 +206,16 @@ public class MCXboxBroadcastExtension implements Extension {
         }
 
         // Allows support for motd and player count passthrough
-        sessionInfo.setHostName(event.primaryMotd());
-        sessionInfo.setWorldName(event.secondaryMotd());
+        sessionInfo.setHostName(event.secondaryMotd());
+        sessionInfo.setWorldName(event.primaryMotd());
         
         sessionInfo.setPlayers(event.playerCount());
         sessionInfo.setMaxPlayers(event.maxPlayerCount());
+
+        // Fallback to the gamertag if the host name is empty
+        if (sessionInfo.getHostName().isEmpty()) {
+            sessionInfo.setHostName(sessionManager.getGamertag());
+        }
     }
 
 

@@ -78,6 +78,11 @@ public class StandaloneMain {
 
         sessionInfo = (SessionInfo) config.session().sessionInfo().copy();
 
+        // Fallback to the gamertag if the host name is empty
+        if (sessionInfo.getHostName().isEmpty()) {
+            sessionInfo.setHostName(sessionManager.getGamertag());
+        }
+
         PingUtil.setWebPingEnabled(config.session().webQueryFallback());
 
         // Sync the session info from the server if needed
@@ -129,10 +134,15 @@ public class StandaloneMain {
                 BedrockPong pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
                 // Update the session information
-                sessionInfo.setHostName(pong.motd());
-                sessionInfo.setWorldName(pong.subMotd());
+                sessionInfo.setHostName(pong.subMotd());
+                sessionInfo.setWorldName(pong.motd());
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
+
+                // Fallback to the gamertag if the host name is empty
+                if (sessionInfo.getHostName().isEmpty()) {
+                    sessionInfo.setHostName(sessionManager.getGamertag());
+                }
             } catch (InterruptedException | ExecutionException e) {
                 if (config.session().configFallback()) {
                     sessionManager.logger().error("Failed to ping server, falling back to config values", e);
@@ -141,6 +151,11 @@ public class StandaloneMain {
                     sessionInfo.setWorldName(config.session().sessionInfo().getWorldName());
                     sessionInfo.setPlayers(config.session().sessionInfo().getPlayers());
                     sessionInfo.setMaxPlayers(config.session().sessionInfo().getMaxPlayers());
+
+                    // Fallback to the gamertag if the host name is empty
+                    if (sessionInfo.getHostName().isEmpty()) {
+                        sessionInfo.setHostName(sessionManager.getGamertag());
+                    }
                 } else {
                     sessionManager.logger().error("Failed to ping server", e);
                 }
