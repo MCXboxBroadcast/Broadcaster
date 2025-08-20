@@ -218,6 +218,7 @@ public abstract class SessionManagerCore {
 
         // We only need a websocket for the primary session manager
         if (this.sessionInfo != null) {
+            logger.debug("Creating session for existing sessionInfo");
             // Update the current session XUID
             this.sessionInfo.setXuid(tokenInfo.userXUID());
 
@@ -285,10 +286,20 @@ public abstract class SessionManagerCore {
             throw new SessionCreationException("Unable to create session handle, error parsing json: " + e.getMessage());
         }
 
+        // Log the HTTP request for debugging
+        logHttpRequest(createHandleRequest);
+
         // Read the handle response
         HttpResponse<String> createHandleResponse;
         try {
             createHandleResponse = httpClient.send(createHandleRequest, HttpResponse.BodyHandlers.ofString());
+
+            // Log the HTTP response for debugging
+            Logger httpLogger = logger.prefixed("HTTP");
+            httpLogger.debug("━━━━━━━━ HTTP RESPONSE ━━━━━━━━");
+            httpLogger.debug("Status: " + createHandleResponse.statusCode());
+            httpLogger.debug("Body: " + createHandleResponse.body());
+
             if (this.sessionInfo != null) {
                 CreateHandleResponse parsedResponse = Constants.GSON.fromJson(createHandleResponse.body(), CreateHandleResponse.class);
                 sessionInfo.setHandleId(parsedResponse.id());
@@ -387,14 +398,20 @@ public abstract class SessionManagerCore {
      * @return The received connection ID
      */
     protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
-        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+        logger.debug("Waiting for RTA connection ID");
+        String connectionId =  this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+        logger.debug("RTA connection ID received: " + connectionId);
+        return connectionId;
     }
 
     protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
+        logger.debug("Waiting for RTC connection");
         this.rtcWebsocket.onOpenFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+        logger.debug("RTC connection established");
     }
 
     protected String setupSession(String deviceId) {
+        logger.debug("Setting up session with device ID: " + deviceId);
         String playfabTicket = this.authManager.getPlayfabSessionTicket();
 
         HttpRequest request = HttpRequest.newBuilder(Constants.START_SESSION)
@@ -405,6 +422,7 @@ public abstract class SessionManagerCore {
         HttpResponse<String> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.debug("Session started with device ID: " + deviceId + " (" + response.statusCode() + ")");
         } catch (IOException | InterruptedException e) {
             throw new IllegalStateException("Unable to start session", e);
         }
@@ -420,6 +438,7 @@ public abstract class SessionManagerCore {
      * Setup the RTA websocket connection
      */
     protected void setupRtaWebsocket() {
+        logger.debug("Setting up RTA websocket");
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
         }
@@ -428,6 +447,7 @@ public abstract class SessionManagerCore {
     }
 
     protected void setupRtcWebsocket(String token) {
+        logger.debug("Setting up RTC websocket");
         if (rtcWebsocket != null) {
             rtcWebsocket.close();
         }
@@ -542,6 +562,33 @@ public abstract class SessionManagerCore {
      */
     public String userXUID() {
         return getXboxToken().userXUID();
+    }
+
+        /**
+     * Helper method to log HTTP requests for debugging
+     */
+    private void logHttpRequest(HttpRequest request) {
+        Logger httpLogger = logger.prefixed("HTTP");
+
+        httpLogger.debug("━━━━━━━━ HTTP REQUEST ━━━━━━━━");
+        httpLogger.debug("Method: " + request.method());
+        httpLogger.debug("URL: " + request.uri());
+
+        // Log headers (but mask sensitive ones)
+        request.headers().map().forEach((name, values) -> {
+            if (name.equalsIgnoreCase("Authorization") || name.equalsIgnoreCase("Cookie")) {
+                httpLogger.debug("Header: " + name + " = [MASKED]");
+            } else {
+                httpLogger.debug("Header: " + name + " = " + String.join(", ", values));
+            }
+        });
+
+        // Log body for POST/PUT requests
+        request.bodyPublisher().ifPresent(bodyPublisher -> {
+            if (request.method().equals("POST") || request.method().equals("PUT")) {
+                httpLogger.debug("Body: [Present - " + bodyPublisher.getClass().getSimpleName() + "]");
+            }
+        });
     }
 
     /**

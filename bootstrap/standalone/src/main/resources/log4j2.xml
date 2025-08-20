@@ -13,6 +13,24 @@
         </RollingRandomAccessFile>
     </Appenders>
     <Loggers>
+        <!-- Enable HTTP debug logging for Methanol -->
+        <Logger name="com.github.mizosoft.methanol" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+
+        <!-- Enable HTTP debug logging for MinecraftAuth HttpClient -->
+        <Logger name="net.lenni0451.commons.httpclient" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+
+        <!-- Enable debug logging for your core components -->
+        <Logger name="com.rtm516.mcxboxbroadcast.core" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+
         <Root level="INFO" >
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
