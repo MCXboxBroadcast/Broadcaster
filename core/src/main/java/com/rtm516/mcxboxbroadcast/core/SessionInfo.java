@@ -1,8 +1,15 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class SessionInfo {
+    @JsonIgnore
+    private static final Pattern COLOR_PATTERN = Pattern.compile("\u00A7[\\w]");
+
     @JsonProperty("host-name")
     private String hostName;
     @JsonProperty("world-name")
@@ -30,7 +37,7 @@ public class SessionInfo {
     }
 
     public void setHostName(String hostName) {
-        this.hostName = hostName;
+        this.hostName = removeColorCodes(hostName);
     }
 
     public String getWorldName() {
@@ -38,7 +45,7 @@ public class SessionInfo {
     }
 
     public void setWorldName(String worldName) {
-        this.worldName = worldName;
+        this.worldName = removeColorCodes(worldName);
     }
 
     public String getVersion() {
@@ -91,5 +98,10 @@ public class SessionInfo {
 
     public SessionInfo copy() {
         return new SessionInfo(hostName, worldName, players, maxPlayers, ip, port);
+    }
+
+    private static String removeColorCodes(String string) {
+        Matcher matcher = COLOR_PATTERN.matcher(string);
+        return matcher.replaceAll("");
     }
 }
