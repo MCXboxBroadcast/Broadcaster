@@ -154,7 +154,13 @@ public abstract class SessionManagerCore {
 
         // Make sure we are logged in
         XboxTokenInfo tokenInfo = getXboxToken();
-        logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ")");
+
+        int friendCount = -1;
+        try {
+            friendCount = friendManager.get().size();
+        } catch (Exception ignored) {}
+
+        logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
 
         // Check if the gamertag has been updated
         checkGamertagUpdate(tokenInfo);
