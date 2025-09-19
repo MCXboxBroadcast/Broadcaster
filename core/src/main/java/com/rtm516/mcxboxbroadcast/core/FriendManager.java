@@ -219,16 +219,23 @@ public class FriendManager {
                 Map<String, String> xuidGamertagMap = new HashMap<>();
                 lastFriendCache().forEach(person -> xuidGamertagMap.put(person.xuid, person.gamertag));
 
-                playerHistory.all().forEach((xuid, lastSeen) -> {
+                for (Map.Entry<String, Instant> entry : playerHistory.all().entrySet()) {
+                    String xuid = entry.getKey();
+                    Instant lastSeen = entry.getValue();
+
                     if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expireDays() * 24 * 3600))) {
                         try {
                             logger.info("Removing player " + xuid + " from friends due to inactivity");
                             forceUnfollow(xuid);
                         } catch (Exception e) {
+                            if (e.getMessage().startsWith("429: ")) {
+                                logger.warn("Rate limited while trying to remove player " + xuid + " from friends for inactivity, will try again later");
+                                return;
+                            }
                             logger.error("Failed to remove player " + xuid + " from friends for inactivity", e);
                         }
                     }
-                });
+                }
             } catch (IOException e) {
                 logger.error("Failed to clean up friends list", e);
             }
@@ -372,7 +379,11 @@ public class FriendManager {
                             toAdd.remove(entry.getKey());
 
                             // Remove these people from following us (block and unblock)
-                            forceUnfollow(entry.getKey());
+                            try {
+                                forceUnfollow(entry.getKey());
+                            } catch (Exception e) {
+                                logger.error("Failed to force unfollow user", e);
+                            }
 
                             logger.warn("Removed " + entry.getValue() + " (" + entry.getKey() + ") as a friend due to restrictions on their account");
                             sessionManager.notificationManager().sendFriendRestrictionNotification(entry.getValue(), entry.getKey());
@@ -448,25 +459,21 @@ public class FriendManager {
      *
      * @param xuid The XUID of the user to target
      */
-    public void forceUnfollow(String xuid) {
-        try {
-            HttpRequest followerDeleteRequest = HttpRequest.newBuilder()
-                .uri(URI.create(Constants.FOLLOWER.formatted(xuid)))
-                .header("Authorization", sessionManager.getTokenHeader())
-                .DELETE()
-                .build();
+    public void forceUnfollow(String xuid) throws Exception {
+        HttpRequest followerDeleteRequest = HttpRequest.newBuilder()
+            .uri(URI.create(Constants.FOLLOWER.formatted(xuid)))
+            .header("Authorization", sessionManager.getTokenHeader())
+            .DELETE()
+            .build();
 
-            HttpResponse<String> response = httpClient.send(followerDeleteRequest, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 204) {
-                // Remove the user from the cache
-                lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
+        HttpResponse<String> response = httpClient.send(followerDeleteRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 204) {
+            // Remove the user from the cache
+            lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
 
-                sessionManager.storageManager().playerHistory().clear(xuid);
-            } else {
-                throw new RuntimeException(response.statusCode() + ": " + response.body());
-            }
-        } catch (Exception e) {
-            logger.error("Failed to force unfollow user", e);
+            sessionManager.storageManager().playerHistory().clear(xuid);
+        } else {
+            throw new RuntimeException(response.statusCode() + ": " + response.body());
         }
     }
 
