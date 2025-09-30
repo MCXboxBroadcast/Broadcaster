@@ -55,11 +55,6 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         this.sessionInfo = sessionInfo;
     }
 
-    @Override
-    public void onDisconnect(String reason) {
-        // TODO
-    }
-
     private void disconnect(String message) {
         DisconnectPacket disconnectPacket = new DisconnectPacket();
         if (message == null) {
