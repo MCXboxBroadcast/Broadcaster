@@ -19,7 +19,7 @@ import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.RemoteCandidate;
 import org.ice4j.ice.harvest.CandidateHarvester;
 import org.opentelecoms.javax.sdp.NistSdpFactory;
-import pe.pi.sctp4j.sctp.small.ThreadedAssociation;
+import pe.pi.sctp4j.sctp.small.CachedThreadedAssociation;
 
 import javax.sdp.Attribute;
 import javax.sdp.MediaDescription;
@@ -146,7 +146,7 @@ public class PeerSession {
 //                        });
 
                         // TODO Pass some form of close handler to the association so we can clean up properly in the RtcWebsocketClient
-                        new ThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect, sessionManager));
+                        new CachedThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect), rtcWebsocket.scheduledExecutorService());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
