@@ -10,7 +10,7 @@ public final class SessionStartBody {
             put("device", new HashMap<>() {{
                 put("applicationType", "MinecraftPE");
                 put("capabilities", new String[0]); // it's RayTracing for me
-                put("gameVersion", "1.21.20");
+                put("gameVersion", "1.21.113");
                 put("id", deviceId);
                 put("memory", "8589934592"); // exactly 8GiB
                 put("platform", "Windows10"); // idk if it matters but the auth was with Android
