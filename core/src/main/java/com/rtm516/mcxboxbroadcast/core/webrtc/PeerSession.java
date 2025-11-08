@@ -84,6 +84,7 @@ public class PeerSession {
             }
 
             component = agent.createComponent(stream, KeepAliveStrategy.SELECTED_ONLY, true);
+            component.getSocket().setSoTimeout(20000); // 20s timeout on socket operations, just incase our catch fails
 
             CustomDatagramTransport transport = new CustomDatagramTransport();
 
@@ -115,22 +116,7 @@ public class PeerSession {
             ));
             rtcWebsocket.send(json);
 
-            // If we don't receive a candidate within 15 seconds, disconnect
-            rtcWebsocket.scheduledExecutorService().schedule(() -> {
-                if (!hadFirstCandidate) {
-                    disconnect();
-                }
-            }, 15, TimeUnit.SECONDS);
-
-            int i = 0;
-            for (LocalCandidate candidate : component.getLocalCandidates()) {
-                String jsonAdd = Constants.GSON.toJson(new WsToMessage(
-                    1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + i + " network-cost 0"
-                ));
-                i++;
-                rtcWebsocket.send(jsonAdd);
-            }
-
+            // Setup our state change listener before sending our candidates
             agent.addStateChangeListener(evt -> {
                 if (!"IceProcessingState".equals(evt.getPropertyName())) return;
                 if (IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
@@ -165,6 +151,22 @@ public class PeerSession {
                     disconnect();
                 }
             });
+
+            // If we don't receive a candidate within 15 seconds, disconnect
+            rtcWebsocket.scheduledExecutorService().schedule(() -> {
+                if (!hadFirstCandidate) {
+                    disconnect();
+                }
+            }, 15, TimeUnit.SECONDS);
+
+            int i = 0;
+            for (LocalCandidate candidate : component.getLocalCandidates()) {
+                String jsonAdd = Constants.GSON.toJson(new WsToMessage(
+                    1, from, "CANDIDATEADD " + sessionId + " " + candidate.toString() + " generation 0 ufrag " + agent.getLocalUfrag() + " network-id " + i + " network-cost 0"
+                ));
+                i++;
+                rtcWebsocket.send(jsonAdd);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -194,7 +196,7 @@ public class PeerSession {
 
         //XXX add exception handling.
         String foundation = tokenizer.nextToken();
-        int componentID = Integer.parseInt( tokenizer.nextToken() );
+        int componentID = Integer.parseInt(tokenizer.nextToken());
         Transport transport = Transport.parse(tokenizer.nextToken());
         long priority = Long.parseLong(tokenizer.nextToken());
         String address = tokenizer.nextToken();
@@ -256,7 +258,7 @@ public class PeerSession {
         try {
             if (threadedAssociation != null) threadedAssociation.closeAllStreams();
             if (dtlsTransport != null) dtlsTransport.close();
-            if (component != null) component.getComponentSocket().close();
+            if (component != null) component.getSocket().close();
             agent.free();
         } catch (IOException e) {
             throw new RuntimeException(e);

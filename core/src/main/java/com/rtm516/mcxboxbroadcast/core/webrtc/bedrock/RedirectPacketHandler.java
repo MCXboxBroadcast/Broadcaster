@@ -21,7 +21,6 @@ import org.cloudburstmc.protocol.bedrock.data.GameType;
 import org.cloudburstmc.protocol.bedrock.data.PacketCompressionAlgorithm;
 import org.cloudburstmc.protocol.bedrock.data.PlayerPermission;
 import org.cloudburstmc.protocol.bedrock.data.SpawnBiomeType;
-import org.cloudburstmc.protocol.bedrock.data.auth.CertificateChainPayload;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacketHandler;
 import org.cloudburstmc.protocol.bedrock.packet.ClientCacheStatusPacket;
@@ -241,16 +240,17 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         dataHandler.sendPacket(startGamePacket);
 
-        try {
-            if (identityData != null) {
-                dataHandler.sessionManager().storageManager().playerHistory().lastSeen(identityData.xuid, Instant.now());
-            }
-        } catch (IOException ignored) { }
-
         // can only start transferring after the StartGame packet
         TransferPacket transferPacket = new TransferPacket();
         transferPacket.setAddress(sessionInfo.getIp());
         transferPacket.setPort(sessionInfo.getPort());
         dataHandler.sendPacket(transferPacket);
+
+        try {
+            if (identityData != null) {
+                dataHandler.sessionManager().logger().info("Transferred bedrock client " + identityData.displayName + " (" + identityData.xuid + ") to target server.");
+                dataHandler.sessionManager().storageManager().playerHistory().lastSeen(identityData.xuid, Instant.now());
+            }
+        } catch (IOException ignored) { }
     }
 }
