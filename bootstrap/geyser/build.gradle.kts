@@ -1,5 +1,6 @@
 plugins {
     id("com.rtm516.mcxboxbroadcast.shadow-conventions")
+    id("com.rtm516.mcxboxbroadcast.modrinth-uploading-conventions")
 }
 
 relocate("org.yaml.snakeyaml")
@@ -23,6 +24,10 @@ sourceSets {
             }
         }
     }
+}
+
+modrinth {
+    uploadFile.set(tasks.getByPath("shadowJar"))
 }
 
 nameJar("MCXboxBroadcastExtension")

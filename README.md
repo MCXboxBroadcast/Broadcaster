@@ -1,5 +1,5 @@
 # MCXboxBroadcast
-[![License: GPL-3.0](https://img.shields.io/github/license/rtm516/MCXboxBroadcast)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/github/license/MCXboxBroadcast/Broadcaster)](LICENSE)
 [![Build Release](https://github.com/MCXboxBroadcast/Broadcaster/actions/workflows/release.yml/badge.svg)](https://github.com/MCXboxBroadcast/Broadcaster/actions/workflows/release.yml)
 [![Discord](https://img.shields.io/discord/1139621390908133396?label=discord&color=5865F2)](https://discord.gg/Tp3tA2kdCN)
 
