@@ -12,7 +12,7 @@ modrinth {
     versionName.set("Build " + System.getenv("BUILD_NUMBER"))
     versionNumber.set(System.getenv("BUILD_NUMBER"))
     versionType.set("release")
-    changelog.set(System.getenv("CHANGELOG") ?: "")
+    changelog.set(rootProject.file("release_notes.md").readText())
     gameVersions.addAll("1.21.10")
     loaders.addAll("geyser")
     failSilently.set(true)

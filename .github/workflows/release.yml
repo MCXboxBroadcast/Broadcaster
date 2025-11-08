@@ -78,22 +78,17 @@ jobs:
         custom_tag: ${{ steps.getCurrentBuild.outputs.result }}
 
     - name: Generate release diff
-      id: changelog
       if: ${{ success() && github.ref_name == 'master' }}
       env:
         BEGIN_COMMIT: ${{ steps.getPreviousBuild.outputs.result }}
         END_COMMIT: ${{ steps.getCurrentBuild.outputs.result }}
-      run: |
-        CHANGELOG=$(git fetch --tags --force && git log --pretty=format:"* %s (%h)" ${BEGIN_COMMIT}..${END_COMMIT}) 
-        echo $CHANGELOG > release_notes.md
-        echo result=${PREVIOUS_TAG} >> $GITHUB_OUTPUT
+      run: git fetch --tags --force && git log --pretty=format:"* %s (%h)" ${BEGIN_COMMIT}..${END_COMMIT} > release_notes.md
 
     - name: Publish to Modrinth
       if: ${{ success() && github.repository == 'MCXboxBroadcast/Broadcaster' &&  github.ref_name == 'master' }}
       run: ./gradlew :bootstrap-geyser:modrinth
       env:
         BUILD_NUMBER: ${{ steps.getCurrentBuild.outputs.result }}
-        CHANGELOG: ${{ steps.changelog.outputs.result }}
         MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
 
     - name: Create release
