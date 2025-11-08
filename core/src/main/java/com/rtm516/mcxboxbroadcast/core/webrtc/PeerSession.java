@@ -41,6 +41,7 @@ public class PeerSession {
     private Component component;
     private DTLSTransport dtlsTransport;
     private String sessionId;
+    private CachedThreadedAssociation threadedAssociation;
 
     private boolean hadFirstCandidate = false;
     private long lastCandidateTime = 0;
@@ -133,8 +134,17 @@ public class PeerSession {
             agent.addStateChangeListener(evt -> {
                 if (!"IceProcessingState".equals(evt.getPropertyName())) return;
                 if (IceProcessingState.COMPLETED.equals(evt.getNewValue())) {
-                    transport.init(component);
+                    // Give 15s before assuming timeout
+                    rtcWebsocket.scheduledExecutorService().schedule(() -> {
+                        if (agent.getState() != IceProcessingState.TERMINATED && (dtlsTransport == null || threadedAssociation == null)) {
+                            rtcWebsocket.logger().error("Failure to create connection to the client after 15s, please try again");
+                            disconnect();
+                        }
+                    }, 15, TimeUnit.SECONDS);
+
                     try {
+                        transport.init(component);
+
                         dtlsTransport = new DTLSClientProtocol().connect(client, transport);
 //                        Log.setLevel(Log.DEBUG);
 
@@ -146,7 +156,7 @@ public class PeerSession {
 //                        });
 
                         // TODO Pass some form of close handler to the association so we can clean up properly in the RtcWebsocketClient
-                        new CachedThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect, sessionManager), this.rtcWebsocket.scheduledExecutorService());
+                        threadedAssociation = new CachedThreadedAssociation(dtlsTransport, new SctpAssociationListener(rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), this::disconnect, sessionManager), this.rtcWebsocket.scheduledExecutorService());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -164,7 +174,7 @@ public class PeerSession {
         component.addRemoteCandidate(parseCandidate(message, component.getParentStream()));
         lastCandidateTime = System.currentTimeMillis();
 
-        if (!hadFirstCandidate) {
+        if (!hadFirstCandidate && agent.getState() == IceProcessingState.WAITING) {
             hadFirstCandidate = true;
             new Thread(() -> {
                 try {
@@ -244,7 +254,9 @@ public class PeerSession {
 
     private void disconnect() {
         try {
+            if (threadedAssociation != null) threadedAssociation.closeAllStreams();
             if (dtlsTransport != null) dtlsTransport.close();
+            if (component != null) component.getComponentSocket().close();
             agent.free();
         } catch (IOException e) {
             throw new RuntimeException(e);
