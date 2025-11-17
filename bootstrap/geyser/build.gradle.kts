@@ -8,6 +8,7 @@ relocate("com.fasterxml.jackson")
 relocate("com.google.gson")
 relocate("net.raphimc.minecraftauth")
 relocate("org.bouncycastle")
+relocate("net.lenni0451.commons.httpclient")
 
 dependencies {
     api(project(":core"))
