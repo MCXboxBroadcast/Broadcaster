@@ -1,6 +1,6 @@
 [versions]
 protocol = "3.0.0.Beta10-20251014.180344-2"
-geyser ="2.4.1-SNAPSHOT"
+geyser ="2.9.0-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"

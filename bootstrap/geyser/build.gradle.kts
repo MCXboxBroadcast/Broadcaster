@@ -10,6 +10,13 @@ relocate("net.raphimc.minecraftauth")
 relocate("org.bouncycastle")
 relocate("net.lenni0451.commons.httpclient")
 
+configurations.all {
+    resolutionStrategy {
+        // Force our version of MinecraftAuth to prevent using v5 from Geyser
+        force(libs.minecraftauth)
+    }
+}
+
 dependencies {
     api(project(":core"))
     api(libs.bundles.jackson)

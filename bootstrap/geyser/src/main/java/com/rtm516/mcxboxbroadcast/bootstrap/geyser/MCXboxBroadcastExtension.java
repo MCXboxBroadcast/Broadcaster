@@ -180,7 +180,7 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setHostName(this.geyserApi().bedrockListener().secondaryMotd());
             sessionInfo.setWorldName(this.geyserApi().bedrockListener().primaryMotd());
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
-            sessionInfo.setMaxPlayers(GeyserImpl.getInstance().getConfig().getMaxPlayers()); // TODO Find API equivalent
+            sessionInfo.setMaxPlayers(GeyserImpl.getInstance().config().motd().maxPlayers()); // TODO Find API equivalent
 
             // Fallback to the gamertag if the host name is empty
             if (sessionInfo.getHostName().isEmpty()) {

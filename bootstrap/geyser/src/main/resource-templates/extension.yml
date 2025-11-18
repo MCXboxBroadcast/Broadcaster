@@ -1,6 +1,6 @@
 id: mcxboxbroadcast
 name: MCXboxBroadcast
 main: com.rtm516.mcxboxbroadcast.bootstrap.geyser.MCXboxBroadcastExtension
-api: "2.4.1"
+api: "2.9.0"
 authors: [ "rtm516" ]
 version: {{ version }}
