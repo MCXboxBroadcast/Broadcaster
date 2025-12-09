@@ -1,6 +1,6 @@
 [versions]
-protocol = "3.0.0.Beta11-20251105.180808-3"
-protocol-common = "3.0.0.Beta11-20251105.180808-2"
+protocol = "3.0.0.Beta11-20251208.164944-9"
+protocol-common = "3.0.0.Beta11-20251208.164944-8"
 geyser ="2.9.0-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
