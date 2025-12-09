@@ -3,7 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v859.Bedrock_v859;
+import org.cloudburstmc.protocol.bedrock.codec.v897.Bedrock_v897;
 
 import java.net.URI;
 import java.time.Duration;
@@ -61,5 +61,5 @@ public class Constants {
     /**
      * Used for the micro nethernet server that trasnfers the client to the real server
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v859.CODEC.toBuilder().protocolVersion(860).minecraftVersion("1.21.124").build();
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v897.CODEC.toBuilder().protocolVersion(898).build();
 }
