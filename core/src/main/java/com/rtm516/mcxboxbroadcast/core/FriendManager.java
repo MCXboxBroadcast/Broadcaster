@@ -37,6 +37,7 @@ public class FriendManager {
     private List<FollowerResponse.Person> lastFriendCache;
     private Future<?> internalScheduledFuture;
     private boolean initialInvite;
+    private boolean shouldAcceptPendingRequests = true;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
@@ -195,6 +196,8 @@ public class FriendManager {
     }
 
     public void init(FriendSyncConfig friendSyncConfig) {
+        shouldAcceptPendingRequests = friendSyncConfig.autoFollow();
+
         // Initialize the auto friend sync if enabled
         initAutoFriend(friendSyncConfig);
 
@@ -498,6 +501,10 @@ public class FriendManager {
     }
 
     public void acceptPendingFriendRequests() {
+        if (!shouldAcceptPendingRequests) {
+            return;
+        }
+
         try {
             // Get the pending friend requests
             HttpRequest friendRequests = HttpRequest.newBuilder()
