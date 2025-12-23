@@ -1,6 +1,7 @@
 [versions]
-protocol = "3.0.0.Beta11-20251208.164944-9"
-protocol-common = "3.0.0.Beta11-20251208.164944-8"
+protocol-connection = "3.0.0.Beta11-20251210.195537-15"
+protocol-common = "3.0.0.Beta11-20251210.195537-14"
+protocol-codec = "3.0.0.Beta11-20251210.195537-15"
 geyser ="2.9.0-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
@@ -23,8 +24,8 @@ minotaur = "2.8.10"
 
 [libraries]
 protocol-common = { group = "org.cloudburstmc.protocol", name = "common", version.ref = "protocol-common" }
-protocol-codec = { group = "org.cloudburstmc.protocol", name = "bedrock-codec", version.ref = "protocol" }
-protocol-connection = { group = "org.cloudburstmc.protocol", name = "bedrock-connection", version.ref = "protocol" }
+protocol-codec = { group = "org.cloudburstmc.protocol", name = "bedrock-codec", version.ref = "protocol-codec" }
+protocol-connection = { group = "org.cloudburstmc.protocol", name = "bedrock-connection", version.ref = "protocol-connection" }
 
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
