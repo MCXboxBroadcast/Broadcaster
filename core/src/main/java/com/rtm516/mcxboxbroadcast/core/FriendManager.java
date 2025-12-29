@@ -239,7 +239,7 @@ public class FriendManager {
                     if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expireDays() * 24 * 3600))) {
                         try {
                             logger.info("Removing player " + xuid + " from friends due to inactivity");
-                            forceUnfollow(xuid);
+                            remove(xuid, null);
                         } catch (Exception e) {
                             if (e.getMessage().startsWith("429: ")) {
                                 logger.warn("Rate limited while trying to remove player " + xuid + " from friends for inactivity, will try again later");
