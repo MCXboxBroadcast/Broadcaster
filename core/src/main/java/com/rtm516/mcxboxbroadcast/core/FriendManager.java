@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -217,14 +218,33 @@ public class FriendManager {
         if (playerHistory.isFirstRun()) {
             logger.info("Player history is being initialized for the first time, this may take a few seconds");
             try {
-                for (FollowerResponse.Person friend : sessionManager.friendManager().get()) {
+                for (FollowerResponse.Person friend : get()) {
                     playerHistory.lastSeen(friend.xuid, Instant.now());
                 }
             } catch (Exception e) {
                 logger.error("Failed to initialize player history", e);
             }
         } else {
-            // TODO cleanup entries that are no longer friends
+            try {
+                Set<String> friendXuids = lastFriendCache().stream().map(person -> person.xuid).collect(Collectors.toUnmodifiableSet());
+                Set<String> historyXuids = playerHistory.all().keySet();
+
+                // Remove any players from history that are no longer friends
+                for (String xuid : historyXuids) {
+                    if (!friendXuids.contains(xuid)) {
+                        playerHistory.clear(xuid);
+                    }
+                }
+
+                // Add any friends that are missing from history
+                for (String xuid : friendXuids) {
+                    if (!historyXuids.contains(xuid)) {
+                        playerHistory.lastSeen(xuid, Instant.now());
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to clean up player history", e);
+            }
         }
 
         sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
