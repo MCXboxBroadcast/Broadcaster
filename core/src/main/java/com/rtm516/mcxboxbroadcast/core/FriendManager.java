@@ -185,6 +185,16 @@ public class FriendManager {
      * @param gamertag The gamertag of the friend to remove
      */
     public void remove(String xuid, String gamertag) {
+        // Try and get the gamertag from the cache if it wasn't provided
+        if (gamertag == null) {
+            Optional<FollowerResponse.Person> foundFriend = lastFriendCache.stream().filter(person -> person.xuid.equals(xuid)).findFirst();
+            if (foundFriend.isPresent()) {
+                gamertag = foundFriend.get().gamertag;
+            } else {
+                gamertag = "Unknown";
+            }
+        }
+
         // Remove the user from the add list (if they are on it)
         toAdd.remove(xuid);
 
