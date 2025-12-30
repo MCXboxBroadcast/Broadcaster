@@ -212,6 +212,9 @@ public class FriendManager {
         // Initialize the auto friend sync if enabled
         initAutoFriend(friendSyncConfig);
 
+        // Accept any pending friend requests if enabled incase we got any while offline
+        acceptPendingFriendRequests();
+
         if (!friendSyncConfig.shouldExpire()) return;
 
         StorageManager.PlayerHistoryStorage playerHistory = sessionManager.storageManager().playerHistory();
