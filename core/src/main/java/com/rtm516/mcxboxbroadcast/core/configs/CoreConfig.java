@@ -83,11 +83,11 @@ public interface CoreConfig {
         @ConfigSerializable
         interface SessionInfo {
             @Comment("The host name to broadcast")
-            @DefaultString("Minecraft Bedrock Server")
+            @DefaultString("Geyser Test Server")
             String hostName();
 
             @Comment("The world name to broadcast")
-            @DefaultString("A Minecraft Bedrock World")
+            @DefaultString("GeyserMC Demo & Test Server")
             String worldName();
 
             @Comment("The current number of players")
@@ -159,7 +159,8 @@ public interface CoreConfig {
 
         @Comment("""
             The webhook url to send the message to
-            If you are using discord use a add "/slack" to the end of the webhook url""")
+            If you are using discord add "/slack" to the end of the webhook url""")
+        @DefaultString("")
         String webhookUrl();
 
         @Comment("The message to send when the session is expired and needs to be updated")
@@ -170,9 +171,9 @@ public interface CoreConfig {
             Enter the code: %s""")
         String sessionExpiredMessage();
 
-        @Comment("The message to send when a friend has restrictions in place that prevent them from be friend with our account")
+        @Comment("The message to send when a friend has restrictions in place that prevent them from being friends with our account")
         @DefaultString("""
-            %s (%s) has restrictions in place that prevent them from be friend with our account.""")
+            %s (%s) has restrictions in place that prevent them from being friends with our account.""")
         String friendRestrictionMessage();
     }
 }

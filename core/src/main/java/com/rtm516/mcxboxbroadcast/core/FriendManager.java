@@ -259,7 +259,7 @@ public class FriendManager {
                     String xuid = entry.getKey();
                     Instant lastSeen = entry.getValue();
 
-                    if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expiry().days() * 24 * 3600))) {
+                    if (lastSeen.isBefore(Instant.now().minusSeconds(TimeUnit.DAYS.toSeconds(friendSyncConfig.expiry().days())))) {
                         try {
                             logger.info("Removing player " + xuid + " from friends due to inactivity");
                             remove(xuid, null);

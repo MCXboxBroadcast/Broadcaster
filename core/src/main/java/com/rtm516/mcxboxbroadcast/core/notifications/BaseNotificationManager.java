@@ -33,7 +33,7 @@ public class BaseNotificationManager implements NotificationManager {
     }
 
     protected void sendNotification(String message) {
-        if (config != null || !config.enabled()) {
+        if (config == null || !config.enabled()) {
             return;
         }
         throw new UnsupportedOperationException();
