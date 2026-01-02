@@ -156,7 +156,10 @@ public class RtcWebsocketClient extends WebSocketClient {
     }
 
     private void initialize(JsonObject message) {
-        // In the event we are sent another set of auth servers, clear the current server
+        // In the event we are sent another set of auth servers, clear the current servers
+        iceServers.clear();
+
+        // Parse the STUN/TURN auth servers
         JsonArray turnAuthServers = message.getAsJsonArray("TurnAuthServers");
         for (JsonElement authServerElement : turnAuthServers) {
             JsonObject authServer = authServerElement.getAsJsonObject();
