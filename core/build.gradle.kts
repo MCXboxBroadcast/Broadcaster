@@ -29,7 +29,6 @@ dependencies {
         }
     }
 
-    api(libs.bundles.bouncycastle)
     api(libs.sqlite)
 }
 
