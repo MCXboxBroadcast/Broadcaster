@@ -22,6 +22,7 @@ import dev.kastle.webrtc.RTCSignalingState;
 import dev.kastle.webrtc.SetSessionDescriptionObserver;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -35,11 +36,8 @@ public class PeerSession implements PeerConnectionObserver {
     private String sessionId;
     private BigInteger from;
 
-    private Set<String> localCandidates = new HashSet<>();
-    private Set<String> remoteCandidates = new HashSet<>();
-
-    private boolean hadFirstCandidate = false;
-    private long lastCandidateTime = 0;
+    private final Set<String> localCandidates = new HashSet<>();
+    private final Set<String> remoteCandidates = new HashSet<>();
 
     public PeerSession(RtcWebsocketClient rtcWebsocket, PeerConnectionFactory factory, RTCConfiguration config, SessionManagerCore sessionManager) {
         this.rtcWebsocket = rtcWebsocket;
@@ -195,7 +193,7 @@ public class PeerSession implements PeerConnectionObserver {
 
     @Override
     public void onIceCandidatesRemoved(RTCIceCandidate[] candidates) {
-        rtcWebsocket.logger().debug("ICE candidates removed: " + candidates);
+        rtcWebsocket.logger().debug("ICE candidates removed: " + Arrays.toString(candidates));
     }
 
     @Override

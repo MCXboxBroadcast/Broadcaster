@@ -168,6 +168,6 @@ public class GalleryManager {
         CRC32 digest = new CRC32();
         digest.update(data, 0, data.length);
 
-        return String.format("%02x", digest.getValue());
+        return String.format("%08x", digest.getValue());
     }
 }
