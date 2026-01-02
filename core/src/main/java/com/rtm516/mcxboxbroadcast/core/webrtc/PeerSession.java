@@ -22,6 +22,9 @@ import dev.kastle.webrtc.RTCSignalingState;
 import dev.kastle.webrtc.SetSessionDescriptionObserver;
 
 import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class PeerSession implements PeerConnectionObserver {
     private final RtcWebsocketClient rtcWebsocket;
@@ -31,6 +34,9 @@ public class PeerSession implements PeerConnectionObserver {
 
     private String sessionId;
     private BigInteger from;
+
+    private Set<String> localCandidates = new HashSet<>();
+    private Set<String> remoteCandidates = new HashSet<>();
 
     private boolean hadFirstCandidate = false;
     private long lastCandidateTime = 0;
@@ -69,6 +75,14 @@ public class PeerSession implements PeerConnectionObserver {
                         ));
                         rtcWebsocket.send(json);
 
+                        // Schedule a check in 15 seconds to see if we have had a candidate, if not disconnect
+                        rtcWebsocket.scheduledExecutorService().schedule(() -> {
+                            if (remoteCandidates.isEmpty()) {
+                                rtcWebsocket.logger().error("No candidates sent by the client after 15s, please reconnect and try again");
+                                disconnect();
+                            }
+                        }, 15, TimeUnit.SECONDS);
+
                         RTCDataChannel dataChannel = peerConnection.createDataChannel("ReliableDataChannel", new RTCDataChannelInit());
                         dataChannel.registerObserver(new MinecraftDataHandler(dataChannel, Constants.BEDROCK_CODEC, rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), sessionManager));
                     }
@@ -88,7 +102,9 @@ public class PeerSession implements PeerConnectionObserver {
     }
 
     public void addCandidate(String message) {
-        peerConnection.addIceCandidate(new RTCIceCandidate(null, Integer.parseInt(message.split(" ")[1]), message.substring(message.indexOf("candidate:"))));
+        RTCIceCandidate candidate = new RTCIceCandidate(null, Integer.parseInt(message.split(" ")[1]), message.substring(message.indexOf("candidate:")));
+        remoteCandidates.add(message);
+        peerConnection.addIceCandidate(candidate);
     }
 
     private void disconnect() {
@@ -98,6 +114,7 @@ public class PeerSession implements PeerConnectionObserver {
 
     @Override
     public void onIceCandidate(RTCIceCandidate candidate) {
+        localCandidates.add(candidate.sdp);
         String jsonAdd = Constants.GSON.toJson(new WsToMessage(
             1, from, "CANDIDATEADD " + sessionId + " " + candidate.sdp
         ));
@@ -113,6 +130,20 @@ public class PeerSession implements PeerConnectionObserver {
     public void onConnectionChange(RTCPeerConnectionState state) {
         rtcWebsocket.logger().debug("Connection state change: " + state);
 
+        if (state == RTCPeerConnectionState.CONNECTING) {
+            // Schedule a check in 15 seconds to see if we are connected, if not disconnect
+            rtcWebsocket.scheduledExecutorService().schedule(() -> {
+                if (peerConnection.getConnectionState() == RTCPeerConnectionState.CONNECTING) {
+                    rtcWebsocket.logger().error("Failure to create connection to the client after 15s, please reconnect and try again");
+                    disconnect();
+                }
+            }, 15, TimeUnit.SECONDS);
+        }
+
+        if (state == RTCPeerConnectionState.FAILED) {
+            rtcWebsocket.logger().error("Failure to establish ICE connection, likely due to a network issue. Please check Xbox Live status and firewall configuration.");
+        }
+
         if (state == RTCPeerConnectionState.DISCONNECTED || state == RTCPeerConnectionState.FAILED) {
             disconnect();
         }
@@ -125,18 +156,26 @@ public class PeerSession implements PeerConnectionObserver {
     }
 
     @Override
-    public void onStandardizedIceConnectionChange(RTCIceConnectionState state) {
-        rtcWebsocket.logger().debug("Standardized ICE connection state change: " + state);
-    }
-
-    @Override
-    public void onIceConnectionReceivingChange(boolean receiving) {
-        rtcWebsocket.logger().debug("ICE connection receiving change: " + receiving);
-    }
-
-    @Override
     public void onIceGatheringChange(RTCIceGatheringState state) {
         rtcWebsocket.logger().debug("ICE gathering state change: " + state);
+
+        // When we complete the gathering then log all candidates for debugging
+        if (state == RTCIceGatheringState.COMPLETE) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("ICE gathering complete:\n");
+
+            sb.append(localCandidates.size()).append(" Local candidates:\n");
+            localCandidates.forEach(localCandidate -> {
+                sb.append(localCandidate).append("\n");
+            });
+
+            sb.append(remoteCandidates.size()).append(" Remote candidates:\n");
+            remoteCandidates.forEach(localCandidate -> {
+                sb.append(localCandidate).append("\n");
+            });
+
+            rtcWebsocket.logger().debug(sb.toString());
+        }
 
         // Check if we finished gathering and didn't initialise any connections
         if (state == RTCIceGatheringState.COMPLETE && peerConnection.getConnectionState() == RTCPeerConnectionState.NEW) {
@@ -146,6 +185,11 @@ public class PeerSession implements PeerConnectionObserver {
 
     @Override
     public void onIceCandidateError(RTCPeerConnectionIceErrorEvent event) {
+        if (event.getErrorCode() == 701) {
+            // Ignore 701 errors as they are expected when a network adapter doesn't have internet access
+            return;
+        }
+
         rtcWebsocket.logger().error("ICE candidate error: " + event.getAddress() + ":"  + event.getPort() + " -> " + event.getUrl() + " = " + event.getErrorCode() + ": " + event.getErrorText());
     }
 
@@ -156,7 +200,7 @@ public class PeerSession implements PeerConnectionObserver {
 
     @Override
     public void onDataChannel(RTCDataChannel dataChannel) {
-        rtcWebsocket.logger().debug("Data channel: " + dataChannel.getLabel());
+        rtcWebsocket.logger().debug("Received data channel: " + dataChannel.getLabel());
     }
 
     @Override
