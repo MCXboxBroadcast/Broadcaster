@@ -1,13 +1,13 @@
 package com.rtm516.mcxboxbroadcast.core.notifications;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
-import com.rtm516.mcxboxbroadcast.core.configs.NotificationConfig;
+import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 
 public class BaseNotificationManager implements NotificationManager {
     protected final Logger logger;
-    protected final NotificationConfig config;
+    protected final CoreConfig.NotificationConfig config;
 
-    public BaseNotificationManager(Logger logger, NotificationConfig config) {
+    public BaseNotificationManager(Logger logger, CoreConfig.NotificationConfig config) {
         this.logger = logger;
         this.config = config;
     }
@@ -19,7 +19,7 @@ public class BaseNotificationManager implements NotificationManager {
      * @param userCode The user code to use
      */
     public void sendSessionExpiredNotification(String verificationUri, String userCode) {
-        sendNotification(config.sessionExpiredMessage().formatted(verificationUri, userCode));
+        if (config != null) sendNotification(config.sessionExpiredMessage().formatted(verificationUri, userCode));
     }
 
     /**
@@ -29,11 +29,11 @@ public class BaseNotificationManager implements NotificationManager {
      * @param xuid The XUID of the user
      */
     public void sendFriendRestrictionNotification(String username, String xuid) {
-        sendNotification(config.friendRestrictionMessage().formatted(username, xuid));
+        if (config != null) sendNotification(config.friendRestrictionMessage().formatted(username, xuid));
     }
 
     protected void sendNotification(String message) {
-        if (!config.enabled()) {
+        if (config != null || !config.enabled()) {
             return;
         }
         throw new UnsupportedOperationException();

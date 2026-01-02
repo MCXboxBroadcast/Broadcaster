@@ -1,7 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.google.gson.JsonParseException;
-import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
+import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendModifyResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.FriendRequestAcceptResponse;
@@ -206,7 +206,7 @@ public class FriendManager {
         callInternalProcess();
     }
 
-    public void init(FriendSyncConfig friendSyncConfig) {
+    public void init(CoreConfig.FriendSyncConfig friendSyncConfig) {
         shouldAcceptPendingRequests = friendSyncConfig.autoFollow();
 
         // Initialize the auto friend sync if enabled
@@ -215,7 +215,7 @@ public class FriendManager {
         // Accept any pending friend requests if enabled incase we got any while offline
         acceptPendingFriendRequests();
 
-        if (!friendSyncConfig.shouldExpire()) return;
+        if (!friendSyncConfig.expiry().enabled()) return;
 
         StorageManager.PlayerHistoryStorage playerHistory = sessionManager.storageManager().playerHistory();
         if (playerHistory.isFirstRun()) {
@@ -259,7 +259,7 @@ public class FriendManager {
                     String xuid = entry.getKey();
                     Instant lastSeen = entry.getValue();
 
-                    if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expireDays() * 24 * 3600))) {
+                    if (lastSeen.isBefore(Instant.now().minusSeconds(friendSyncConfig.expiry().days() * 24 * 3600))) {
                         try {
                             logger.info("Removing player " + xuid + " from friends due to inactivity");
                             remove(xuid, null);
@@ -275,7 +275,7 @@ public class FriendManager {
             } catch (IOException e) {
                 logger.error("Failed to clean up friends list", e);
             }
-        }, 10, friendSyncConfig.expireCheck(), TimeUnit.SECONDS);
+        }, 10, friendSyncConfig.expiry().check(), TimeUnit.SECONDS);
     }
 
     /**
@@ -283,7 +283,7 @@ public class FriendManager {
      *
      * @param friendSyncConfig The config to use for the auto friend sync
      */
-    private void initAutoFriend(FriendSyncConfig friendSyncConfig) {
+    private void initAutoFriend(CoreConfig.FriendSyncConfig friendSyncConfig) {
         this.initialInvite = friendSyncConfig.initialInvite();
         if (friendSyncConfig.autoFollow() || friendSyncConfig.autoUnfollow()) {
             sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {

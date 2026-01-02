@@ -8,7 +8,6 @@ plugins {
 
 dependencies {
     api(project(":core"))
-    api(libs.bundles.jackson)
 
     api(libs.terminalconsoleappender) {
         exclude("org.apache.logging.log4j")
