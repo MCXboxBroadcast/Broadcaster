@@ -21,7 +21,6 @@ import dev.kastle.webrtc.RTCSessionDescription;
 import dev.kastle.webrtc.RTCSignalingState;
 import dev.kastle.webrtc.SetSessionDescriptionObserver;
 
-import java.io.IOException;
 import java.math.BigInteger;
 
 public class PeerSession implements PeerConnectionObserver {
