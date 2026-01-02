@@ -3,9 +3,10 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v786.Bedrock_v786;
+import org.cloudburstmc.protocol.bedrock.codec.v898.Bedrock_v898;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
@@ -45,6 +46,8 @@ public class Constants {
 
     public static final String GALLERY = "https://persona.franchise.minecraft-services.net/api/v1.0/gallery";
 
+    public static final Duration WEBSOCKET_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
+
     /**
      * Gathered from scraped web requests
      */
@@ -56,7 +59,7 @@ public class Constants {
     public static final int MAX_FRIENDS = 2000;
 
     /**
-     * Used for the micro nethernet server that trasnfers the client to the real server
+     * Used for the micro nethernet server that transfers the client to the real server
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v786.CODEC;
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v898.CODEC;
 }

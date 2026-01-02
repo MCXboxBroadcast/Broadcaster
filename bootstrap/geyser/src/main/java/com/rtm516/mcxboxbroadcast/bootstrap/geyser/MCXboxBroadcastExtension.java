@@ -1,6 +1,7 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.geyser;
 
 import com.rtm516.mcxboxbroadcast.core.BuildData;
+import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
@@ -19,7 +20,6 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
-import org.geysermc.geyser.api.util.MinecraftVersion;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -127,7 +127,7 @@ public class MCXboxBroadcastExtension implements Extension {
     public void onPostInitialize(GeyserPostInitializeEvent event) {
         logger = new ExtensionLoggerImpl(this.logger());
 
-        logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION);
+        logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION + " for Bedrock " + Constants.BEDROCK_CODEC.getMinecraftVersion() + " (" + Constants.BEDROCK_CODEC.getProtocolVersion() + ")");
 
         // Load the config file
         config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
@@ -175,16 +175,17 @@ public class MCXboxBroadcastExtension implements Extension {
                 port = Integer.parseInt(config.remotePort());
             }
 
-            MinecraftVersion latestVersion = this.geyserApi().supportedBedrockVersions().get(this.geyserApi().supportedBedrockVersions().size() - 1);
-
             // Create the session information based on the Geyser config
             sessionInfo = new SessionInfo();
-            sessionInfo.setHostName(this.geyserApi().bedrockListener().primaryMotd());
-            sessionInfo.setWorldName(this.geyserApi().bedrockListener().secondaryMotd());
-            sessionInfo.setVersion(latestVersion.versionString());
-            sessionInfo.setProtocol(latestVersion.protocolVersion());
+            sessionInfo.setHostName(this.geyserApi().bedrockListener().secondaryMotd());
+            sessionInfo.setWorldName(this.geyserApi().bedrockListener().primaryMotd());
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
-            sessionInfo.setMaxPlayers(GeyserImpl.getInstance().getConfig().getMaxPlayers()); // TODO Find API equivalent
+            sessionInfo.setMaxPlayers(GeyserImpl.getInstance().config().motd().maxPlayers()); // TODO Find API equivalent
+
+            // Fallback to the gamertag if the host name is empty
+            if (sessionInfo.getHostName().isEmpty()) {
+                sessionInfo.setHostName(sessionManager.getGamertag());
+            }
 
             sessionInfo.setIp(ip);
             sessionInfo.setPort(port);
@@ -205,11 +206,16 @@ public class MCXboxBroadcastExtension implements Extension {
         }
 
         // Allows support for motd and player count passthrough
-        sessionInfo.setHostName(event.primaryMotd());
-        sessionInfo.setWorldName(event.secondaryMotd());
+        sessionInfo.setHostName(event.secondaryMotd());
+        sessionInfo.setWorldName(event.primaryMotd());
         
         sessionInfo.setPlayers(event.playerCount());
         sessionInfo.setMaxPlayers(event.maxPlayerCount());
+
+        // Fallback to the gamertag if the host name is empty
+        if (sessionInfo.getHostName().isEmpty()) {
+            sessionInfo.setHostName(sessionManager.getGamertag());
+        }
     }
 
 

@@ -21,44 +21,53 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
     - name: Validate Gradle Wrapper
       uses: gradle/actions/wrapper-validation@v4
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: 17
         distribution: temurin
+
     - name: Get previous build number
       id: getPreviousBuild
       run: | 
         PREVIOUS_TAG=$(git for-each-ref --sort=-version:refname --count 1 --format="%(refname:short)" "refs/tags/*")
         echo result=${PREVIOUS_TAG} >> $GITHUB_OUTPUT
+
     - name: Get current build number
       id: getCurrentBuild
       if: success()
       env:
         PREVIOUS_BUILD: ${{ steps.getPreviousBuild.outputs.result }}
       run: echo result=$((++PREVIOUS_BUILD)) >> $GITHUB_OUTPUT
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
       with:
         gradle-home-cache-cleanup: true
+
     - name: Build
       run: ./gradlew build
       env:
         BUILD_NUMBER: ${{ steps.getCurrentBuild.outputs.result }}
+
     - uses: actions/upload-artifact@v4
       if: success()
       with:
         name: MCXboxBroadcastExtension
         path: bootstrap/geyser/build/libs/MCXboxBroadcastExtension.jar
         if-no-files-found: error
+
     - uses: actions/upload-artifact@v4
       if: success()
       with:
         name: MCXboxBroadcastStandalone
         path: bootstrap/standalone/build/libs/MCXboxBroadcastStandalone.jar
         if-no-files-found: error
+
     - name: Bump version and push tag
       id: tag_version
       uses: mathieudutour/github-tag-action@v6.2
@@ -67,12 +76,21 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         tag_prefix: ''
         custom_tag: ${{ steps.getCurrentBuild.outputs.result }}
+
     - name: Generate release diff
       if: ${{ success() && github.ref_name == 'master' }}
       env:
         BEGIN_COMMIT: ${{ steps.getPreviousBuild.outputs.result }}
         END_COMMIT: ${{ steps.getCurrentBuild.outputs.result }}
       run: git fetch --tags --force && git log --pretty=format:"* %s (%h)" ${BEGIN_COMMIT}..${END_COMMIT} > release_notes.md
+
+    - name: Publish to Modrinth
+      if: ${{ success() && github.repository == 'MCXboxBroadcast/Broadcaster' &&  github.ref_name == 'master' }}
+      run: ./gradlew :bootstrap-geyser:modrinth
+      env:
+        BUILD_NUMBER: ${{ steps.getCurrentBuild.outputs.result }}
+        MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+
     - name: Create release
       uses: ncipollo/release-action@v1
       if: ${{ success() && github.ref_name == 'master' }}
@@ -91,31 +109,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: MCXboxBroadcastStandalone
           path: bootstrap/standalone/build/libs
-      - name: Fix Docker environment variables
+
+      - name: Make environment variables lowercase
         run: |
-          # Make lowercase
           echo "DOCKER_OWNER=$(echo $DOCKER_OWNER | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
           echo "DOCKER_CONTAINER=$(echo $DOCKER_CONTAINER | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
           echo "DOCKER_TAG=$(echo $DOCKER_TAG | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
 
+      - name: Fix Docker tag format
+        run: |
           # Replace / with _
           echo "DOCKER_TAG=$(echo $DOCKER_TAG | sed -e 's/\//_/g')" >> $GITHUB_ENV
 
-      - name: Build the Docker image
+      - name: Set Docker container tags
         run: |
-          docker build . --file bootstrap/standalone/Dockerfile --tag $DOCKER_CONTAINER:$DOCKER_TAG
-          [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker tag $DOCKER_CONTAINER:$DOCKER_TAG ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:latest
-          docker tag $DOCKER_CONTAINER:$DOCKER_TAG ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:$DOCKER_TAG
+          DOCKER_TAGS="ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:$DOCKER_TAG"
+          [[ "${{ github.ref }}" == "refs/heads/master" ]] && DOCKER_TAGS="$DOCKER_TAGS,ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:latest"
+
+          echo "DOCKER_TAGS=$DOCKER_TAGS" >> "$GITHUB_ENV"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
-      - name: Push to GHCR
-        run: |
-          [[ "${{ github.ref }}" == "refs/heads/master" ]] && docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:latest
-          docker push ghcr.io/$DOCKER_OWNER/$DOCKER_CONTAINER:$DOCKER_TAG
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: bootstrap/standalone/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.DOCKER_TAGS }}

@@ -18,8 +18,6 @@ session:
   session-info:
     host-name: "Geyser Test Server"
     world-name: "\u00A7aGeyserMC \u00A7bDemo \u00A7f& \u00A7cTest \u00A7fServer"
-    version: 1.21.70
-    protocol: 786
     players: 0
     max-players: 20
     ip: test.geysermc.org
@@ -39,6 +37,15 @@ friend-sync:
 
   # Should we automatically send an invite when a friend is added
   initial-invite: true
+
+  # Should we unfriend people that haven't joined the server in a while
+  should-expire: true
+  
+  # The amount of time in days before a friend is considered expired
+  expire-days: 15
+
+  # How often to check in seconds for expired friends
+  expire-check: 1800
 
 # Slack webhook settings
 slack-webhook:

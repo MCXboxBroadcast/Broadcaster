@@ -1,6 +1,8 @@
 [versions]
-protocol = "3.0.0.Beta6-20250324.162731-5"
-geyser ="2.4.1-SNAPSHOT"
+protocol-connection = "3.0.0.Beta11-20251210.195537-15"
+protocol-common = "3.0.0.Beta11-20251210.195537-14"
+protocol-codec = "3.0.0.Beta11-20251210.195537-15"
+geyser ="2.9.0-SNAPSHOT"
 jackson = "2.14.0"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"
@@ -10,19 +12,19 @@ terminalconsoleappender = "1.3.0"
 methanol = "1.7.0"
 minecraftauth = "4.1.2-SNAPSHOT"
 gson = "2.11.0"
-ice4j = "b3242a613c"
 bouncycastle = "1.78.1"
-sctp4j = "166efaab3b"
-webrtc = "0.10.0"
+sqlite = "3.50.2.0"
+webrtc = "1.0.3"
 
 shadow = "8.3.0"
 indra = "3.1.3"
 blossom = "2.1.0"
+minotaur = "2.8.10"
 
 [libraries]
-protocol-common = { group = "org.cloudburstmc.protocol", name = "common", version.ref = "protocol" }
-protocol-codec = { group = "org.cloudburstmc.protocol", name = "bedrock-codec", version.ref = "protocol" }
-protocol-connection = { group = "org.cloudburstmc.protocol", name = "bedrock-connection", version.ref = "protocol" }
+protocol-common = { group = "org.cloudburstmc.protocol", name = "common", version.ref = "protocol-common" }
+protocol-codec = { group = "org.cloudburstmc.protocol", name = "bedrock-codec", version.ref = "protocol-codec" }
+protocol-connection = { group = "org.cloudburstmc.protocol", name = "bedrock-connection", version.ref = "protocol-connection" }
 
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
@@ -39,6 +41,7 @@ nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.re
 shadow = { group = "com.gradleup.shadow", name = "shadow-gradle-plugin", version.ref = "shadow" }
 indra-git = { group = "net.kyori", name = "indra-git", version.ref = "indra" }
 blossom = { group = "net.kyori", name = "blossom", version.ref = "blossom" }
+minotaur = { group = "com.modrinth.minotaur", name = "Minotaur", version.ref = "minotaur" }
 
 terminalconsoleappender = { group = "net.minecrell", name = "terminalconsoleappender", version.ref = "terminalconsoleappender" }
 
@@ -58,10 +61,8 @@ bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", versi
 bouncycastle-tls = { group = "org.bouncycastle", name = "bctls-jdk18on", version.ref = "bouncycastle" }
 bouncycastle-pkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 
-ice4j = { group = "com.github.MCXboxBroadcast", name = "ice4j", version.ref = "ice4j" }
-sctp4j = { group = "com.github.MCXboxBroadcast", name = "sctp4j", version.ref = "sctp4j" }
-
-webrtc = { group = "dev.onvoid.webrtc", name = "webrtc-java", version.ref = "webrtc" }
+webrtc = { group = "dev.kastle.webrtc", name = "webrtc-java", version.ref = "webrtc" }
+sqlite = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite" }
 
 [bundles]
 jackson = [

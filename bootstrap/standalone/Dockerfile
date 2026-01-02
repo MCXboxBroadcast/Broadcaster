@@ -1,5 +1,7 @@
 FROM eclipse-temurin:21-alpine
 
+RUN chmod 777 -R /tmp && chmod o+t -R /tmp
+
 RUN adduser -h /opt/app -H -D app
 
 RUN mkdir -p /opt/app/config && \

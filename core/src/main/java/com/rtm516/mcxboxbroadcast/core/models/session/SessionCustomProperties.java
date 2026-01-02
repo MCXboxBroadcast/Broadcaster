@@ -18,10 +18,10 @@ public record SessionCustomProperties(
     String ownerId,
     String rakNetGUID,
     String worldName,
-    String worldType,
+    String worldType, // Survival, Creative, Adventure
     int protocol,
     String version,
     boolean isEditorWorld,
-    boolean isHardcore
+    boolean isHardcore // If true then shows as hardcore
 ) {
 }

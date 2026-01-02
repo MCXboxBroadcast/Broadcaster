@@ -4,7 +4,12 @@ import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.models.gallery.GalleryImage;
 import com.rtm516.mcxboxbroadcast.core.models.gallery.GalleryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.gallery.GalleryUploadResponse;
+import org.bouncycastle.crypto.digests.SHA1Digest;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -25,13 +30,47 @@ public class GalleryManager {
     }
 
     public boolean setShowcase(File imageFile) {
-        String newImageId = uploadImage(imageFile, true);
+        GalleryImage[] existingImages = getImages();
+        if (existingImages == null) {
+            logger.error("Unable to set showcase image, you are likely being rate limited");
+            return false;
+        }
+
+        String newImageId = null;
+
+        if (existingImages.length >= 1) {
+            // Check if the image is already set as the showcase image by comparing the hash of the image data
+            try {
+                BufferedImage newImageData = ImageIO.read(imageFile);
+                String newImageHash = getImageHash(newImageData);
+
+                // Loop through existing images and compare hashes
+                for (GalleryImage image : existingImages) {
+                    BufferedImage imageData = getImage(image);
+                    String imageHash = getImageHash(imageData);
+
+                    if (newImageHash.equals(imageHash)) {
+                        newImageId = image.id();
+                        logger.info("Showcase image is already set, skipping upload");
+                        break;
+                    }
+
+                }
+            } catch (IOException e) {
+                logger.error("Failed to read new showcase image file", e);
+                return false;
+            }
+        }
+
+        if (newImageId == null) {
+            newImageId = uploadImage(imageFile, true);
+        }
 
         if (newImageId == null) {
             return false;
         }
 
-        for (GalleryImage image : getImages()) {
+        for (GalleryImage image : existingImages) {
             if (image.id().equals(newImageId)) {
                 continue;
             }
@@ -62,7 +101,7 @@ public class GalleryManager {
 
             return image.id();
         } catch (JsonParseException | InterruptedException | IOException e) {
-            logger.error("Failed to upload and set featured gallery image: " + e.getMessage());
+            logger.error("Failed to upload and set featured gallery image", e);
         }
 
         return null;
@@ -78,7 +117,7 @@ public class GalleryManager {
         try {
             HttpResponse<String> response = httpClient.send(deleteImageRequest, HttpResponse.BodyHandlers.ofString());
         } catch (JsonParseException | InterruptedException | IOException e) {
-            logger.error("Failed to delete gallery image: " + e.getMessage());
+            logger.error("Failed to delete gallery image", e);
         }
     }
 
@@ -91,11 +130,52 @@ public class GalleryManager {
 
         try {
             HttpResponse<String> response = httpClient.send(getImagesRequest, HttpResponse.BodyHandlers.ofString());
-            return Constants.GSON.fromJson(response.body(), GalleryResponse.class).result().showcasedImages();
-        } catch (JsonParseException | InterruptedException | IOException | NullPointerException e) {
-            logger.error("Failed to get gallery images: " + e.getMessage());
+            GalleryResponse.Result result = Constants.GSON.fromJson(response.body(), GalleryResponse.class).result();
+            if (result == null) {
+                throw new RuntimeException("Gallery response result is null");
+            }
+            return result.showcasedImages();
+        } catch (InterruptedException | IOException | RuntimeException e) {
+            logger.error("Failed to get gallery images", e);
         }
 
-        return new GalleryImage[0];
+        return null;
+    }
+
+    private BufferedImage getImage(GalleryImage image) {
+        HttpRequest getImageRequest = HttpRequest.newBuilder()
+            .uri(URI.create(image.url()))
+            .header("Authorization", sessionManager.getMCTokenHeader())
+            .GET()
+            .build();
+
+        try {
+            HttpResponse<byte[]> response = httpClient.send(getImageRequest, HttpResponse.BodyHandlers.ofByteArray());
+            return ImageIO.read(new ByteArrayInputStream(response.body()));
+        } catch (InterruptedException | IOException ignored) {
+        }
+
+        return null;
+    }
+
+    private String getImageHash(BufferedImage image) {
+        if (image == null) {
+            return "";
+        }
+
+        byte[] data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+
+        SHA1Digest digest = new SHA1Digest();
+        digest.update(data, 0, data.length);
+
+        byte[] hash = new byte[digest.getDigestSize()];
+        digest.doFinal(hash, 0);
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hash) {
+            sb.append(String.format("%02x", b));
+        }
+
+        return sb.toString();
     }
 }

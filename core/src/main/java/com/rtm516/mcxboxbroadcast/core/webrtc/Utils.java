@@ -2,16 +2,17 @@ package com.rtm516.mcxboxbroadcast.core.webrtc;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
-import java.util.List;
 import javax.crypto.SecretKey;
+
+import org.cloudburstmc.protocol.bedrock.data.auth.AuthPayload;
 import org.cloudburstmc.protocol.bedrock.packet.ServerToClientHandshakePacket;
 import org.cloudburstmc.protocol.bedrock.util.ChainValidationResult;
 import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 
-// https://github.com/GeyserMC/GlobalLinkServer/blob/master/src/main/java/org/geysermc/globallinkserver/util/Utils.java
+// Partially from https://github.com/GeyserMC/GlobalLinkServer/blob/master/src/main/java/org/geysermc/globallinkserver/util/Utils.java
 public class Utils {
-    public static ChainValidationResult.IdentityData validateConnection(MinecraftDataHandler session, List<String> certChainData, String clientDataJwt) throws Exception {
-        ChainValidationResult result = EncryptionUtils.validateChain(certChainData);
+    public static ChainValidationResult.IdentityData validateConnection(MinecraftDataHandler session, AuthPayload authPayload, String clientDataJwt) throws Exception {
+        ChainValidationResult result = EncryptionUtils.validatePayload(authPayload);
         if (!result.signed()) {
             throw new IllegalArgumentException("Chain is not signed");
         }

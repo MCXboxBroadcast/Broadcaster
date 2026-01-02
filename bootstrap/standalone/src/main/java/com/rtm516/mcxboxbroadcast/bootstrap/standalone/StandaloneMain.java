@@ -1,8 +1,10 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.rtm516.mcxboxbroadcast.core.BuildData;
+import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
@@ -34,7 +36,7 @@ public class StandaloneMain {
     public static void main(String[] args) throws Exception {
         logger = new StandaloneLoggerImpl(LoggerFactory.getLogger(StandaloneMain.class));
 
-        logger.info("Starting MCXboxBroadcast Standalone " + BuildData.VERSION);
+        logger.info("Starting MCXboxBroadcast Standalone " + BuildData.VERSION + " for Bedrock " + Constants.BEDROCK_CODEC.getMinecraftVersion() + " (" + Constants.BEDROCK_CODEC.getProtocolVersion() + ")");
 
         String configFileName = "config.yml";
         File configFile = new File(configFileName);
@@ -59,7 +61,9 @@ public class StandaloneMain {
         }
 
         try {
-            config = new ObjectMapper(new YAMLFactory()).readValue(configFile, StandaloneConfig.class);
+            config = new ObjectMapper(new YAMLFactory())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .readValue(configFile, StandaloneConfig.class);
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
@@ -73,6 +77,11 @@ public class StandaloneMain {
         sessionManager = new SessionManager(new FileStorageManager("./cache", "./screenshot.jpg"), notificationManager, logger);
 
         sessionInfo = (SessionInfo) config.session().sessionInfo().copy();
+
+        // Fallback to the gamertag if the host name is empty
+        if (sessionInfo.getHostName().isEmpty()) {
+            sessionInfo.setHostName(sessionManager.getGamertag());
+        }
 
         PingUtil.setWebPingEnabled(config.session().webQueryFallback());
 
@@ -125,22 +134,28 @@ public class StandaloneMain {
                 BedrockPong pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
                 // Update the session information
-                sessionInfo.setHostName(pong.motd());
-                sessionInfo.setWorldName(pong.subMotd());
-                sessionInfo.setVersion(pong.version());
-                sessionInfo.setProtocol(pong.protocolVersion());
+                sessionInfo.setHostName(pong.subMotd());
+                sessionInfo.setWorldName(pong.motd());
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
+
+                // Fallback to the gamertag if the host name is empty
+                if (sessionInfo.getHostName().isEmpty()) {
+                    sessionInfo.setHostName(sessionManager.getGamertag());
+                }
             } catch (InterruptedException | ExecutionException e) {
                 if (config.session().configFallback()) {
                     sessionManager.logger().error("Failed to ping server, falling back to config values", e);
 
                     sessionInfo.setHostName(config.session().sessionInfo().getHostName());
                     sessionInfo.setWorldName(config.session().sessionInfo().getWorldName());
-                    sessionInfo.setVersion(config.session().sessionInfo().getVersion());
-                    sessionInfo.setProtocol(config.session().sessionInfo().getProtocol());
                     sessionInfo.setPlayers(config.session().sessionInfo().getPlayers());
                     sessionInfo.setMaxPlayers(config.session().sessionInfo().getMaxPlayers());
+
+                    // Fallback to the gamertag if the host name is empty
+                    if (sessionInfo.getHostName().isEmpty()) {
+                        sessionInfo.setHostName(sessionManager.getGamertag());
+                    }
                 } else {
                     sessionManager.logger().error("Failed to ping server", e);
                 }

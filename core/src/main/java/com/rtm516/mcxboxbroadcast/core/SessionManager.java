@@ -81,15 +81,15 @@ public class SessionManager extends SessionManagerCore {
         // Set up the auto friend sync
         if (friendSyncConfig.updateInterval() < 20) {
             logger.warn("Friend sync update interval is less than 20 seconds, setting to 20 seconds");
-            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow(), friendSyncConfig.initialInvite());
+            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow(), friendSyncConfig.initialInvite(), friendSyncConfig.shouldExpire(), friendSyncConfig.expireDays(), friendSyncConfig.expireCheck());
         }
         this.friendSyncConfig = friendSyncConfig;
-        friendManager().initAutoFriend(this.friendSyncConfig);
+        friendManager().init(this.friendSyncConfig);
 
         // Load sub-sessions from cache
         List<String> subSessions = new ArrayList<>();
         try {
-            String subSessionsJson = storageManager.subSessions();
+            String subSessionsJson = storageManager().subSessions();
             if (!subSessionsJson.isBlank()) {
                 subSessions = Arrays.asList(Constants.GSON.fromJson(subSessionsJson, String[].class));
             }
@@ -101,9 +101,9 @@ public class SessionManager extends SessionManagerCore {
             // Create the sub-session manager for each sub-session
             for (String subSession : finalSubSessions) {
                 try {
-                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager.subSession(subSession), notificationManager, logger);
+                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager().subSession(subSession), notificationManager(), logger);
                     subSessionManager.init();
-                    subSessionManager.friendManager().initAutoFriend(this.friendSyncConfig);
+                    subSessionManager.friendManager().init(this.friendSyncConfig);
                     subSessionManagers.put(subSession, subSessionManager);
                 } catch (SessionCreationException | SessionUpdateException e) {
                     logger.error("Failed to create sub-session " + subSession, e);
@@ -169,7 +169,7 @@ public class SessionManager extends SessionManagerCore {
      */
     public void dumpSession() {
         try {
-            storageManager.lastSessionResponse(lastSessionResponse);
+            storageManager().lastSessionResponse(lastSessionResponse);
         } catch (IOException e) {
             logger.error("Error dumping last session: " + e.getMessage());
         }
@@ -185,7 +185,7 @@ public class SessionManager extends SessionManagerCore {
         try {
             HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
 
-            storageManager.currentSessionResponse(createSessionResponse.body());
+            storageManager().currentSessionResponse(createSessionResponse.body());
         } catch (IOException | InterruptedException e) {
             logger.error("Error dumping current session: " + e.getMessage());
         }
@@ -205,9 +205,9 @@ public class SessionManager extends SessionManagerCore {
 
         // Create the sub-session manager
         try {
-            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager.subSession(id), notificationManager, logger);
+            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager().subSession(id), notificationManager(), logger);
             subSessionManager.init();
-            subSessionManager.friendManager().initAutoFriend(friendSyncConfig);
+            subSessionManager.friendManager().init(friendSyncConfig);
             subSessionManagers.put(id, subSessionManager);
         } catch (SessionCreationException | SessionUpdateException e) {
             coreLogger.error("Failed to create sub-session", e);
@@ -216,7 +216,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Update the list of sub-sessions
         try {
-            storageManager.subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
+            storageManager().subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }
@@ -240,14 +240,14 @@ public class SessionManager extends SessionManagerCore {
 
         // Delete the sub-session cache file
         try {
-            storageManager.subSession(id).cleanup();
+            storageManager().subSession(id).cleanup();
         } catch (IOException e) {
             coreLogger.error("Failed to delete sub-session cache file", e);
         }
 
         // Update the list of sub-sessions
         try {
-            storageManager.subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
+            storageManager().subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
         }

@@ -3,6 +3,9 @@ package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.webrtc.MinecraftDataHandler;
 import com.rtm516.mcxboxbroadcast.core.webrtc.Utils;
+
+import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
 import org.cloudburstmc.math.vector.Vector2f;
 import org.cloudburstmc.math.vector.Vector3f;
@@ -31,12 +34,15 @@ import org.cloudburstmc.protocol.bedrock.packet.ResourcePackStackPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ResourcePacksInfoPacket;
 import org.cloudburstmc.protocol.bedrock.packet.StartGamePacket;
 import org.cloudburstmc.protocol.bedrock.packet.TransferPacket;
+import org.cloudburstmc.protocol.bedrock.util.ChainValidationResult;
 import org.cloudburstmc.protocol.common.PacketSignal;
 import org.cloudburstmc.protocol.common.util.OptionalBoolean;
 
 public class RedirectPacketHandler implements BedrockPacketHandler {
     private final MinecraftDataHandler dataHandler;
     private final SessionInfo sessionInfo;
+
+    private ChainValidationResult.IdentityData identityData;
 
     /**
      * In Protocol V554 and above, RequestNetworkSettingsPacket is sent before LoginPacket.
@@ -46,11 +52,6 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
     public RedirectPacketHandler(MinecraftDataHandler dataHandler, SessionInfo sessionInfo) {
         this.dataHandler = dataHandler;
         this.sessionInfo = sessionInfo;
-    }
-
-    @Override
-    public void onDisconnect(String reason) {
-        // TODO
     }
 
     private void disconnect(String message) {
@@ -133,12 +134,13 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
         info.setWorldTemplateId(UUID.randomUUID());
         info.setWorldTemplateVersion("*");
+        info.setVibrantVisualsForceDisabled(true);
+        info.setForcedToAccept(false);
         dataHandler.sendPacket(info);
 
         try {
             //todo use encryption
-            Utils.validateConnection(dataHandler, packet.getChain(), packet.getExtra());
-
+            identityData = Utils.validateConnection(dataHandler, packet.getAuthPayload(), packet.getClientJwt());
         } catch (AssertionError | Exception error) {
             disconnect("disconnect.loginFailed");
         }
@@ -227,13 +229,14 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         startGamePacket.setMultiplayerCorrelationId("");
         startGamePacket.setVanillaVersion("*");
 
-        startGamePacket.setAuthoritativeMovementMode(AuthoritativeMovementMode.CLIENT);
+        startGamePacket.setAuthoritativeMovementMode(AuthoritativeMovementMode.SERVER);
         startGamePacket.setRewindHistorySize(0);
         startGamePacket.setServerAuthoritativeBlockBreaking(false);
 
         startGamePacket.setServerId("");
         startGamePacket.setWorldId("");
         startGamePacket.setScenarioId("");
+        startGamePacket.setOwnerId("");
 
         dataHandler.sendPacket(startGamePacket);
 
@@ -242,5 +245,12 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         transferPacket.setAddress(sessionInfo.getIp());
         transferPacket.setPort(sessionInfo.getPort());
         dataHandler.sendPacket(transferPacket);
+
+        try {
+            if (identityData != null) {
+                dataHandler.sessionManager().logger().info("Transferred bedrock client " + identityData.displayName + " (" + identityData.xuid + ") to target server.");
+                dataHandler.sessionManager().storageManager().playerHistory().lastSeen(identityData.xuid, Instant.now());
+            }
+        } catch (IOException ignored) { }
     }
 }

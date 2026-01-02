@@ -27,8 +27,6 @@ public class ExpandedSessionInfo extends SessionInfo {
 
         setHostName(sessionInfo.getHostName().isEmpty() ? "MCXboxBroadcast" : sessionInfo.getHostName());
         setWorldName(sessionInfo.getWorldName().isEmpty() ? getHostName() : sessionInfo.getWorldName());
-        setVersion(sessionInfo.getVersion());
-        setProtocol(sessionInfo.getProtocol());
         setPlayers(sessionInfo.getPlayers());
         setMaxPlayers(sessionInfo.getMaxPlayers());
         setIp(sessionInfo.getIp());
@@ -38,8 +36,6 @@ public class ExpandedSessionInfo extends SessionInfo {
     public void updateSessionInfo(SessionInfo sessionInfo) {
         setHostName(sessionInfo.getHostName().isEmpty() ? "MCXboxBroadcast" : sessionInfo.getHostName());
         setWorldName(sessionInfo.getWorldName().isEmpty() ? getHostName() : sessionInfo.getWorldName());
-        setVersion(sessionInfo.getVersion());
-        setProtocol(sessionInfo.getProtocol());
         setPlayers(sessionInfo.getPlayers());
         setMaxPlayers(sessionInfo.getMaxPlayers());
         setIp(sessionInfo.getIp());

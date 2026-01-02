@@ -25,9 +25,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -38,8 +38,8 @@ public abstract class SessionManagerCore {
     protected final HttpClient httpClient;
     protected final Logger logger;
     protected final Logger coreLogger;
-    protected final StorageManager storageManager;
-    protected final NotificationManager notificationManager;
+    private final StorageManager storageManager;
+    private final NotificationManager notificationManager;
     private final GalleryManager galleryManager;
 
     protected RtaWebsocketClient rtaWebsocket;
@@ -149,7 +149,13 @@ public abstract class SessionManagerCore {
 
         // Make sure we are logged in
         XboxTokenInfo tokenInfo = getXboxToken();
-        logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ")");
+
+        int friendCount = -1;
+        try {
+            friendCount = friendManager.get().size();
+        } catch (Exception ignored) {}
+
+        logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
 
         // Check if the gamertag has been updated
         checkGamertagUpdate(tokenInfo);
@@ -173,6 +179,16 @@ public abstract class SessionManagerCore {
 
         // Let the user know we are done
         logger.info("Creation of Xbox LIVE session was successful!");
+
+        authManager.setOnDeviceTokenRefreshCallback(() -> {
+            try {
+                logger.debug("Device token refreshed, recreating session...");
+                createSession();
+                logger.debug("Session recreated after device token refresh");
+            } catch (Exception e) {
+                logger.error("Failed to recreate session after device token refresh", e);
+            }
+        });
 
         initialized = true;
     }
@@ -207,11 +223,11 @@ public abstract class SessionManagerCore {
 
             try {
                 // Wait and get the connection ID from the websocket
-                String connectionId = waitForConnectionId().get();
+                String connectionId = waitForConnectionId();
 
                 // Update the current session connection ID
                 this.sessionInfo.setConnectionId(connectionId);
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
             }
 
@@ -219,8 +235,8 @@ public abstract class SessionManagerCore {
 
             try {
                 // Wait for the RTC websocket to connect
-                waitForRTCConnection().get();
-            } catch (InterruptedException | ExecutionException e) {
+                waitForRTCConnection();
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new SessionCreationException("Unable to connect to WebRTC for session: " + e.getMessage());
             }
         } else {
@@ -281,7 +297,7 @@ public abstract class SessionManagerCore {
         // Check to make sure the handle was created
         if (createHandleResponse.statusCode() != 200 && createHandleResponse.statusCode() != 201) {
             logger.debug("Failed to create session handle '"  + lastSessionResponse + "' (" + createHandleResponse.statusCode() + ")");
-            throw new SessionCreationException("Unable to create session handle, got status " + createHandleResponse.statusCode() + " trying to create");
+            throw new SessionCreationException("Unable to create session handle, got status " + createHandleResponse.statusCode() + " trying to create: " + createHandleResponse.body());
         }
     }
 
@@ -323,7 +339,7 @@ public abstract class SessionManagerCore {
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
             logger.debug("Got update session response: " + createSessionResponse.body());
-            throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update");
+            throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update: " + createSessionResponse.body());
         }
 
         return createSessionResponse.body();
@@ -334,11 +350,17 @@ public abstract class SessionManagerCore {
      * This should be called before any updates to the session otherwise they might fail
      */
     protected void checkConnection() {
-        if ((this.rtaWebsocket != null && !rtaWebsocket.isOpen()) || (this.rtcWebsocket != null && !rtcWebsocket.isOpen())) {
+        boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
+        boolean rtcIsOpen = this.rtcWebsocket != null && this.rtcWebsocket.isOpen();
+
+        // Check if the connection is Lost
+        if (!rtaIsOpen || !rtcIsOpen) {
             try {
-                logger.info("Connection to websocket lost, re-creating session...");
+                logger.warn("Connection to websocket lost, re-creating session...");
+                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + " RTC Open: " + rtcIsOpen);
+
                 createSession();
-                logger.info("Re-connected!");
+                logger.info("WebSocket session reconnected");
             } catch (SessionCreationException | SessionUpdateException e) {
                 logger.error("Session is dead and hit exception trying to re-create it", e);
             }
@@ -359,12 +381,12 @@ public abstract class SessionManagerCore {
      *
      * @return The received connection ID
      */
-    protected Future<String> waitForConnectionId() {
-        return this.rtaWebsocket.getConnectionIdFuture();
+    protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
+        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
-    protected Future<Void> waitForRTCConnection() {
-        return this.rtcWebsocket.onOpenFuture();
+    protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
+        this.rtcWebsocket.onOpenFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
     protected String setupSession(String deviceId) {
@@ -404,7 +426,7 @@ public abstract class SessionManagerCore {
         if (rtcWebsocket != null) {
             rtcWebsocket.close();
         }
-        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread());
+        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread(), this);
         rtcWebsocket.connect();
     }
 
@@ -524,5 +546,14 @@ public abstract class SessionManagerCore {
      */
     public String getMCTokenHeader() {
         return mcToken;
+    }
+
+    /**
+     * Get the storage manager for this session manager
+     *
+     * @return The storage manager
+     */
+    public StorageManager storageManager() {
+        return storageManager;
     }
 }

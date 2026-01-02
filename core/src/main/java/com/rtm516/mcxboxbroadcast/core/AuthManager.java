@@ -39,6 +39,8 @@ public class AuthManager {
     private StepXblSisuAuthentication.XblSisuTokens xboxToken;
     private XboxTokenInfo xboxTokenInfo;
     private String playfabSessionTicket;
+    private Runnable onDeviceTokenRefreshCallback;
+
 
     /**
      * Create an instance of AuthManager
@@ -80,36 +82,19 @@ public class AuthManager {
     private void initialise() {
         HttpClient httpClient = MinecraftAuth.createHttpClient();
 
-        // Check if we have an old live_token.json file and try to import the refresh token from it
-        String liveTokenData = "";
-        try {
-            liveTokenData = storageManager.liveToken();
-        } catch (IOException e) {
-            // Ignore
-        }
-        if (!liveTokenData.isBlank()) {
-            logger.info("Trying to convert from old live_token.json to new cache.json");
+        // Try to load xboxToken from cache.json if is not already loaded
+        if (xboxToken == null) {
             try {
-                JsonObject liveToken = JsonUtil.parseString(liveTokenData).getAsJsonObject();
-                JsonObject tokenData = liveToken.getAsJsonObject("token");
-
-                xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.getFromInput(logger, httpClient, new StepMsaToken.RefreshToken(tokenData.get("refresh_token").getAsString()));
-
-                storageManager.xboxToken("");
+                String cacheData = storageManager.cache();
+                if (!cacheData.isBlank()) xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.fromJson(JsonUtil.parseString(cacheData).getAsJsonObject());
             } catch (Exception e) {
-                logger.error("Failed to convert old auth token, if this keeps happening please remove live_token.json and reauthenticate", e);
+                logger.error("Failed to load cache.json", e);
             }
         }
 
-        // Load in cache.json if we haven't loaded one from the old auth token
         try {
-            String cacheData = storageManager.cache();
-            if (xboxToken == null && !cacheData.isBlank()) xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.fromJson(JsonUtil.parseString(cacheData).getAsJsonObject());
-        } catch (IOException e) {
-            logger.error("Failed to load cache.json", e);
-        }
+            String oldDeviceTokenId = (xboxToken != null) ? xboxToken.getInitialXblSession().getXblDeviceToken().getDeviceId() : null;
 
-        try {
             // Get the XSTS token or refresh it if it's expired
             if (xboxToken == null) {
                 xboxToken = MinecraftAuth.BEDROCK_XBL_DEVICE_CODE_LOGIN.getFromInput(logger, httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(msaDeviceCode -> {
@@ -127,6 +112,16 @@ public class AuthManager {
             xboxTokenInfo = new XboxTokenInfo(xboxToken);
 
             playfabSessionTicket = fetchPlayfabSessionTicket(httpClient);
+
+            // If the device token has changed, run the callback
+            String newDeviceTokenId =  xboxToken.getInitialXblSession().getXblDeviceToken().getDeviceId();
+            if (oldDeviceTokenId != null && newDeviceTokenId != null && !newDeviceTokenId.equals(oldDeviceTokenId)) {
+                logger.debug("Device token has changed");
+                if (onDeviceTokenRefreshCallback != null) {
+                    onDeviceTokenRefreshCallback.run();
+                }
+            }
+
         } catch (Exception e) {
             logger.error("Failed to get/refresh auth token", e);
         }
@@ -159,6 +154,9 @@ public class AuthManager {
      */
     public XboxTokenInfo getXboxToken() {
         if (xboxToken == null || xboxTokenInfo == null || xboxToken.isExpired()) {
+            logger.debug("xboxToken Need Refresh. (xboxToken: " + (xboxToken != null) +
+                    ", xboxTokenInfo: " + (xboxTokenInfo != null) +
+                    ", xboxToken.isExpired: " + (xboxToken != null && xboxToken.isExpired()) + ")");
             initialise();
         }
         return xboxTokenInfo;
@@ -166,6 +164,7 @@ public class AuthManager {
 
     public String getPlayfabSessionTicket() {
         if (playfabSessionTicket == null) {
+            logger.debug("Playfab Session Ticket Need Refresh. (playfabSessionTicket is null)");
             initialise();
         }
         return playfabSessionTicket;
@@ -182,5 +181,14 @@ public class AuthManager {
         } catch (Exception e) {
             logger.error("Failed to update gamertag", e);
         }
+    }
+
+    /**
+     * Set a callback to be executed when the device token has been refreshed.
+     *
+     * @param onDeviceTokenRefreshCallback The callback to execute on device token refresh
+     */
+    public void setOnDeviceTokenRefreshCallback(Runnable onDeviceTokenRefreshCallback) {
+        this.onDeviceTokenRefreshCallback = onDeviceTokenRefreshCallback;
     }
 }

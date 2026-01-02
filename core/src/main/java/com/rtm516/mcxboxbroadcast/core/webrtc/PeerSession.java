@@ -1,21 +1,44 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc;
 
 import com.rtm516.mcxboxbroadcast.core.Constants;
+import com.rtm516.mcxboxbroadcast.core.SessionManagerCore;
 import com.rtm516.mcxboxbroadcast.core.models.ws.WsToMessage;
-import dev.onvoid.webrtc.*;
-import dev.onvoid.webrtc.media.MediaStream;
+import dev.kastle.webrtc.CreateSessionDescriptionObserver;
+import dev.kastle.webrtc.PeerConnectionFactory;
+import dev.kastle.webrtc.PeerConnectionObserver;
+import dev.kastle.webrtc.RTCAnswerOptions;
+import dev.kastle.webrtc.RTCConfiguration;
+import dev.kastle.webrtc.RTCDataChannel;
+import dev.kastle.webrtc.RTCDataChannelInit;
+import dev.kastle.webrtc.RTCIceCandidate;
+import dev.kastle.webrtc.RTCIceConnectionState;
+import dev.kastle.webrtc.RTCIceGatheringState;
+import dev.kastle.webrtc.RTCPeerConnection;
+import dev.kastle.webrtc.RTCPeerConnectionIceErrorEvent;
+import dev.kastle.webrtc.RTCPeerConnectionState;
+import dev.kastle.webrtc.RTCSdpType;
+import dev.kastle.webrtc.RTCSessionDescription;
+import dev.kastle.webrtc.RTCSignalingState;
+import dev.kastle.webrtc.SetSessionDescriptionObserver;
+
+import java.io.IOException;
 import java.math.BigInteger;
 
 public class PeerSession implements PeerConnectionObserver {
     private final RtcWebsocketClient rtcWebsocket;
+    private final SessionManagerCore sessionManager;
 
     private final RTCPeerConnection peerConnection;
 
     private String sessionId;
     private BigInteger from;
 
-    public PeerSession(RtcWebsocketClient rtcWebsocket, PeerConnectionFactory factory, RTCConfiguration config) {
+    private boolean hadFirstCandidate = false;
+    private long lastCandidateTime = 0;
+
+    public PeerSession(RtcWebsocketClient rtcWebsocket, PeerConnectionFactory factory, RTCConfiguration config, SessionManagerCore sessionManager) {
         this.rtcWebsocket = rtcWebsocket;
+        this.sessionManager = sessionManager;
 
         this.peerConnection = factory.createPeerConnection(config, this);
     }
@@ -48,7 +71,7 @@ public class PeerSession implements PeerConnectionObserver {
                         rtcWebsocket.send(json);
 
                         RTCDataChannel dataChannel = peerConnection.createDataChannel("ReliableDataChannel", new RTCDataChannelInit());
-                        dataChannel.registerObserver(new MinecraftDataHandler(dataChannel, Constants.BEDROCK_CODEC, rtcWebsocket.sessionInfo(), rtcWebsocket.logger()));
+                        dataChannel.registerObserver(new MinecraftDataHandler(dataChannel, Constants.BEDROCK_CODEC, rtcWebsocket.sessionInfo(), rtcWebsocket.logger(), sessionManager));
                     }
 
                     @Override
