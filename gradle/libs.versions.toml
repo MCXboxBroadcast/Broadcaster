@@ -3,7 +3,6 @@ protocol-connection = "3.0.0.Beta11-20251210.195537-15"
 protocol-common = "3.0.0.Beta11-20251210.195537-14"
 protocol-codec = "3.0.0.Beta11-20251210.195537-15"
 geyser ="2.9.0-SNAPSHOT"
-jackson = "2.14.0"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"
 log4j = "2.20.0"
@@ -14,6 +13,8 @@ minecraftauth = "4.1.2-SNAPSHOT"
 gson = "2.11.0"
 sqlite = "3.50.2.0"
 webrtc = "1.0.3"
+configurate = "4.2.0-GeyserMC-20251111.004649-11"
+configurate-core = "4.2.0-GeyserMC-20251111.004649-12"
 
 shadow = "8.3.0"
 indra = "3.1.3"
@@ -28,10 +29,12 @@ protocol-connection = { group = "org.cloudburstmc.protocol", name = "bedrock-con
 geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser" }
 geyser-core = { group = "org.geysermc.geyser", name = "core", version.ref = "geyser" }
 
-jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
-jackson-dataformat-yaml = { group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
-
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson"}
+
+configurate-core = { module = "org.spongepowered:configurate-core", version.ref = "configurate-core" }
+configurate-interface-ap = { module = "org.spongepowered:configurate-extra-interface-ap", version.ref = "configurate" }
+configurate-interface = { module = "org.spongepowered:configurate-extra-interface", version.ref = "configurate" }
+configurate-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate" }
 
 java-websocket = { group = "org.java-websocket", name = "Java-WebSocket", version.ref = "java-websocket" }
 nimbus-jose-jwt = { group = "com.nimbusds", name = "nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
@@ -60,10 +63,6 @@ webrtc = { group = "dev.kastle.webrtc", name = "webrtc-java", version.ref = "web
 sqlite = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite" }
 
 [bundles]
-jackson = [
-    "jackson-core",
-    "jackson-dataformat-yaml"
-]
 geyser = [
     "geyser-api",
     "geyser-core"

@@ -1,7 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core.notifications;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
-import com.rtm516.mcxboxbroadcast.core.configs.NotificationConfig;
+import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 
 import java.io.IOException;
 import java.net.URI;
@@ -10,7 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class SlackNotificationManager extends BaseNotificationManager {
-    public SlackNotificationManager(Logger logger, NotificationConfig config) {
+    public SlackNotificationManager(Logger logger, CoreConfig.NotificationConfig config) {
         super(logger, config);
     }
 
