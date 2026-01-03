@@ -174,11 +174,6 @@ public class PeerSession implements PeerConnectionObserver {
 
             rtcWebsocket.logger().debug(sb.toString());
         }
-
-        // Check if we finished gathering and didn't initialise any connections
-        if (state == RTCIceGatheringState.COMPLETE && peerConnection.getConnectionState() == RTCPeerConnectionState.NEW) {
-            disconnect();
-        }
     }
 
     @Override
