@@ -1,10 +1,10 @@
-package com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.peer;
+package com.rtm516.mcxboxbroadcast.core.nethernet.peer;
 
-import com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.codec.NetherNetCompressionDecoder;
-import com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.codec.NetherNetCompressionEncoder;
-import com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.codec.NetherNetPacketDecoder;
-import com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.codec.NetherNetPacketEncoder;
-import com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.initializer.NetherNetBedrockChannelInitializer;
+import com.rtm516.mcxboxbroadcast.core.nethernet.codec.NetherNetCompressionDecoder;
+import com.rtm516.mcxboxbroadcast.core.nethernet.codec.NetherNetCompressionEncoder;
+import com.rtm516.mcxboxbroadcast.core.nethernet.codec.NetherNetPacketDecoder;
+import com.rtm516.mcxboxbroadcast.core.nethernet.codec.NetherNetPacketEncoder;
+import com.rtm516.mcxboxbroadcast.core.nethernet.initializer.NetherNetBedrockChannelInitializer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import org.cloudburstmc.protocol.bedrock.BedrockPeer;

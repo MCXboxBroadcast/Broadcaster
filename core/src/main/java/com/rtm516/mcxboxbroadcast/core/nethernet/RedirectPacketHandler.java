@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
+package com.rtm516.mcxboxbroadcast.core.nethernet;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;

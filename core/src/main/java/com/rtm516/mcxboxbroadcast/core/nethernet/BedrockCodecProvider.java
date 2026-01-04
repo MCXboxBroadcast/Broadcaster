@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
+package com.rtm516.mcxboxbroadcast.core.nethernet;
 
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockPacketDefinition;

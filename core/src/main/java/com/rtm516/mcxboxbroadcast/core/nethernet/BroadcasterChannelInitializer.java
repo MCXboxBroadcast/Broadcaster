@@ -1,10 +1,9 @@
-package com.rtm516.mcxboxbroadcast.core.webrtc;
+package com.rtm516.mcxboxbroadcast.core.nethernet;
 
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManagerCore;
-import com.rtm516.mcxboxbroadcast.core.webrtc.bedrock.RedirectPacketHandler;
-import com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.initializer.NetherNetBedrockChannelInitializer;
+import com.rtm516.mcxboxbroadcast.core.nethernet.initializer.NetherNetBedrockChannelInitializer;
 import org.cloudburstmc.protocol.bedrock.BedrockPeer;
 import org.cloudburstmc.protocol.bedrock.BedrockServerSession;
 

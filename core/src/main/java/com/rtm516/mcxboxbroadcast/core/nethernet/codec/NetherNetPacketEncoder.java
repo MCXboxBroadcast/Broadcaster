@@ -1,4 +1,4 @@
-package com.rtm516.mcxboxbroadcast.core.webrtc.nethernet.codec;
+package com.rtm516.mcxboxbroadcast.core.nethernet.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
