@@ -151,10 +151,6 @@ public class AuthManager {
         }
     }
 
-    public void updateGamertag(String gamertag) {
-        logger.warn("updateGamertag was called but is not supported in the new Auth engine. Gamertag is derived from the authenticated session.");
-    }
-
     /**
      * Set a callback to be executed when the device token has been refreshed.
      *

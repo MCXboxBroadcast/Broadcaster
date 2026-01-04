@@ -1,5 +1,7 @@
 FROM eclipse-temurin:21-alpine
 
+RUN apk add libc6-compat
+
 RUN chmod 777 -R /tmp && chmod o+t -R /tmp
 
 RUN adduser -h /opt/app -H -D app
