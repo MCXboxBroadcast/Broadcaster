@@ -65,6 +65,7 @@ public class RtaWebsocketClient extends WebSocketClient {
      *
      * @param message The UTF-8 decoded message that was received.
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void onMessage(String message) {
         // [Type, SequenceId, ...]

@@ -19,6 +19,7 @@ dependencies {
     api(libs.methanol)
     api(libs.minecraftauth)
     api(libs.bundles.protocol)
+    api("dev.kastle.NetworkCompatible:netty-transport-nethernet:6a8915db93")
 
     api(libs.webrtc)
     nativePlatforms.forEach { platform ->

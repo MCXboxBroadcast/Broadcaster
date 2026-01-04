@@ -26,6 +26,11 @@ application {
 
 tasks.withType<ShadowJar> {
     transform(Log4j2PluginsCacheFileTransformer())
+    
+    // Suppress illegal access warnings for webrtc natives
+    manifest {
+        attributes["Enable-Native-Access"] = "ALL-UNNAMED"
+    }
 }
 
 nameJar("MCXboxBroadcastStandalone")

@@ -1,17 +1,19 @@
 package com.rtm516.mcxboxbroadcast.core.webrtc.bedrock;
 
+import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
-import com.rtm516.mcxboxbroadcast.core.webrtc.MinecraftDataHandler;
-import com.rtm516.mcxboxbroadcast.core.webrtc.Utils;
+import com.rtm516.mcxboxbroadcast.core.SessionManagerCore;
 
 import java.io.IOException;
+import java.security.PublicKey;
 import java.time.Instant;
 import java.util.UUID;
 import org.cloudburstmc.math.vector.Vector2f;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.math.vector.Vector3i;
 import org.cloudburstmc.nbt.NbtMap;
-import org.cloudburstmc.protocol.bedrock.BedrockDisconnectReasons;
+import org.cloudburstmc.protocol.bedrock.BedrockServerSession;
+import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.data.AuthoritativeMovementMode;
 import org.cloudburstmc.protocol.bedrock.data.ChatRestrictionLevel;
 import org.cloudburstmc.protocol.bedrock.data.EduSharedUriResource;
@@ -24,7 +26,6 @@ import org.cloudburstmc.protocol.bedrock.data.SpawnBiomeType;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacketHandler;
 import org.cloudburstmc.protocol.bedrock.packet.ClientCacheStatusPacket;
-import org.cloudburstmc.protocol.bedrock.packet.DisconnectPacket;
 import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.packet.NetworkSettingsPacket;
 import org.cloudburstmc.protocol.bedrock.packet.PlayStatusPacket;
@@ -35,33 +36,33 @@ import org.cloudburstmc.protocol.bedrock.packet.ResourcePacksInfoPacket;
 import org.cloudburstmc.protocol.bedrock.packet.StartGamePacket;
 import org.cloudburstmc.protocol.bedrock.packet.TransferPacket;
 import org.cloudburstmc.protocol.bedrock.util.ChainValidationResult;
+import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 import org.cloudburstmc.protocol.common.PacketSignal;
 import org.cloudburstmc.protocol.common.util.OptionalBoolean;
 
 public class RedirectPacketHandler implements BedrockPacketHandler {
-    private final MinecraftDataHandler dataHandler;
+
+    private final BedrockServerSession session;
     private final SessionInfo sessionInfo;
+    private final SessionManagerCore sessionManager;
 
     private ChainValidationResult.IdentityData identityData;
-
-    /**
-     * In Protocol V554 and above, RequestNetworkSettingsPacket is sent before LoginPacket.
-     */
     private boolean networkSettingsRequested = false;
+    private final Logger logger;
 
-    public RedirectPacketHandler(MinecraftDataHandler dataHandler, SessionInfo sessionInfo) {
-        this.dataHandler = dataHandler;
+    public RedirectPacketHandler(BedrockServerSession session, SessionInfo sessionInfo, SessionManagerCore sessionManager, Logger logger) {
+        this.session = session;
         this.sessionInfo = sessionInfo;
+        this.sessionManager = sessionManager;
+        this.logger = logger;
     }
 
     private void disconnect(String message) {
-        DisconnectPacket disconnectPacket = new DisconnectPacket();
         if (message == null) {
-            disconnectPacket.setMessageSkipped(true);
-            message = BedrockDisconnectReasons.DISCONNECTED;
+            session.disconnect();
+        } else {
+            session.disconnect(message);
         }
-        disconnectPacket.setKickMessage(message);
-        dataHandler.sendPacket(disconnectPacket);
     }
 
     private void disconnect() {
@@ -71,45 +72,28 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
     @Override
     public PacketSignal handlePacket(BedrockPacket packet) {
         BedrockPacketHandler.super.handlePacket(packet);
-        return PacketSignal.HANDLED; // Avoids warning spam about all the packets we ignore and don't handle
-    }
-
-    private boolean setCorrectCodec(int protocolVersion) {
-        // TODO: Implement this?
-//        BedrockCodec packetCodec = BedrockVersionUtils.bedrockCodec(protocolVersion);
-//        if (packetCodec == null) {
-//            // Protocol version is not supported
-//            PlayStatusPacket status = new PlayStatusPacket();
-//            if (protocolVersion > BedrockVersionUtils.latestProtocolVersion()) {
-//                status.setStatus(PlayStatusPacket.Status.LOGIN_FAILED_SERVER_OLD);
-//            } else {
-//                status.setStatus(PlayStatusPacket.Status.LOGIN_FAILED_CLIENT_OLD);
-//            }
-//
-//            session.sendPacketImmediately(status);
-//            session.disconnect();
-//            return false;
-//        }
-//
-//        session.setCodec(packetCodec);
-        return true;
+        return PacketSignal.HANDLED; 
     }
 
     @Override
     public PacketSignal handle(RequestNetworkSettingsPacket packet) {
-        if (!setCorrectCodec(packet.getProtocolVersion())) {
-            return PacketSignal.HANDLED; // Unsupported version, client has been disconnected
+        int protocolVersion = packet.getProtocolVersion();
+        BedrockCodec codec = BedrockCodecProvider.getCodec(protocolVersion);
+
+        if (codec == null) {
+            // we try the latest version available
+            logger.warn("Unsupported Bedrock protocol version: " + protocolVersion + ". Falling back to latest supported version.");
+            codec = BedrockCodecProvider.getLatestCodec();
         }
 
-        // New since 1.19.30 - sent before login packet
-        PacketCompressionAlgorithm algorithm = PacketCompressionAlgorithm.ZLIB;
+        session.setCodec(codec);
 
-        NetworkSettingsPacket responsePacket = new NetworkSettingsPacket();
-        responsePacket.setCompressionAlgorithm(algorithm);
-        responsePacket.setCompressionThreshold(512);
-        dataHandler.sendPacket(responsePacket);
+        NetworkSettingsPacket networkSettingsPacket = new NetworkSettingsPacket();
+        networkSettingsPacket.setCompressionThreshold(0);
+        networkSettingsPacket.setCompressionAlgorithm(PacketCompressionAlgorithm.ZLIB);
 
-        dataHandler.enableCompression(algorithm, 512);
+        session.sendPacketImmediately(networkSettingsPacket);
+        session.setCompression(PacketCompressionAlgorithm.ZLIB);
 
         networkSettingsRequested = true;
         return PacketSignal.HANDLED;
@@ -118,10 +102,9 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
     @Override
     public PacketSignal handle(LoginPacket packet) {
         if (!networkSettingsRequested) {
-            // This is expected for pre-1.19.30
             PlayStatusPacket statusPacket = new PlayStatusPacket();
             statusPacket.setStatus(PlayStatusPacket.Status.LOGIN_FAILED_CLIENT_OLD);
-            dataHandler.sendPacket(statusPacket);
+            session.sendPacket(statusPacket);
 
             disconnect();
             return PacketSignal.HANDLED;
@@ -129,18 +112,28 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
         PlayStatusPacket status = new PlayStatusPacket();
         status.setStatus(PlayStatusPacket.Status.LOGIN_SUCCESS);
-        dataHandler.sendPacket(status);
+        session.sendPacket(status);
 
         ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
         info.setWorldTemplateId(UUID.randomUUID());
         info.setWorldTemplateVersion("*");
         info.setVibrantVisualsForceDisabled(true);
         info.setForcedToAccept(false);
-        dataHandler.sendPacket(info);
+        session.sendPacket(info);
 
         try {
-            //todo use encryption
-            identityData = Utils.validateConnection(dataHandler, packet.getAuthPayload(), packet.getClientJwt());
+            ChainValidationResult result = EncryptionUtils.validatePayload(packet.getAuthPayload());
+            if (!result.signed()) {
+                throw new IllegalArgumentException("Chain is not signed");
+            }
+            PublicKey identityPublicKey = result.identityClaims().parsedIdentityPublicKey();
+
+            byte[] clientDataPayload = EncryptionUtils.verifyClientData(packet.getClientJwt(), identityPublicKey);
+            if (clientDataPayload == null) {
+                throw new IllegalStateException("Client data isn't signed by the given chain data");
+            }
+
+            identityData = result.identityClaims().extraData;
         } catch (AssertionError | Exception error) {
             disconnect("disconnect.loginFailed");
         }
@@ -163,7 +156,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
                 stack.setExperimentsPreviouslyToggled(false);
                 stack.setForcedToAccept(false);
                 stack.setGameVersion("*");
-                dataHandler.sendPacket(stack);
+                session.sendPacket(stack);
                 break;
             default:
                 disconnect("disconnectionScreen.resourcePack");
@@ -172,8 +165,8 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         return PacketSignal.HANDLED;
     }
 
+    @SuppressWarnings("deprecation")
     public void sendStartGame() {
-        // A lot of this likely doesn't need to be changed
         StartGamePacket startGamePacket = new StartGamePacket();
         startGamePacket.setUniqueEntityId(1);
         startGamePacket.setRuntimeEntityId(1);
@@ -238,18 +231,17 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         startGamePacket.setScenarioId("");
         startGamePacket.setOwnerId("");
 
-        dataHandler.sendPacket(startGamePacket);
+        session.sendPacket(startGamePacket);
 
-        // can only start transferring after the StartGame packet
         TransferPacket transferPacket = new TransferPacket();
         transferPacket.setAddress(sessionInfo.getIp());
         transferPacket.setPort(sessionInfo.getPort());
-        dataHandler.sendPacket(transferPacket);
+        session.sendPacket(transferPacket);
 
         try {
             if (identityData != null) {
-                dataHandler.sessionManager().logger().info("Transferred bedrock client " + identityData.displayName + " (" + identityData.xuid + ") to target server.");
-                dataHandler.sessionManager().storageManager().playerHistory().lastSeen(identityData.xuid, Instant.now());
+                sessionManager.logger().info("Transferred bedrock client " + identityData.displayName + " (" + identityData.xuid + ") to target server.");
+                sessionManager.storageManager().playerHistory().lastSeen(identityData.xuid, Instant.now());
             }
         } catch (IOException ignored) { }
     }

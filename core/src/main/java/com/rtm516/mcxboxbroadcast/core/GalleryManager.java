@@ -115,7 +115,7 @@ public class GalleryManager {
             .build();
 
         try {
-            HttpResponse<String> response = httpClient.send(deleteImageRequest, HttpResponse.BodyHandlers.ofString());
+            httpClient.send(deleteImageRequest, HttpResponse.BodyHandlers.ofString());
         } catch (JsonParseException | InterruptedException | IOException e) {
             logger.error("Failed to delete gallery image", e);
         }

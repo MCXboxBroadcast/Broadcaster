@@ -14,10 +14,18 @@ import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
-import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
+import com.rtm516.mcxboxbroadcast.core.webrtc.BroadcasterChannelInitializer;
+import dev.kastle.netty.channel.nethernet.NetherNetChannelFactory;
+import dev.kastle.netty.channel.nethernet.signaling.NetherNetXboxSignaling;
+import dev.kastle.webrtc.PeerConnectionFactory;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -47,7 +55,12 @@ public abstract class SessionManagerCore {
     protected String lastSessionResponse;
 
     protected boolean initialized = false;
-    private RtcWebsocketClient rtcWebsocket;
+
+    private Channel netherNetChannel;
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
+    private NetherNetXboxSignaling signaling;
+
     private String mcToken;
 
     /**
@@ -231,13 +244,10 @@ public abstract class SessionManagerCore {
                 throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
             }
 
-            setupRtcWebsocket(mcToken);
+            setupNetherNet(mcToken);
 
-            try {
-                // Wait for the RTC websocket to connect
-                waitForRTCConnection();
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                throw new SessionCreationException("Unable to connect to WebRTC for session: " + e.getMessage());
+            if (this.netherNetChannel == null || !this.netherNetChannel.isOpen()) {
+                throw new SessionCreationException("Unable to start NetherNet channel");
             }
         } else {
             mcToken = setupSession(UUID.randomUUID().toString());
@@ -338,7 +348,7 @@ public abstract class SessionManagerCore {
         }
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
-            logger.debug("Got update session response: " + createSessionResponse.body());
+            logger.info("Got update session response: " + createSessionResponse.body());
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update: " + createSessionResponse.body());
         }
 
@@ -351,7 +361,7 @@ public abstract class SessionManagerCore {
      */
     protected void checkConnection() {
         boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
-        boolean rtcIsOpen = this.rtcWebsocket != null && this.rtcWebsocket.isOpen();
+        boolean rtcIsOpen = this.netherNetChannel != null && this.netherNetChannel.isOpen();
 
         // Check if the connection is Lost
         if (!rtaIsOpen || !rtcIsOpen) {
@@ -383,10 +393,6 @@ public abstract class SessionManagerCore {
      */
     protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
         return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-    }
-
-    protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
-        this.rtcWebsocket.onOpenFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
     protected String setupSession(String deviceId) {
@@ -422,12 +428,27 @@ public abstract class SessionManagerCore {
         rtaWebsocket.connect();
     }
 
-    protected void setupRtcWebsocket(String token) {
-        if (rtcWebsocket != null) {
-            rtcWebsocket.close();
+    protected void setupNetherNet(String token) {
+        shutdownNetherNet();
+
+        long netherNetId = this.sessionInfo.getNetherNetId().longValue();
+        this.signaling = new NetherNetXboxSignaling(netherNetId, token);
+
+        this.bossGroup = new NioEventLoopGroup(1);
+        this.workerGroup = new NioEventLoopGroup();
+
+        try {
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+                .channelFactory(NetherNetChannelFactory.server(new PeerConnectionFactory(), signaling))
+                .childHandler(new BroadcasterChannelInitializer(sessionInfo, this, logger));
+
+            this.netherNetChannel = b.bind(new InetSocketAddress(0)).sync().channel();
+
+            logger.info("NetherNet Broadcaster started on ID: " + netherNetId);
+        } catch (Exception e) {
+            logger.error("Failed to start NetherNet", e);
         }
-        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread(), this);
-        rtcWebsocket.connect();
     }
 
     /**
@@ -437,10 +458,29 @@ public abstract class SessionManagerCore {
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
         }
-        if (rtcWebsocket != null) {
-            rtcWebsocket.close();
-        }
+        
+        shutdownNetherNet();
+        
         this.initialized = false;
+    }
+
+    private void shutdownNetherNet() {
+        if (netherNetChannel != null) {
+            netherNetChannel.close();
+            netherNetChannel = null;
+        }
+        if (signaling != null) {
+            signaling.close();
+            signaling = null;
+        }
+        if (bossGroup != null) {
+            bossGroup.shutdownGracefully();
+            bossGroup = null;
+        }
+        if (workerGroup != null) {
+            workerGroup.shutdownGracefully();
+            workerGroup = null;
+        }
     }
 
     /**
