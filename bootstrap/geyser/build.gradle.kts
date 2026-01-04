@@ -9,6 +9,7 @@ relocate("com.google.gson")
 relocate("net.raphimc.minecraftauth")
 relocate("org.bouncycastle")
 relocate("net.lenni0451.commons.httpclient")
+relocate("net.lenni0451.commons.gson")
 
 configurations.all {
     resolutionStrategy {

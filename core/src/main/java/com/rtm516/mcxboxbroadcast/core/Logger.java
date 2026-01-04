@@ -1,14 +1,12 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import net.raphimc.minecraftauth.util.logging.ILogger;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 /**
  * A basic logger interface to allow for custom logger implementations and wrappers
  */
-public interface Logger extends ILogger {
+public interface Logger {
     void info(String message);
 
     void warn(String message);

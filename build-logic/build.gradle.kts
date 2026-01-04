@@ -13,3 +13,8 @@ dependencies {
     implementation(libs.minotaur)
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}

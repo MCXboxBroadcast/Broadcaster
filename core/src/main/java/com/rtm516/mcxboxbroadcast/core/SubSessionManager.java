@@ -42,10 +42,10 @@ public class SubSessionManager extends SessionManagerCore {
         // TODO Some form of force flag just in case the master friends list is full
 
         // Add the main account
-        boolean subAdd = friendManager().addIfRequired(parent.getXboxToken().userXUID(), parent.getXboxToken().gamertag());
+        boolean subAdd = friendManager().addIfRequired(parent.userXUID(), parent.getGamertag());
 
         // Get the main account to add us
-        boolean mainAdd = parent.friendManager().addIfRequired(getXboxToken().userXUID(), getXboxToken().gamertag());
+        boolean mainAdd = parent.friendManager().addIfRequired(userXUID(), getGamertag());
 
         return subAdd || mainAdd;
     }

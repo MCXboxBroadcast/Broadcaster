@@ -4,7 +4,6 @@ import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.models.gallery.GalleryImage;
 import com.rtm516.mcxboxbroadcast.core.models.gallery.GalleryResponse;
 import com.rtm516.mcxboxbroadcast.core.models.gallery.GalleryUploadResponse;
-import org.bouncycastle.crypto.digests.SHA1Digest;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -17,6 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.util.zip.CRC32;
 
 public class GalleryManager {
     private final HttpClient httpClient;
@@ -115,7 +115,7 @@ public class GalleryManager {
             .build();
 
         try {
-            HttpResponse<String> response = httpClient.send(deleteImageRequest, HttpResponse.BodyHandlers.ofString());
+            httpClient.send(deleteImageRequest, HttpResponse.BodyHandlers.ofString());
         } catch (JsonParseException | InterruptedException | IOException e) {
             logger.error("Failed to delete gallery image", e);
         }
@@ -165,17 +165,9 @@ public class GalleryManager {
 
         byte[] data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
 
-        SHA1Digest digest = new SHA1Digest();
+        CRC32 digest = new CRC32();
         digest.update(data, 0, data.length);
 
-        byte[] hash = new byte[digest.getDigestSize()];
-        digest.doFinal(hash, 0);
-
-        StringBuilder sb = new StringBuilder();
-        for (byte b : hash) {
-            sb.append(String.format("%02x", b));
-        }
-
-        return sb.toString();
+        return String.format("%08x", digest.getValue());
     }
 }

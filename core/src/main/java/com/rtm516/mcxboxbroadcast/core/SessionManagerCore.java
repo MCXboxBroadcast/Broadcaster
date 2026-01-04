@@ -6,18 +6,25 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartBody;
 import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartResponse;
-import com.rtm516.mcxboxbroadcast.core.models.auth.XboxTokenInfo;
-import com.rtm516.mcxboxbroadcast.core.models.other.ProfileSettingsResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
-import com.rtm516.mcxboxbroadcast.core.webrtc.RtcWebsocketClient;
+import com.rtm516.mcxboxbroadcast.core.nethernet.BroadcasterChannelInitializer;
+import dev.kastle.netty.channel.nethernet.NetherNetChannelFactory;
+import dev.kastle.netty.channel.nethernet.signaling.NetherNetXboxSignaling;
+import dev.kastle.webrtc.PeerConnectionFactory;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import net.raphimc.minecraftauth.bedrock.BedrockAuthManager;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -25,7 +32,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -48,7 +54,12 @@ public abstract class SessionManagerCore {
     protected String lastSessionResponse;
 
     protected boolean initialized = false;
-    private RtcWebsocketClient rtcWebsocket;
+
+    private Channel netherNetChannel;
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
+    private NetherNetXboxSignaling signaling;
+
     private String mcToken;
 
     /**
@@ -73,11 +84,7 @@ public abstract class SessionManagerCore {
         this.authManager = new AuthManager(notificationManager, storageManager, logger);
 
         this.friendManager = new FriendManager(httpClient, logger, this);
-
         this.galleryManager = new GalleryManager(httpClient, logger, this);
-
-        // Disable the Jitsi logger to prevent spam
-        IceLoggerDisabler.disable(logger);
     }
 
     /**
@@ -130,13 +137,13 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Get the Xbox token information for the current user
-     * If there is no current user then the auto process is started
+     * Get the Bedrock Auth Manager for the current user.
+     * Starts the auto auth process if not logged in.
      *
-     * @return The information about the Xbox authentication token including the token itself
+     * @return The authenticated BedrockAuthManager
      */
-    protected XboxTokenInfo getXboxToken() {
-        return authManager.getXboxToken();
+    protected BedrockAuthManager getAuthManager() {
+        return authManager.getManager();
     }
 
     /**
@@ -152,18 +159,24 @@ public abstract class SessionManagerCore {
 
         logger.info("Starting SessionManager...");
 
-        // Make sure we are logged in
-        XboxTokenInfo tokenInfo = getXboxToken();
+        // Make sure we are logged in and get info
+        BedrockAuthManager manager = getAuthManager();
+        String gamertag;
+        String xuid;
+
+        try {
+            gamertag = manager.getMinecraftCertificateChain().getUpToDate().getIdentityDisplayName();
+            xuid = manager.getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
+        } catch (Exception e) {
+             throw new SessionCreationException("Failed to retrieve profile info: " + e.getMessage());
+        }
 
         int friendCount = -1;
         try {
             friendCount = friendManager.get().size();
         } catch (Exception ignored) {}
 
-        logger.info("Successfully authenticated as " + tokenInfo.gamertag() + " (" + tokenInfo.userXUID() + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
-
-        // Check if the gamertag has been updated
-        checkGamertagUpdate(tokenInfo);
+        logger.info("Successfully authenticated as " + gamertag + " (" + xuid + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
 
         if (handleFriendship()) {
             logger.info("Waiting for friendship to be processed...");
@@ -213,13 +226,20 @@ public abstract class SessionManagerCore {
      */
     private void createSession() throws SessionCreationException, SessionUpdateException {
         // Get the token for authentication
-        XboxTokenInfo tokenInfo = getXboxToken();
-        String token = tokenInfo.tokenHeader();
+        BedrockAuthManager manager = getAuthManager();
+        String token;
+        String xuid;
+        try {
+            token = manager.getXboxLiveXstsToken().getUpToDate().getAuthorizationHeader();
+            xuid = manager.getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
+        } catch (Exception e) {
+             throw new SessionCreationException("Failed to get authorization headers: " + e.getMessage());
+        }
 
         // We only need a websocket for the primary session manager
         if (this.sessionInfo != null) {
             // Update the current session XUID
-            this.sessionInfo.setXuid(tokenInfo.userXUID());
+            this.sessionInfo.setXuid(xuid);
 
             mcToken = setupSession(this.sessionInfo.getDeviceId());
 
@@ -236,13 +256,10 @@ public abstract class SessionManagerCore {
                 throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
             }
 
-            setupRtcWebsocket(mcToken);
+            setupNetherNet(mcToken);
 
-            try {
-                // Wait for the RTC websocket to connect
-                waitForRTCConnection();
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                throw new SessionCreationException("Unable to connect to WebRTC for session: " + e.getMessage());
+            if (this.netherNetChannel == null || !this.netherNetChannel.isOpen()) {
+                throw new SessionCreationException("Unable to start NetherNet channel");
             }
         } else {
             mcToken = setupSession(UUID.randomUUID().toString());
@@ -343,7 +360,7 @@ public abstract class SessionManagerCore {
         }
 
         if (createSessionResponse.statusCode() != 200 && createSessionResponse.statusCode() != 201) {
-            logger.debug("Got update session response: " + createSessionResponse.body());
+            logger.info("Got update session response: " + createSessionResponse.body());
             throw new SessionUpdateException("Unable to update session information, got status " + createSessionResponse.statusCode() + " trying to update: " + createSessionResponse.body());
         }
 
@@ -356,7 +373,7 @@ public abstract class SessionManagerCore {
      */
     protected void checkConnection() {
         boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
-        boolean rtcIsOpen = this.rtcWebsocket != null && this.rtcWebsocket.isOpen();
+        boolean rtcIsOpen = this.netherNetChannel != null && this.netherNetChannel.isOpen();
 
         // Check if the connection is Lost
         if (!rtaIsOpen || !rtcIsOpen) {
@@ -378,7 +395,12 @@ public abstract class SessionManagerCore {
      * @return The formatted XBL3.0 authentication header
      */
     public String getTokenHeader() {
-        return getXboxToken().tokenHeader();
+        try {
+            return getAuthManager().getXboxLiveXstsToken().getUpToDate().getAuthorizationHeader();
+        } catch (Exception e) {
+            logger.error("Failed to get auth header", e);
+            return "";
+        }
     }
 
     /**
@@ -388,10 +410,6 @@ public abstract class SessionManagerCore {
      */
     protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
         return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-    }
-
-    protected void waitForRTCConnection() throws InterruptedException, ExecutionException, TimeoutException {
-        this.rtcWebsocket.onOpenFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
     protected String setupSession(String deviceId) {
@@ -427,12 +445,27 @@ public abstract class SessionManagerCore {
         rtaWebsocket.connect();
     }
 
-    protected void setupRtcWebsocket(String token) {
-        if (rtcWebsocket != null) {
-            rtcWebsocket.close();
+    protected void setupNetherNet(String token) {
+        shutdownNetherNet();
+
+        long netherNetId = this.sessionInfo.getNetherNetId().longValue();
+        this.signaling = new NetherNetXboxSignaling(netherNetId, token);
+
+        this.bossGroup = new NioEventLoopGroup(1);
+        this.workerGroup = new NioEventLoopGroup();
+
+        try {
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+                .channelFactory(NetherNetChannelFactory.server(new PeerConnectionFactory(), signaling))
+                .childHandler(new BroadcasterChannelInitializer(sessionInfo, this, logger));
+
+            this.netherNetChannel = b.bind(new InetSocketAddress(0)).sync().channel();
+
+            logger.info("NetherNet Broadcaster started on ID: " + netherNetId);
+        } catch (Exception e) {
+            logger.error("Failed to start NetherNet", e);
         }
-        rtcWebsocket = new RtcWebsocketClient(token, sessionInfo, logger, scheduledThread(), this);
-        rtcWebsocket.connect();
     }
 
     /**
@@ -442,18 +475,45 @@ public abstract class SessionManagerCore {
         if (rtaWebsocket != null) {
             rtaWebsocket.close();
         }
-        if (rtcWebsocket != null) {
-            rtcWebsocket.close();
-        }
+        
+        shutdownNetherNet();
+        
         this.initialized = false;
+    }
+
+    private void shutdownNetherNet() {
+        if (netherNetChannel != null) {
+            netherNetChannel.close();
+            netherNetChannel = null;
+        }
+        if (signaling != null) {
+            signaling.close();
+            signaling = null;
+        }
+        if (bossGroup != null) {
+            bossGroup.shutdownGracefully();
+            bossGroup = null;
+        }
+        if (workerGroup != null) {
+            workerGroup.shutdownGracefully();
+            workerGroup = null;
+        }
     }
 
     /**
      * Update the presence of the current user on Xbox LIVE
      */
     protected void updatePresence() {
+        String xuid;
+        try {
+            xuid = getAuthManager().getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
+        } catch (Exception e) {
+            logger.error("Failed to get XUID for presence update", e);
+            return;
+        }
+
         HttpRequest updatePresenceRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.USER_PRESENCE.formatted(getXboxToken().userXUID())))
+            .uri(URI.create(Constants.USER_PRESENCE.formatted(xuid)))
             .header("Content-Type", "application/json")
             .header("Authorization", getTokenHeader())
             .header("x-xbl-contract-version", "3")
@@ -504,44 +564,31 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Check if the gamertag has been updated and update it if needed
-     *
-     * @param tokenInfo The token information to check the gamertag for
-     */
-    private void checkGamertagUpdate(XboxTokenInfo tokenInfo) {
-        try {
-            HttpResponse<String> response = httpClient.send(HttpRequest.newBuilder()
-                .uri(URI.create(Constants.PROFILE_SETTINGS.formatted(tokenInfo.userXUID())))
-                .header("Content-Type", "application/json")
-                .header("Authorization", tokenInfo.tokenHeader())
-                .header("x-xbl-contract-version", "3")
-                .GET()
-                .build(), HttpResponse.BodyHandlers.ofString());
-
-            ProfileSettingsResponse profileSettingsResponse = Constants.GSON.fromJson(response.body(), ProfileSettingsResponse.class);
-
-            if (profileSettingsResponse == null) {
-                logger.error("Unable to get profile settings (" + response.statusCode() + "): " + response.body());
-                return;
-            }
-
-            String newGamertag = profileSettingsResponse.profileUsers().get(0).settings().get(0).value();
-            if (!newGamertag.equals(tokenInfo.gamertag())) {
-                logger.info("Gamertag changed from " + tokenInfo.gamertag() + " to " + newGamertag);
-                authManager.updateGamertag(newGamertag);
-            }
-        } catch (IOException | InterruptedException | NullPointerException e) {
-            logger.error("Failed to check profile settings", e);
-        }
-    }
-
-    /**
      * Get the XUID of the current user
      *
      * @return The XUID of the current user
      */
     public String userXUID() {
-        return getXboxToken().userXUID();
+        try {
+            return getAuthManager().getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
+        } catch (Exception e) {
+            logger.error("Failed to get user XUID", e);
+            return null;
+        }
+    }
+
+    /**
+     * Get the Gamertag of the current user
+     *
+     * @return The Gamertag of the current user
+     */
+    public String getGamertag() {
+        try {
+            return getAuthManager().getMinecraftCertificateChain().getUpToDate().getIdentityDisplayName();
+        } catch (Exception e) {
+            logger.error("Failed to get gamertag", e);
+            return null;
+        }
     }
 
     /**
