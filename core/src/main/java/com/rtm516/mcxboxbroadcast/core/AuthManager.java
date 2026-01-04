@@ -56,7 +56,7 @@ public class AuthManager {
                         logger.info("Migrating auth data from v4 to v5...");
                         try {
                             json = MinecraftAuth4To5Migrator.migrateBedrockSave(json);
-                        } catch (Exception e) {
+                        } catch (Throwable e) {
                             logger.error("Failed to migrate auth data", e);
                             json = null; // Force re-login
                         }
