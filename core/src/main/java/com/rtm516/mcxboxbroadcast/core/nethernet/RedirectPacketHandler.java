@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core.nethernet;
 
+import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManagerCore;
@@ -13,7 +14,6 @@ import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.math.vector.Vector3i;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.protocol.bedrock.BedrockServerSession;
-import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.data.AuthoritativeMovementMode;
 import org.cloudburstmc.protocol.bedrock.data.ChatRestrictionLevel;
 import org.cloudburstmc.protocol.bedrock.data.EduSharedUriResource;
@@ -77,16 +77,17 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
     @Override
     public PacketSignal handle(RequestNetworkSettingsPacket packet) {
-        int protocolVersion = packet.getProtocolVersion();
-        BedrockCodec codec = BedrockCodecProvider.getCodec(protocolVersion);
+        int clientProtocolVersion = packet.getProtocolVersion();
+        int serverProtocolVersion = Constants.BEDROCK_CODEC.getProtocolVersion();
 
-        if (codec == null) {
-            // we try the latest version available
-            logger.warn("Unsupported Bedrock protocol version: " + protocolVersion + ". Falling back to latest supported version.");
-            codec = BedrockCodecProvider.getLatestCodec();
+        // The client normally prevents you connecting to a server with a different protocol number
+        // But just incase they bypass that we double check here
+        if (clientProtocolVersion != serverProtocolVersion) {
+            session.disconnect(clientProtocolVersion > serverProtocolVersion ? "disconnectionScreen.outdatedServer" : "disconnectionScreen.outdatedClient");
+            return PacketSignal.HANDLED;
         }
 
-        session.setCodec(codec);
+        session.setCodec(Constants.BEDROCK_CODEC);
 
         NetworkSettingsPacket networkSettingsPacket = new NetworkSettingsPacket();
         networkSettingsPacket.setCompressionThreshold(0);
