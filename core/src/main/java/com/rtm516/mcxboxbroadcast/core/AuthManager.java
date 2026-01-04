@@ -38,7 +38,7 @@ public class AuthManager {
         this.authManager = null;
     }
 
-/**
+    /**
      * Follow the auth flow to get the Xbox token and store it
      */
     private void initialise() {
@@ -146,8 +146,8 @@ public class AuthManager {
         try {
             return authManager.getPlayFabToken().getUpToDate().getSessionTicket();
         } catch (IOException e) {
-             logger.error("Failed to get PlayFab session ticket", e);
-             return null;
+            logger.error("Failed to get PlayFab session ticket", e);
+            return null;
         }
     }
 
