@@ -17,7 +17,8 @@ dependencies {
     api(libs.nimbus.jose.jwt)
     api(libs.java.websocket)
     api(libs.methanol)
-    api(libs.minecraftauth)
+    // api(libs.minecraftauth)
+    api("com.github.RaphiMC:MinecraftAuth:3eb6e3a913")
     api(libs.bundles.protocol)
     api("dev.kastle.NetworkCompatible:netty-transport-nethernet:6a8915db93")
 
