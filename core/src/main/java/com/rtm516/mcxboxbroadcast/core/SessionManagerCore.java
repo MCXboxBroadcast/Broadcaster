@@ -60,8 +60,6 @@ public abstract class SessionManagerCore {
     private EventLoopGroup workerGroup;
     private NetherNetXboxSignaling signaling;
 
-    private String mcToken;
-
     /**
      * Create an instance of SessionManager
      *
@@ -241,8 +239,6 @@ public abstract class SessionManagerCore {
             // Update the current session XUID
             this.sessionInfo.setXuid(xuid);
 
-            mcToken = setupSession(this.sessionInfo.getDeviceId());
-
             // Create the RTA websocket connection
             setupRtaWebsocket();
 
@@ -256,13 +252,11 @@ public abstract class SessionManagerCore {
                 throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
             }
 
-            setupNetherNet(mcToken);
+            setupNetherNet();
 
             if (this.netherNetChannel == null || !this.netherNetChannel.isOpen()) {
                 throw new SessionCreationException("Unable to start NetherNet channel");
             }
-        } else {
-            mcToken = setupSession(UUID.randomUUID().toString());
         }
 
         // Set the showcase image to the current screenshot
@@ -412,28 +406,6 @@ public abstract class SessionManagerCore {
         return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     }
 
-    protected String setupSession(String deviceId) {
-        String playfabTicket = this.authManager.getPlayfabSessionTicket();
-
-        HttpRequest request = HttpRequest.newBuilder(Constants.START_SESSION)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(SessionStartBody.create(deviceId, playfabTicket)))
-                .build();
-
-        HttpResponse<String> response;
-        try {
-            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException | InterruptedException e) {
-            throw new IllegalStateException("Unable to start session", e);
-        }
-
-        if (response.statusCode() != 200) {
-            logger.debug(response.body());
-            throw new IllegalStateException("Unable to start session!");
-        }
-        return Constants.GSON.fromJson(response.body(), SessionStartResponse.class).result().authorizationHeader();
-    }
-
     /**
      * Setup the RTA websocket connection
      */
@@ -445,11 +417,11 @@ public abstract class SessionManagerCore {
         rtaWebsocket.connect();
     }
 
-    protected void setupNetherNet(String token) {
+    protected void setupNetherNet() {
         shutdownNetherNet();
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
-        this.signaling = new NetherNetXboxSignaling(netherNetId, token);
+        this.signaling = new NetherNetXboxSignaling(netherNetId, getMCTokenHeader());
 
         this.bossGroup = new NioEventLoopGroup(1);
         this.workerGroup = new NioEventLoopGroup();
@@ -597,7 +569,12 @@ public abstract class SessionManagerCore {
      * @return The current MC token
      */
     public String getMCTokenHeader() {
-        return mcToken;
+        try {
+            return getAuthManager().getMinecraftSession().getUpToDate().getAuthorizationHeader();
+        } catch (Exception e) {
+            logger.error("Failed to get MC token header", e);
+            return null;
+        }
     }
 
     /**
