@@ -4,7 +4,6 @@ import com.rtm516.mcxboxbroadcast.core.models.ws.MessageType;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
-import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -66,6 +65,7 @@ public class RtaWebsocketClient extends WebSocketClient {
      *
      * @param message The UTF-8 decoded message that was received.
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void onMessage(String message) {
         // [Type, SequenceId, ...]

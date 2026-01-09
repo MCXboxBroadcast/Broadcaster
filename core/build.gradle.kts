@@ -2,20 +2,35 @@ plugins {
     id("com.rtm516.mcxboxbroadcast.java-conventions")
 }
 
+val nativePlatforms = listOf(
+    "windows-x86_64",
+    "windows-aarch64",
+    "linux-x86_64",
+    "linux-aarch64",
+    "macos-x86_64",
+    "macos-aarch64"
+)
+
 dependencies {
     api(libs.gson)
     api(libs.bundles.jackson)
     api(libs.nimbus.jose.jwt)
     api(libs.java.websocket)
     api(libs.methanol)
-    api(libs.minecraftauth)
+    // api(libs.minecraftauth)
+    api("com.github.RaphiMC:MinecraftAuth:3eb6e3a913")
     api(libs.bundles.protocol)
+    api("dev.kastle.NetworkCompatible:netty-transport-nethernet:6a8915db93")
 
-    api(libs.ice4j) {
-        exclude("org.jetbrains.kotlin")
+    api(libs.webrtc)
+    nativePlatforms.forEach { platform ->
+        runtimeOnly(libs.webrtc) {
+            artifact {
+                classifier = platform
+            }
+        }
     }
-    api(libs.bundles.bouncycastle)
-    api(libs.sctp4j)
+
     api(libs.sqlite)
 }
 

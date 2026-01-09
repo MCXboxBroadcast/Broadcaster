@@ -26,6 +26,14 @@ application {
 
 tasks.withType<ShadowJar> {
     transform(Log4j2PluginsCacheFileTransformer())
+    filesMatching("META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat") {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    }
+    
+    // Suppress illegal access warnings for webrtc natives
+    manifest {
+        attributes["Enable-Native-Access"] = "ALL-UNNAMED"
+    }
 }
 
 nameJar("MCXboxBroadcastStandalone")

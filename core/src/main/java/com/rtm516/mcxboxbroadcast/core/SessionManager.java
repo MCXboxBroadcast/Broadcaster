@@ -263,14 +263,14 @@ public class SessionManager extends SessionManagerCore {
         coreLogger.info("Loading status of sessions...");
 
         messages.add("Primary Session:");
-        messages.add(" - Gamertag: " + getXboxToken().gamertag());
+        messages.add(" - Gamertag: " + getGamertag());
         messages.add("   Following: " + socialSummary().targetFollowingCount() + "/" + Constants.MAX_FRIENDS);
 
         if (!subSessionManagers.isEmpty()) {
             messages.add("Sub-sessions: (" + subSessionManagers.size() + ")");
             for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
                 messages.add(" - ID: " + subSession.getKey());
-                messages.add("   Gamertag: " + subSession.getValue().getXboxToken().gamertag());
+                messages.add("   Gamertag: " + subSession.getValue().getGamertag());
                 messages.add("   Following: " + subSession.getValue().socialSummary().targetFollowingCount() + "/" + Constants.MAX_FRIENDS);
             }
         } else {
@@ -300,23 +300,5 @@ public class SessionManager extends SessionManagerCore {
         } else {
             logger.error("No restart callback set");
         }
-    }
-
-    /**
-     * Get the gamertag of the current session
-     *
-     * @return the gamertag of the current session
-     */
-    public String getGamertag() {
-        return getXboxToken().gamertag();
-    }
-
-    /**
-     * Get the XUID of the current session
-     *
-     * @return the XUID of the current session
-     */
-    public String getXuid() {
-        return getXboxToken().userXUID();
     }
 }
