@@ -4,6 +4,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.ScheduledFuture;
 import org.cloudburstmc.netty.channel.raknet.RakPong;
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Licenced under GPL-2.0
+ * Modified to fit MCXboxBroadcast
  *
  * https://github.com/WaterdogPE/WaterdogPE/blob/4e2b3cd1a3d5e4d3599476fd907b6bd3186783eb/src/main/java/dev/waterdog/waterdogpe/network/connection/codec/client/ClientPingHandler.java
  */
@@ -53,9 +55,13 @@ public class ClientPingHandler extends ChannelDuplexHandler {
             this.timeoutFuture = null;
         }
 
-        ctx.channel().close();
+        try {
+            this.future.trySuccess(BedrockPong.fromRakNet(rakPong.getPongData()));
+        } finally {
+            ReferenceCountUtil.release(rakPong);
+        }
 
-        this.future.trySuccess(BedrockPong.fromRakNet(rakPong.getPongData()));
+        ctx.channel().close();
     }
 
     @Override
