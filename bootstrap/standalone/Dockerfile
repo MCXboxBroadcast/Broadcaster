@@ -1,10 +1,10 @@
-FROM eclipse-temurin:21-alpine
+FROM eclipse-temurin:21-jdk
 
-RUN apk add libc6-compat
+RUN apt-get update && apt-get install -y libstdc++6
 
 RUN chmod 777 -R /tmp && chmod o+t -R /tmp
 
-RUN adduser -h /opt/app -H -D app
+RUN useradd -d /opt/app -m app
 
 RUN mkdir -p /opt/app/config && \
     chown -R app:app /opt/app
