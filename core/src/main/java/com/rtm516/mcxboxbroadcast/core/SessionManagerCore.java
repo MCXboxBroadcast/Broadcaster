@@ -4,8 +4,6 @@ import com.github.mizosoft.methanol.Methanol;
 import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
-import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartBody;
-import com.rtm516.mcxboxbroadcast.core.models.auth.SessionStartResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
