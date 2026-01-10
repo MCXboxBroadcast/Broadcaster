@@ -42,10 +42,10 @@ public class SubSessionManager extends SessionManagerCore {
         // TODO Some form of force flag just in case the master friends list is full
 
         // Add the main account
-        boolean subAdd = friendManager().addIfRequired(parent.userXUID(), parent.getGamertag());
+        boolean subAdd = friendManager().addIfRequired(parent.getXuid(), parent.getGamertag());
 
         // Get the main account to add us
-        boolean mainAdd = parent.friendManager().addIfRequired(userXUID(), getGamertag());
+        boolean mainAdd = parent.friendManager().addIfRequired(getXuid(), getGamertag());
 
         return subAdd || mainAdd;
     }

@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.rtm516.mcxboxbroadcast.core.models.auth.XblUsersMeProfileRequest;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import net.lenni0451.commons.httpclient.HttpClient;
@@ -22,6 +23,9 @@ public class AuthManager {
 
     private BedrockAuthManager authManager;
     private Runnable onDeviceTokenRefreshCallback;
+
+    private String gamertag;
+    private String xuid;
 
     /**
      * Create an instance of AuthManager
@@ -105,8 +109,21 @@ public class AuthManager {
     private void refreshTokens() throws IOException {
         // Requesting up-to-date tokens will automatically refresh them if expired
         authManager.getXboxLiveXstsToken().getUpToDate();
-        authManager.getMinecraftCertificateChain().getUpToDate();
         authManager.getPlayFabToken().getUpToDate();
+        updateProfileInfo();
+    }
+
+    private void updateProfileInfo() {
+        HttpClient httpClient = MinecraftAuth.createHttpClient();
+
+        try {
+            XblUsersMeProfileRequest.Response response = httpClient.executeAndHandle(new XblUsersMeProfileRequest(authManager.getXboxLiveXstsToken().getUpToDate()));
+            XblUsersMeProfileRequest.Response.ProfileUser profileUser = response.profileUsers().get(0);
+            gamertag = profileUser.settings().get("Gamertag");
+            xuid = profileUser.id();
+        } catch (IOException e) {
+            logger.error("Failed to get Xbox profile info", e);
+        }
     }
 
     private void saveToCache() {
@@ -161,5 +178,23 @@ public class AuthManager {
         if (authManager != null) {
             authManager.getXblDeviceToken().getChangeListeners().add((BasicChangeListener) onDeviceTokenRefreshCallback::run);
         }
+    }
+
+    /**
+     * Get the Gamertag of the current user
+     *
+     * @return The Gamertag of the current user
+     */
+    public String getGamertag() {
+        return gamertag;
+    }
+
+    /**
+     * Get the XUID of the current user
+     *
+     * @return The XUID of the current user
+     */
+    public String getXuid() {
+        return xuid;
     }
 }

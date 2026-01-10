@@ -159,22 +159,13 @@ public abstract class SessionManagerCore {
 
         // Make sure we are logged in and get info
         BedrockAuthManager manager = getAuthManager();
-        String gamertag;
-        String xuid;
-
-        try {
-            gamertag = manager.getMinecraftCertificateChain().getUpToDate().getIdentityDisplayName();
-            xuid = manager.getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
-        } catch (Exception e) {
-             throw new SessionCreationException("Failed to retrieve profile info: " + e.getMessage());
-        }
 
         int friendCount = -1;
         try {
             friendCount = friendManager.get().size();
         } catch (Exception ignored) {}
 
-        logger.info("Successfully authenticated as " + gamertag + " (" + xuid + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
+        logger.info("Successfully authenticated as " + getGamertag() + " (" + getXuid() + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
 
         if (handleFriendship()) {
             logger.info("Waiting for friendship to be processed...");
@@ -226,10 +217,8 @@ public abstract class SessionManagerCore {
         // Get the token for authentication
         BedrockAuthManager manager = getAuthManager();
         String token;
-        String xuid;
         try {
             token = manager.getXboxLiveXstsToken().getUpToDate().getAuthorizationHeader();
-            xuid = manager.getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
         } catch (Exception e) {
              throw new SessionCreationException("Failed to get authorization headers: " + e.getMessage());
         }
@@ -237,7 +226,7 @@ public abstract class SessionManagerCore {
         // We only need a websocket for the primary session manager
         if (this.sessionInfo != null) {
             // Update the current session XUID
-            this.sessionInfo.setXuid(xuid);
+            this.sessionInfo.setXuid(getXuid());
 
             // Create the RTA websocket connection
             setupRtaWebsocket();
@@ -476,16 +465,8 @@ public abstract class SessionManagerCore {
      * Update the presence of the current user on Xbox LIVE
      */
     protected void updatePresence() {
-        String xuid;
-        try {
-            xuid = getAuthManager().getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
-        } catch (Exception e) {
-            logger.error("Failed to get XUID for presence update", e);
-            return;
-        }
-
         HttpRequest updatePresenceRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.USER_PRESENCE.formatted(xuid)))
+            .uri(URI.create(Constants.USER_PRESENCE.formatted(getXuid())))
             .header("Content-Type", "application/json")
             .header("Authorization", getTokenHeader())
             .header("x-xbl-contract-version", "3")
@@ -540,13 +521,8 @@ public abstract class SessionManagerCore {
      *
      * @return The XUID of the current user
      */
-    public String userXUID() {
-        try {
-            return getAuthManager().getMinecraftCertificateChain().getUpToDate().getIdentityXuid();
-        } catch (Exception e) {
-            logger.error("Failed to get user XUID", e);
-            return null;
-        }
+    public String getXuid() {
+        return authManager.getXuid();
     }
 
     /**
@@ -555,12 +531,7 @@ public abstract class SessionManagerCore {
      * @return The Gamertag of the current user
      */
     public String getGamertag() {
-        try {
-            return getAuthManager().getMinecraftCertificateChain().getUpToDate().getIdentityDisplayName();
-        } catch (Exception e) {
-            logger.error("Failed to get gamertag", e);
-            return null;
-        }
+        return authManager.getGamertag();
     }
 
     /**

@@ -123,7 +123,7 @@ public class GalleryManager {
 
     private GalleryImage[] getImages() {
         HttpRequest getImagesRequest = HttpRequest.newBuilder()
-            .uri(URI.create(Constants.GALLERY + "/xuid/" + sessionManager.userXUID()))
+            .uri(URI.create(Constants.GALLERY + "/xuid/" + sessionManager.getXuid()))
             .header("Authorization", sessionManager.getMCTokenHeader())
             .GET()
             .build();

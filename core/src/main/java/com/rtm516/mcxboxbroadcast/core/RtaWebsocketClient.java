@@ -28,7 +28,7 @@ public class RtaWebsocketClient extends WebSocketClient {
         super(Constants.RTA_WEBSOCKET);
         addHeader("Authorization", sessionManager.getTokenHeader());
         this.sessionManager = sessionManager;
-        this.xuid = sessionManager.userXUID();
+        this.xuid = sessionManager.getXuid();
         this.logger = sessionManager.logger();
     }
 
