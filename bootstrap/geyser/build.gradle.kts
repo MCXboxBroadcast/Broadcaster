@@ -4,7 +4,7 @@ plugins {
 }
 
 relocate("org.yaml.snakeyaml")
-relocate("com.fasterxml.jackson")
+relocate("org.spongepowered.configurate")
 relocate("com.google.gson")
 relocate("net.raphimc.minecraftauth")
 relocate("org.bouncycastle")
@@ -20,7 +20,6 @@ configurations.all {
 
 dependencies {
     api(project(":core"))
-    api(libs.bundles.jackson)
     compileOnly(libs.bundles.geyser)
 }
 

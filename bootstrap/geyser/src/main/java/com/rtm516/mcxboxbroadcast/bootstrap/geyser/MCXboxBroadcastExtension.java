@@ -5,9 +5,10 @@ import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
+import com.rtm516.mcxboxbroadcast.core.configs.ConfigLoader;
+import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.notifications.SlackNotificationManager;
-import com.rtm516.mcxboxbroadcast.core.configs.ExtensionConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
@@ -21,6 +22,7 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
@@ -34,7 +36,7 @@ public class MCXboxBroadcastExtension implements Extension {
     NotificationManager notificationManager;
     SessionManager sessionManager;
     SessionInfo sessionInfo;
-    ExtensionConfig config;
+    CoreConfig config;
 
     @Subscribe
     public void onCommandDefine(GeyserDefineCommandsEvent event) {
@@ -130,11 +132,21 @@ public class MCXboxBroadcastExtension implements Extension {
         logger.info("Starting MCXboxBroadcast Extension " + BuildData.VERSION + " for Bedrock " + Constants.BEDROCK_CODEC.getMinecraftVersion() + " (" + Constants.BEDROCK_CODEC.getProtocolVersion() + ")");
 
         // Load the config file
-        config = ConfigLoader.load(this, MCXboxBroadcastExtension.class, ExtensionConfig.class);
+        File configFile = dataFolder().resolve("config.yml").toFile();
 
-        // Make sure we loaded a config and disable the extension if we didn't
-        if (config == null) {
-            logger.error("Failed to load config, extension will not start!");
+        // Ensure the data folder exists
+        if (!dataFolder().toFile().exists()) {
+            if (!dataFolder().toFile().mkdirs()) {
+                logger.error("Failed to create data folder, extension will not start!");
+                this.disable();
+                return;
+            }
+        }
+
+        try {
+            config = ConfigLoader.loadConfig(configFile, "Extension");
+        } catch (IOException e) {
+            logger.error("Failed to load config, extension will not start!", e);
             this.disable();
             return;
         }
@@ -171,8 +183,8 @@ public class MCXboxBroadcastExtension implements Extension {
 
             // Get the port to broadcast
             int port = this.geyserApi().bedrockListener().port();
-            if (!config.remotePort().equals("auto")) {
-                port = Integer.parseInt(config.remotePort());
+            if (!config.session().remotePort().equals("auto")) {
+                port = Integer.parseInt(config.session().remotePort());
             }
 
             // Create the session information based on the Geyser config
@@ -230,7 +242,7 @@ public class MCXboxBroadcastExtension implements Extension {
         }
 
         // Start the update timer
-        sessionManager.scheduledThread().scheduleWithFixedDelay(this::tick, config.updateInterval(), config.updateInterval(), TimeUnit.SECONDS);
+        sessionManager.scheduledThread().scheduleWithFixedDelay(this::tick, config.session().updateInterval(), config.session().updateInterval(), TimeUnit.SECONDS);
     }
 
     private void tick() {

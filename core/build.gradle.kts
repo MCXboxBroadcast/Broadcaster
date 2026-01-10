@@ -13,7 +13,6 @@ val nativePlatforms = listOf(
 
 dependencies {
     api(libs.gson)
-    api(libs.bundles.jackson)
     api(libs.nimbus.jose.jwt)
     api(libs.java.websocket)
     api(libs.methanol)
@@ -32,6 +31,10 @@ dependencies {
     }
 
     api(libs.sqlite)
+
+    annotationProcessor(libs.configurate.`interface`.ap)
+    api(libs.configurate.`interface`)
+    implementation(libs.configurate.yaml)
 }
 
 sourceSets {

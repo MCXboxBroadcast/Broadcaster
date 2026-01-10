@@ -1,7 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core;
 
 import com.google.gson.JsonParseException;
-import com.rtm516.mcxboxbroadcast.core.configs.FriendSyncConfig;
+import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
@@ -29,7 +29,7 @@ public class SessionManager extends SessionManagerCore {
     private final ScheduledExecutorService scheduledThreadPool;
     private final Map<String, SubSessionManager> subSessionManagers;
 
-    private FriendSyncConfig friendSyncConfig;
+    private CoreConfig.FriendSyncConfig friendSyncConfig;
     private Runnable restartCallback;
 
     /**
@@ -72,17 +72,13 @@ public class SessionManager extends SessionManagerCore {
      * @throws SessionCreationException If the session failed to create either because it already exists or some other reason
      * @throws SessionUpdateException   If the session data couldn't be set due to some issue
      */
-    public void init(SessionInfo sessionInfo, FriendSyncConfig friendSyncConfig) throws SessionCreationException, SessionUpdateException {
+    public void init(SessionInfo sessionInfo, CoreConfig.FriendSyncConfig friendSyncConfig) throws SessionCreationException, SessionUpdateException {
         // Set the internal session information based on the session info
         this.sessionInfo = new ExpandedSessionInfo("", "", sessionInfo);
 
         super.init();
 
         // Set up the auto friend sync
-        if (friendSyncConfig.updateInterval() < 20) {
-            logger.warn("Friend sync update interval is less than 20 seconds, setting to 20 seconds");
-            friendSyncConfig = new FriendSyncConfig(20, friendSyncConfig.autoFollow(), friendSyncConfig.autoUnfollow(), friendSyncConfig.initialInvite(), friendSyncConfig.shouldExpire(), friendSyncConfig.expireDays(), friendSyncConfig.expireCheck());
-        }
         this.friendSyncConfig = friendSyncConfig;
         friendManager().init(this.friendSyncConfig);
 
