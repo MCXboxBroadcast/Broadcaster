@@ -152,7 +152,7 @@ public class MCXboxBroadcastExtension implements Extension {
         }
 
         // TODO Support multiple notification types
-        notificationManager = new SlackNotificationManager(logger, config.slackWebhook());
+        notificationManager = new SlackNotificationManager(logger, config.notifications());
 
         // Create the session manager
         sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString(), this.dataFolder().resolve("screenshot.jpg").toString()), notificationManager, logger);
@@ -160,7 +160,7 @@ public class MCXboxBroadcastExtension implements Extension {
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(() -> {
             // Get the ip to broadcast
-            String ip = config.remoteAddress();
+            String ip = config.session().remoteAddress();
             if (ip.equals("auto")) {
                 ip = this.geyserApi().bedrockListener().address();
 
