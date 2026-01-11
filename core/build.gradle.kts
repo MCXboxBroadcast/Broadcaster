@@ -19,7 +19,7 @@ dependencies {
     // api(libs.minecraftauth)
     api("com.github.RaphiMC:MinecraftAuth:3eb6e3a913")
     api(libs.bundles.protocol)
-    api("dev.kastle.NetworkCompatible:netty-transport-nethernet:6a8915db93")
+    api(libs.netty.transport.nethernet)
 
     api(libs.webrtc)
     nativePlatforms.forEach { platform ->
