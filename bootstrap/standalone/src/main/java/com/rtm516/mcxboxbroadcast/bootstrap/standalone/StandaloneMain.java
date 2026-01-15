@@ -1,15 +1,13 @@
 package com.rtm516.mcxboxbroadcast.bootstrap.standalone;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.rtm516.mcxboxbroadcast.core.BuildData;
 import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.SessionInfo;
 import com.rtm516.mcxboxbroadcast.core.SessionManager;
+import com.rtm516.mcxboxbroadcast.core.configs.ConfigLoader;
+import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.notifications.SlackNotificationManager;
-import com.rtm516.mcxboxbroadcast.core.configs.StandaloneConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.ping.PingUtil;
@@ -18,15 +16,13 @@ import org.cloudburstmc.protocol.bedrock.BedrockPong;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class StandaloneMain {
-    private static StandaloneConfig config;
+    private static CoreConfig config;
     private static StandaloneLoggerImpl logger;
     private static SessionInfo sessionInfo;
     private static NotificationManager notificationManager;
@@ -41,42 +37,21 @@ public class StandaloneMain {
         String configFileName = "config.yml";
         File configFile = new File(configFileName);
 
-        // Create the config file if it doesn't exist
-        if (!configFile.exists()) {
-            try (FileOutputStream fos = new FileOutputStream(configFileName)) {
-                try (InputStream input = StandaloneMain.class.getClassLoader().getResourceAsStream(configFileName)) {
-                    byte[] bytes = new byte[input.available()];
-
-                    //noinspection ResultOfMethodCallIgnored
-                    input.read(bytes);
-
-                    fos.write(bytes);
-
-                    fos.flush();
-                }
-            } catch (IOException e) {
-                logger.error("Failed to create config", e);
-                return;
-            }
-        }
-
         try {
-            config = new ObjectMapper(new YAMLFactory())
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .readValue(configFile, StandaloneConfig.class);
+            config = ConfigLoader.loadConfig(configFile, "Standalone");
         } catch (IOException e) {
             logger.error("Failed to load config", e);
             return;
         }
 
-        logger.setDebug(config.debugLog());
+        logger.setDebug(config.debugMode());
 
         // TODO Support multiple notification types
-        notificationManager = new SlackNotificationManager(logger, config.slackWebhook());
+        notificationManager = new SlackNotificationManager(logger, config.notifications());
 
         sessionManager = new SessionManager(new FileStorageManager("./cache", "./screenshot.jpg"), notificationManager, logger);
 
-        sessionInfo = (SessionInfo) config.session().sessionInfo().copy();
+        sessionInfo = new SessionInfo(config.session().sessionInfo());
 
         // Fallback to the gamertag if the host name is empty
         if (sessionInfo.getHostName().isEmpty()) {
@@ -116,7 +91,7 @@ public class StandaloneMain {
             try {
                 // Update the session
                 sessionManager.updateSession(sessionInfo);
-                if (config.suppressSessionUpdateInfo()) {
+                if (config.suppressSessionUpdateMessage()) {
                     sessionManager.logger().debug("Updated session!");
                 } else {
                     sessionManager.logger().info("Updated session!");
@@ -147,10 +122,10 @@ public class StandaloneMain {
                 if (config.session().configFallback()) {
                     sessionManager.logger().error("Failed to ping server, falling back to config values", e);
 
-                    sessionInfo.setHostName(config.session().sessionInfo().getHostName());
-                    sessionInfo.setWorldName(config.session().sessionInfo().getWorldName());
-                    sessionInfo.setPlayers(config.session().sessionInfo().getPlayers());
-                    sessionInfo.setMaxPlayers(config.session().sessionInfo().getMaxPlayers());
+                    sessionInfo.setHostName(config.session().sessionInfo().hostName());
+                    sessionInfo.setWorldName(config.session().sessionInfo().worldName());
+                    sessionInfo.setPlayers(config.session().sessionInfo().players());
+                    sessionInfo.setMaxPlayers(config.session().sessionInfo().maxPlayers());
 
                     // Fallback to the gamertag if the host name is empty
                     if (sessionInfo.getHostName().isEmpty()) {

@@ -69,9 +69,13 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
     @Override
     protected void runCommand(String command) {
         String commandNode = command.split(" ")[0].toLowerCase();
+        if (commandNode.equals("mcxboxbroadcast")) {
+            commandNode = command.split(" ")[1].toLowerCase();
+        }
+
         try {
             switch (commandNode) {
-                case "exit" -> System.exit(0);
+                case "stop", "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
                 case "dumpsession" -> {
                     info("Dumping session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");

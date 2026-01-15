@@ -4,11 +4,12 @@ plugins {
 }
 
 relocate("org.yaml.snakeyaml")
-relocate("com.fasterxml.jackson")
+relocate("org.spongepowered.configurate")
 relocate("com.google.gson")
 relocate("net.raphimc.minecraftauth")
 relocate("org.bouncycastle")
 relocate("net.lenni0451.commons.httpclient")
+relocate("net.lenni0451.commons.gson")
 
 configurations.all {
     resolutionStrategy {
@@ -19,7 +20,6 @@ configurations.all {
 
 dependencies {
     api(project(":core"))
-    api(libs.bundles.jackson)
     compileOnly(libs.bundles.geyser)
 }
 

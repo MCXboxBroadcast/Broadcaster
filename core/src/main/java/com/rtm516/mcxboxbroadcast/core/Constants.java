@@ -3,7 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v897.Bedrock_v897;
+import org.cloudburstmc.protocol.bedrock.codec.v898.Bedrock_v898;
 
 import java.net.URI;
 import java.time.Duration;
@@ -29,10 +29,6 @@ public class Constants {
     public static final String CREATE_SESSION = "https://sessiondirectory.xboxlive.com/serviceconfigs/" + SERVICE_CONFIG_ID + "/sessionTemplates/" + TEMPLATE_NAME + "/sessions/%s";
     public static final String JOIN_SESSION = "https://sessiondirectory.xboxlive.com/handles/%s/session";
 
-    public static final String PLAYFAB_LOGIN = "https://20ca2.playfabapi.com/Client/LoginWithXbox";
-    public static final URI START_SESSION = URI.create("https://authorization.franchise.minecraft-services.net/api/v1.0/session/start");
-    public static final String RTC_WEBSOCKET_FORMAT = "wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/%s";
-
     public static final URI RTA_WEBSOCKET = URI.create("wss://rta.xboxlive.com/connect");
     public static final URI CREATE_HANDLE = URI.create("https://sessiondirectory.xboxlive.com/handles");
 
@@ -42,7 +38,6 @@ public class Constants {
     public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
     public static final URI SOCIAL_SUMMARY = URI.create("https://social.xboxlive.com/users/me/summary");
     public static final String FOLLOWER = "https://social.xboxlive.com/users/me/people/follower/xuid(%s)";
-    public static final String PROFILE_SETTINGS = "https://profile.xboxlive.com/users/xuid(%s)/profile/settings?settings=Gamertag";
 
     public static final String GALLERY = "https://persona.franchise.minecraft-services.net/api/v1.0/gallery";
 
@@ -59,7 +54,12 @@ public class Constants {
     public static final int MAX_FRIENDS = 2000;
 
     /**
-     * Used for the micro nethernet server that trasnfers the client to the real server
+     * Used for the micro nethernet server that transfers the client to the real server
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v897.CODEC.toBuilder().protocolVersion(898).build();
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v898.CODEC;
+
+    /**
+     * Config version for upgrade purposes
+     */
+    public static final int CONFIG_VERSION = 2;
 }
