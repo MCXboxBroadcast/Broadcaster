@@ -1,15 +1,8 @@
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:21-jre
 
-RUN apt-get update && apt-get install -y libstdc++6
-
-RUN chmod 777 -R /tmp && chmod o+t -R /tmp
-
-RUN useradd -d /opt/app -m app
-
-RUN mkdir -p /opt/app/config && \
-    chown -R app:app /opt/app
-
-USER app:app
+ENV HOME="/opt/app"
+RUN groupmod -n app ubuntu && usermod -l app -d "${HOME}" -m ubuntu
+ENTRYPOINT ["/bin/bash", "-c", "chown -R app:app . && exec setpriv --reuid=app --regid=app --init-groups \"$@\"", "--"]
 
 WORKDIR /opt/app/config
 
