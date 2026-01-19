@@ -194,6 +194,8 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionInfo.setPlayers(this.geyserApi().onlineConnections().size());
             sessionInfo.setMaxPlayers(GeyserImpl.getInstance().config().motd().maxPlayers()); // TODO Find API equivalent
 
+            applyExtensionOverrides(sessionInfo);
+
             // Fallback to the gamertag if the host name is empty
             if (sessionInfo.getHostName().isEmpty()) {
                 sessionInfo.setHostName(sessionManager.getGamertag());
@@ -224,6 +226,8 @@ public class MCXboxBroadcastExtension implements Extension {
         sessionInfo.setPlayers(event.playerCount());
         sessionInfo.setMaxPlayers(event.maxPlayerCount());
 
+        applyExtensionOverrides(sessionInfo);
+
         // Fallback to the gamertag if the host name is empty
         if (sessionInfo.getHostName().isEmpty()) {
             sessionInfo.setHostName(sessionManager.getGamertag());
@@ -250,6 +254,29 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionManager.updateSession(sessionInfo);
         } catch (SessionUpdateException e) {
             sessionManager.logger().error("Failed to update session information!", e);
+        }
+    }
+
+    private void applyExtensionOverrides(SessionInfo sessionInfo) {
+        CoreConfig.SessionConfig.ExtensionOverride override = config.session().extensionOverride();
+        if (!override.enabled()) {
+            return;
+        }
+
+        if (!override.hostName().isEmpty()) {
+            sessionInfo.setHostName(override.hostName());
+        }
+
+        if (!override.worldName().isEmpty()) {
+            sessionInfo.setWorldName(override.worldName());
+        }
+
+        if (override.players() > 0) {
+            sessionInfo.setPlayers(override.players());
+        }
+
+        if (override.maxPlayers() > 0) {
+            sessionInfo.setMaxPlayers(override.maxPlayers());
         }
     }
 }
