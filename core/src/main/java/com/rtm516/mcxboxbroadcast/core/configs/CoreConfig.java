@@ -75,6 +75,10 @@ public interface CoreConfig {
         @DefaultBoolean(false)
         boolean configFallback();
 
+        @Comment("Extension-only overrides for the session data broadcast to Xbox Live")
+        @ExcludePlatform(platforms = {"Standalone"})
+        ExtensionOverride extensionOverride();
+
         @Comment("The data to broadcast over xbox live, this is the default if querying is enabled")
         @ExcludePlatform(platforms = {"Extension"})
         SessionInfo sessionInfo();
@@ -105,6 +109,29 @@ public interface CoreConfig {
             @DefaultNumeric(19132)
             @NumericRange(from = 1, to = 65535)
             int port();
+        }
+
+        @ConfigSerializable
+        interface ExtensionOverride {
+            @Comment("Enable overriding session info values in the extension")
+            @DefaultBoolean(false)
+            boolean enabled();
+
+            @Comment("Override the host name to broadcast (leave empty to keep passthrough)")
+            @DefaultString("")
+            String hostName();
+
+            @Comment("Override the world name to broadcast (leave empty to keep passthrough)")
+            @DefaultString("")
+            String worldName();
+
+            @Comment("Override the current number of players (0 keeps passthrough)")
+            @DefaultNumeric(0)
+            int players();
+
+            @Comment("Override the maximum number of players (0 keeps passthrough)")
+            @DefaultNumeric(0)
+            int maxPlayers();
         }
     }
 
