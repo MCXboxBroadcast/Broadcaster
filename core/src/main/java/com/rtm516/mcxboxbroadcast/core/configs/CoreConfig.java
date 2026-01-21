@@ -58,6 +58,13 @@ public interface CoreConfig {
         @NumericRange(from = 20, to = Integer.MAX_VALUE)
         int updateInterval();
 
+        @Comment("""
+            The amount of time in seconds to wait between initializing sub-sessions
+            Warning: This can be no lower than 20 due to Xbox rate limits""")
+        @DefaultNumeric(20)
+        @NumericRange(from = 20, to = Integer.MAX_VALUE)
+        int subSessionInitDelaySeconds();
+
         @Comment("Should we query the bedrock server to sync the session information")
         @ExcludePlatform(platforms = {"Extension"})
         @DefaultBoolean(true)
