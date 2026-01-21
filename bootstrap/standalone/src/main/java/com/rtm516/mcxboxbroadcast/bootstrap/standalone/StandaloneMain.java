@@ -83,7 +83,7 @@ public class StandaloneMain {
 
     private static void createSession() throws SessionCreationException, SessionUpdateException {
         sessionManager.restartCallback(StandaloneMain::restart);
-        sessionManager.init(sessionInfo, config.friendSync());
+        sessionManager.init(sessionInfo, config.friendSync(), config.session());
 
         sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             updateSessionInfo(sessionInfo);

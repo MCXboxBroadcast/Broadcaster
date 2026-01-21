@@ -30,6 +30,7 @@ public class SessionManager extends SessionManagerCore {
     private final Map<String, SubSessionManager> subSessionManagers;
 
     private CoreConfig.FriendSyncConfig friendSyncConfig;
+    private long subSessionInitDelaySeconds;
     private Runnable restartCallback;
 
     /**
@@ -72,7 +73,7 @@ public class SessionManager extends SessionManagerCore {
      * @throws SessionCreationException If the session failed to create either because it already exists or some other reason
      * @throws SessionUpdateException   If the session data couldn't be set due to some issue
      */
-    public void init(SessionInfo sessionInfo, CoreConfig.FriendSyncConfig friendSyncConfig) throws SessionCreationException, SessionUpdateException {
+    public void init(SessionInfo sessionInfo, CoreConfig.FriendSyncConfig friendSyncConfig, CoreConfig.SessionConfig sessionConfig) throws SessionCreationException, SessionUpdateException {
         // Set the internal session information based on the session info
         this.sessionInfo = new ExpandedSessionInfo("", "", sessionInfo);
 
@@ -80,6 +81,7 @@ public class SessionManager extends SessionManagerCore {
 
         // Set up the auto friend sync
         this.friendSyncConfig = friendSyncConfig;
+        this.subSessionInitDelaySeconds = Math.max(0, sessionConfig.subSessionInitDelaySeconds());
         friendManager().init(this.friendSyncConfig);
 
         // Load sub-sessions from cache
@@ -95,16 +97,10 @@ public class SessionManager extends SessionManagerCore {
         List<String> finalSubSessions = subSessions;
         scheduledThreadPool.execute(() -> {
             // Create the sub-session manager for each sub-session
-            for (String subSession : finalSubSessions) {
-                try {
-                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager().subSession(subSession), notificationManager(), logger);
-                    subSessionManager.init();
-                    subSessionManager.friendManager().init(this.friendSyncConfig);
-                    subSessionManagers.put(subSession, subSessionManager);
-                } catch (SessionCreationException | SessionUpdateException e) {
-                    logger.error("Failed to create sub-session " + subSession, e);
-                    // TODO Retry creation after 30s or so
-                }
+            for (int index = 0; index < finalSubSessions.size(); index++) {
+                String subSession = finalSubSessions.get(index);
+                long delaySeconds = subSessionInitDelaySeconds * index;
+                scheduleSubSessionCreation(subSession, delaySeconds);
             }
         });
     }
@@ -200,15 +196,7 @@ public class SessionManager extends SessionManagerCore {
         }
 
         // Create the sub-session manager
-        try {
-            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager().subSession(id), notificationManager(), logger);
-            subSessionManager.init();
-            subSessionManager.friendManager().init(friendSyncConfig);
-            subSessionManagers.put(id, subSessionManager);
-        } catch (SessionCreationException | SessionUpdateException e) {
-            coreLogger.error("Failed to create sub-session", e);
-            return;
-        }
+        scheduleSubSessionCreation(id, 0);
 
         // Update the list of sub-sessions
         try {
@@ -296,5 +284,19 @@ public class SessionManager extends SessionManagerCore {
         } else {
             logger.error("No restart callback set");
         }
+    }
+
+    private void scheduleSubSessionCreation(String id, long delaySeconds) {
+        scheduledThreadPool.schedule(() -> {
+            try {
+                SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager().subSession(id), notificationManager(), logger);
+                subSessionManager.init();
+                subSessionManager.friendManager().init(this.friendSyncConfig);
+                subSessionManagers.put(id, subSessionManager);
+            } catch (SessionCreationException | SessionUpdateException e) {
+                logger.error("Failed to create sub-session " + id, e);
+                // TODO Retry creation after 30s or so
+            }
+        }, delaySeconds, java.util.concurrent.TimeUnit.SECONDS);
     }
 }
