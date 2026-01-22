@@ -45,8 +45,6 @@ public class FriendManager {
     private boolean initialInvite;
     private boolean shouldAcceptPendingRequests = true;
     private final Deque<FollowerResponse.Person> inviteLoopQueue = new ArrayDeque<>();
-    private int inviteLoopRefreshIntervalSeconds = 0;
-    private Instant lastInviteLoopRefreshAt;
     private Instant inviteLoopBackoffUntil;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
@@ -343,15 +341,17 @@ public class FriendManager {
             return;
         }
 
-        int errorBackoffSeconds = Math.max(5, inviteLoopConfig.delaySeconds());
-        inviteLoopRefreshIntervalSeconds = inviteLoopConfig.refreshIntervalSeconds();
+        int delaySeconds = inviteLoopConfig.delaySeconds();
+        int errorBackoffSeconds = Math.max(5, delaySeconds);
+        boolean noDelay = delaySeconds <= 0;
+        int scheduleDelaySeconds = Math.max(1, delaySeconds);
         inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             try {
                 if (inviteLoopBackoffUntil != null && Instant.now().isBefore(inviteLoopBackoffUntil)) {
                     return;
                 }
 
-                if (shouldRefreshInviteLoopTargets() || inviteLoopQueue.isEmpty()) {
+                if (inviteLoopQueue.isEmpty()) {
                     boolean refreshed = refreshInviteLoopTargets();
                     if (!refreshed && inviteLoopQueue.isEmpty()) {
                         logger.debug("Invite loop refresh failed and there are no targets to invite");
@@ -364,25 +364,33 @@ public class FriendManager {
                     return;
                 }
 
-                FollowerResponse.Person target = inviteLoopQueue.pollFirst();
-                String gamertag = resolveGamertag(target);
-                logger.info("Invite loop sending invite to " + gamertag + " (" + target.xuid + ")");
-                InviteSendResult result = sendInviteInternal(target.xuid, true, errorBackoffSeconds);
-                if (result.rateLimited) {
-                    inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
-                    inviteLoopQueue.addFirst(target);
-                    logger.warn("Invite loop rate limited, pausing invites for " + result.retryAfterSeconds + " seconds");
-                } else if (result.error) {
-                    inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
-                    inviteLoopQueue.addFirst(target);
-                    logger.warn("Invite loop encountered an error, pausing invites for " + result.retryAfterSeconds + " seconds");
-                } else {
+                int invitesToSend = noDelay ? inviteLoopQueue.size() : 1;
+                for (int i = 0; i < invitesToSend; i++) {
+                    if (inviteLoopQueue.isEmpty()) {
+                        break;
+                    }
+                    FollowerResponse.Person target = inviteLoopQueue.pollFirst();
+                    String gamertag = resolveGamertag(target);
+                    logger.info("Invite loop sending invite to " + gamertag + " (" + target.xuid + ")");
+                    InviteSendResult result = sendInviteInternal(target.xuid, true, errorBackoffSeconds);
+                    if (result.rateLimited) {
+                        inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
+                        inviteLoopQueue.addFirst(target);
+                        logger.warn("Invite loop rate limited, pausing invites for " + result.retryAfterSeconds + " seconds");
+                        break;
+                    }
+                    if (result.error) {
+                        inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
+                        inviteLoopQueue.addFirst(target);
+                        logger.warn("Invite loop encountered an error, pausing invites for " + result.retryAfterSeconds + " seconds");
+                        break;
+                    }
                     inviteLoopQueue.addLast(target);
                 }
             } catch (Exception e) {
                 logger.error("Failed to send invite in loop", e);
             }
-        }, 0, inviteLoopConfig.delaySeconds(), TimeUnit.SECONDS);
+        }, 0, scheduleDelaySeconds, TimeUnit.SECONDS);
     }
 
     private boolean refreshInviteLoopTargets() {
@@ -410,7 +418,6 @@ public class FriendManager {
             }
             inviteLoopQueue.clear();
             inviteLoopQueue.addAll(newTargets);
-            lastInviteLoopRefreshAt = Instant.now();
             return true;
         } catch (Exception e) {
             logger.error("Failed to refresh invite loop targets", e);
@@ -433,17 +440,6 @@ public class FriendManager {
             return incoming;
         }
         return existing;
-    }
-
-    private boolean shouldRefreshInviteLoopTargets() {
-        if (inviteLoopRefreshIntervalSeconds <= 0) {
-            return false;
-        }
-        if (lastInviteLoopRefreshAt == null) {
-            return true;
-        }
-        return !Instant.now()
-            .isBefore(lastInviteLoopRefreshAt.plusSeconds(inviteLoopRefreshIntervalSeconds));
     }
 
     private String resolveGamertag(FollowerResponse.Person person) {

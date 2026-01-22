@@ -177,10 +177,10 @@ public interface CoreConfig {
 
             @Comment("Delay in seconds between invites")
             @DefaultNumeric(60)
-            @NumericRange(from = 1, to = Integer.MAX_VALUE)
+            @NumericRange(from = 0, to = Integer.MAX_VALUE)
             int delaySeconds();
 
-            @Comment("How often in seconds to refresh the invite loop target list")
+            @Comment("Refresh the invite loop target list when the queue is empty (value is ignored)")
             @DefaultNumeric(300)
             @NumericRange(from = 10, to = Integer.MAX_VALUE)
             int refreshIntervalSeconds();
