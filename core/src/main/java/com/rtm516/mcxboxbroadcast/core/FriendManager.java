@@ -47,6 +47,7 @@ public class FriendManager {
     private int inviteLoopRefreshIntervalSeconds = 0;
     private Instant lastInviteLoopRefreshAt;
     private Instant inviteLoopBackoffUntil;
+    private String lastInviteLoopTargetXuid;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
@@ -349,12 +350,8 @@ public class FriendManager {
                     return;
                 }
 
-                if (shouldRefreshInviteLoopTargets() || inviteLoopQueue.isEmpty()) {
-                    refreshInviteLoopTargets();
-                }
-
-                if (inviteLoopQueue.isEmpty()) {
-                    logger.debug("Invite loop has no targets to invite");
+                FollowerResponse.Person target = nextInviteLoopTarget();
+                if (target == null) {
                     return;
                 }
 
@@ -364,7 +361,7 @@ public class FriendManager {
                 InviteSendResult result = sendInviteInternal(target.xuid, true);
                 if (result.rateLimited) {
                     inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
-                    inviteLoopQueue.addFirst(target);
+                    retryInviteLoopTarget();
                     logger.warn("Invite loop rate limited, pausing invites for " + result.retryAfterSeconds + " seconds");
                 }
             } catch (Exception e) {
@@ -380,11 +377,35 @@ public class FriendManager {
                 .filter(person -> !isGuestAccount(person.xuid))
                 .sorted(Comparator.comparing(person -> resolveGamertag(person).toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
-            if (newTargets.isEmpty()) {
-                if (inviteLoopQueue.isEmpty()) {
-                    logger.warn("Invite loop target refresh returned an empty list");
-                } else {
-                    logger.warn("Invite loop target refresh returned an empty list, keeping existing targets");
+            if (newTargets.isEmpty() && !inviteLoopTargets.isEmpty()) {
+                logger.warn("Invite loop target refresh returned an empty list, keeping existing targets");
+                return;
+            }
+            inviteLoopTargets = newTargets;
+        } catch (Exception e) {
+            logger.error("Failed to refresh invite loop targets", e);
+        } finally {
+            lastInviteLoopRefreshAt = Instant.now();
+            adjustInviteLoopIndexAfterRefresh();
+        }
+    }
+
+    private void adjustInviteLoopIndexAfterRefresh() {
+        if (inviteLoopTargets.isEmpty()) {
+            inviteLoopIndex = 0;
+            return;
+        }
+
+        if (lastInviteLoopTargetXuid == null) {
+            inviteLoopIndex = 0;
+            return;
+        }
+
+        for (int index = 0; index < inviteLoopTargets.size(); index++) {
+            if (inviteLoopTargets.get(index).xuid.equals(lastInviteLoopTargetXuid)) {
+                inviteLoopIndex = index + 1;
+                if (inviteLoopIndex >= inviteLoopTargets.size()) {
+                    inviteLoopIndex = 0;
                 }
                 return;
             }
@@ -697,6 +718,12 @@ public class FriendManager {
 
     private void sendInvite(String xuid, boolean ignoreInitialInvite) {
         sendInviteInternal(xuid, ignoreInitialInvite);
+    }
+
+    private void retryInviteLoopTarget() {
+        if (inviteLoopIndex > 0) {
+            inviteLoopIndex--;
+        }
     }
 
     private InviteSendResult sendInviteInternal(String xuid, boolean ignoreInitialInvite) {
