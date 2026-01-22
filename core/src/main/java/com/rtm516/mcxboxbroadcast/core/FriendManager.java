@@ -40,7 +40,7 @@ public class FriendManager {
     private Future<?> inviteLoopFuture;
     private boolean initialInvite;
     private boolean shouldAcceptPendingRequests = true;
-    private List<String> inviteLoopTargets = new ArrayList<>();
+    private List<FollowerResponse.Person> inviteLoopTargets = new ArrayList<>();
     private int inviteLoopIndex = 0;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
@@ -325,18 +325,20 @@ public class FriendManager {
 
         inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             try {
-                String target = nextInviteLoopTarget();
+                FollowerResponse.Person target = nextInviteLoopTarget();
                 if (target == null) {
                     return;
                 }
-                sendInvite(target, true);
+                String gamertag = resolveGamertag(target);
+                logger.info("Invite loop sending invite to " + gamertag + " (" + target.xuid + ")");
+                sendInvite(target.xuid, true);
             } catch (Exception e) {
                 logger.error("Failed to send invite in loop", e);
             }
         }, 0, inviteLoopConfig.delaySeconds(), TimeUnit.SECONDS);
     }
 
-    private String nextInviteLoopTarget() {
+    private FollowerResponse.Person nextInviteLoopTarget() {
         if (inviteLoopTargets.isEmpty() || inviteLoopIndex >= inviteLoopTargets.size()) {
             refreshInviteLoopTargets();
             inviteLoopIndex = 0;
@@ -350,16 +352,24 @@ public class FriendManager {
 
     private void refreshInviteLoopTargets() {
         try {
-            List<FollowerResponse.Person> people = get();
-            inviteLoopTargets = people.stream()
+            inviteLoopTargets = get().stream()
                 .filter(person -> person.isFollowedByCaller)
                 .filter(person -> !isGuestAccount(person.xuid))
-                .map(person -> person.xuid)
                 .distinct()
                 .collect(Collectors.toCollection(ArrayList::new));
         } catch (XboxFriendsException e) {
             logger.error("Failed to refresh invite loop targets", e);
         }
+    }
+
+    private String resolveGamertag(FollowerResponse.Person person) {
+        if (person.gamertag != null && !person.gamertag.isBlank()) {
+            return person.gamertag;
+        }
+        if (person.displayName != null && !person.displayName.isBlank()) {
+            return person.displayName;
+        }
+        return "Unknown";
     }
 
     /**
