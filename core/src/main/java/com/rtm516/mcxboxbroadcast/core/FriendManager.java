@@ -342,6 +342,7 @@ public class FriendManager {
             return;
         }
 
+        inviteLoopRefreshIntervalSeconds = inviteLoopConfig.refreshIntervalSeconds();
         inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             try {
                 if (inviteLoopBackoffUntil != null && Instant.now().isBefore(inviteLoopBackoffUntil)) {
@@ -404,9 +405,14 @@ public class FriendManager {
     }
 
     private boolean shouldRefreshInviteLoopTargets() {
-        if (inviteLoopRefreshIntervalSeconds <= 0 || lastInviteLoopRefreshAt == null) {
+        if (inviteLoopRefreshIntervalSeconds <= 0) {
             return false;
         }
+        if (lastInviteLoopRefreshAt == null) {
+            return true;
+        }
+        return !Instant.now()
+            .isBefore(lastInviteLoopRefreshAt.plusSeconds(inviteLoopRefreshIntervalSeconds));
     }
 
     private String resolveGamertag(FollowerResponse.Person person) {
