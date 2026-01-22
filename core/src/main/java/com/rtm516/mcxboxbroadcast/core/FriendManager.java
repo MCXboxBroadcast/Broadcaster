@@ -343,6 +343,7 @@ public class FriendManager {
             return;
         }
 
+        int errorBackoffSeconds = Math.max(5, inviteLoopConfig.delaySeconds());
         inviteLoopRefreshIntervalSeconds = inviteLoopConfig.refreshIntervalSeconds();
         inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             try {
@@ -366,11 +367,15 @@ public class FriendManager {
                 FollowerResponse.Person target = inviteLoopQueue.pollFirst();
                 String gamertag = resolveGamertag(target);
                 logger.info("Invite loop sending invite to " + gamertag + " (" + target.xuid + ")");
-                InviteSendResult result = sendInviteInternal(target.xuid, true);
+                InviteSendResult result = sendInviteInternal(target.xuid, true, errorBackoffSeconds);
                 if (result.rateLimited) {
                     inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
                     inviteLoopQueue.addFirst(target);
                     logger.warn("Invite loop rate limited, pausing invites for " + result.retryAfterSeconds + " seconds");
+                } else if (result.error) {
+                    inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
+                    inviteLoopQueue.addFirst(target);
+                    logger.warn("Invite loop encountered an error, pausing invites for " + result.retryAfterSeconds + " seconds");
                 } else {
                     inviteLoopQueue.addLast(target);
                 }
@@ -733,16 +738,21 @@ public class FriendManager {
     }
 
     private void sendInvite(String xuid, boolean ignoreInitialInvite) {
-        sendInviteInternal(xuid, ignoreInitialInvite);
+        sendInviteInternal(xuid, ignoreInitialInvite, 0);
     }
 
-    private InviteSendResult sendInviteInternal(String xuid, boolean ignoreInitialInvite) {
+    private InviteSendResult sendInviteInternal(String xuid, boolean ignoreInitialInvite, int errorBackoffSeconds) {
         // Only invite if enabled
         if (!initialInvite && !ignoreInitialInvite) {
             return InviteSendResult.skipped();
         }
 
         try {
+            String tokenHeader = sessionManager.getTokenHeader();
+            if (tokenHeader == null || tokenHeader.isBlank()) {
+                logger.warn("Skipping invite to " + xuid + " due to missing auth header");
+                return InviteSendResult.error(errorBackoffSeconds);
+            }
             CreateHandleRequest createHandleContent = new CreateHandleRequest(
                 1,
                 "invite",
@@ -757,7 +767,7 @@ public class FriendManager {
 
             HttpRequest sendInvite = HttpRequest.newBuilder()
                 .uri(Constants.CREATE_HANDLE)
-                .header("Authorization", sessionManager.getTokenHeader())
+                .header("Authorization", tokenHeader)
                 .header("x-xbl-contract-version", "107")
                 .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(createHandleContent)))
                 .build();
@@ -781,33 +791,35 @@ public class FriendManager {
                 Thread.currentThread().interrupt();
             }
             logger.error("Failed to send invite to " + xuid, e);
-            return InviteSendResult.error();
+            return InviteSendResult.error(errorBackoffSeconds);
         }
     }
 
     private static final class InviteSendResult {
         private final boolean rateLimited;
+        private final boolean error;
         private final int retryAfterSeconds;
 
-        private InviteSendResult(boolean rateLimited, int retryAfterSeconds) {
+        private InviteSendResult(boolean rateLimited, boolean error, int retryAfterSeconds) {
             this.rateLimited = rateLimited;
+            this.error = error;
             this.retryAfterSeconds = retryAfterSeconds;
         }
 
         private static InviteSendResult sent() {
-            return new InviteSendResult(false, 0);
+            return new InviteSendResult(false, false, 0);
         }
 
         private static InviteSendResult skipped() {
-            return new InviteSendResult(false, 0);
+            return new InviteSendResult(false, false, 0);
         }
 
-        private static InviteSendResult error() {
-            return new InviteSendResult(false, 0);
+        private static InviteSendResult error(int retryAfterSeconds) {
+            return new InviteSendResult(false, true, Math.max(1, retryAfterSeconds));
         }
 
         private static InviteSendResult rateLimited(int retryAfterSeconds) {
-            return new InviteSendResult(true, Math.max(1, retryAfterSeconds));
+            return new InviteSendResult(true, false, Math.max(1, retryAfterSeconds));
         }
     }
 }
