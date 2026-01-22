@@ -45,6 +45,7 @@ public class FriendManager {
     private int inviteLoopIndex = 0;
     private int inviteLoopRefreshIntervalSeconds = 0;
     private Instant lastInviteLoopRefreshAt;
+    private Instant inviteLoopBackoffUntil;
     private String lastInviteLoopTargetXuid;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
@@ -77,7 +78,14 @@ public class FriendManager {
         String lastResponse = "";
         try {
             // Get the list of friends from the api
-            lastResponse = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body();
+            HttpResponse<String> response = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                if (response.statusCode() == 429) {
+                    throw new XboxFriendsException("429: " + response.body());
+                }
+                throw new XboxFriendsException("Follower request failed with status " + response.statusCode() + ": " + response.body());
+            }
+            lastResponse = response.body();
 
             // We sometimes get an empty response so don't try and parse it
             if (!lastResponse.isEmpty()) {
@@ -103,7 +111,14 @@ public class FriendManager {
 
         try {
             // Get the list of people we are following from the api
-            lastResponse = httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString()).body();
+            HttpResponse<String> response = httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                if (response.statusCode() == 429) {
+                    throw new XboxFriendsException("429: " + response.body());
+                }
+                throw new XboxFriendsException("Social request failed with status " + response.statusCode() + ": " + response.body());
+            }
+            lastResponse = response.body();
 
             // We sometimes get an empty response so don't try and parse it
             if (!lastResponse.isEmpty()) {
@@ -330,13 +345,22 @@ public class FriendManager {
         inviteLoopRefreshIntervalSeconds = inviteLoopConfig.refreshIntervalSeconds();
         inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             try {
+                if (inviteLoopBackoffUntil != null && Instant.now().isBefore(inviteLoopBackoffUntil)) {
+                    return;
+                }
+
                 FollowerResponse.Person target = nextInviteLoopTarget();
                 if (target == null) {
                     return;
                 }
                 String gamertag = resolveGamertag(target);
                 logger.info("Invite loop sending invite to " + gamertag + " (" + target.xuid + ")");
-                sendInvite(target.xuid, true);
+                InviteSendResult result = sendInviteInternal(target.xuid, true);
+                if (result.rateLimited) {
+                    inviteLoopBackoffUntil = Instant.now().plusSeconds(result.retryAfterSeconds);
+                    retryInviteLoopTarget();
+                    logger.warn("Invite loop rate limited, pausing invites for " + result.retryAfterSeconds + " seconds");
+                }
             } catch (Exception e) {
                 logger.error("Failed to send invite in loop", e);
             }
@@ -375,12 +399,17 @@ public class FriendManager {
 
     private void refreshInviteLoopTargets() {
         try {
-            inviteLoopTargets = get().stream()
+            List<FollowerResponse.Person> newTargets = get().stream()
                 .filter(person -> person.isFollowedByCaller)
                 .filter(person -> !isGuestAccount(person.xuid))
                 .sorted(Comparator.comparing(person -> resolveGamertag(person).toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
-        } catch (XboxFriendsException e) {
+            if (newTargets.isEmpty() && !inviteLoopTargets.isEmpty()) {
+                logger.warn("Invite loop target refresh returned an empty list, keeping existing targets");
+                return;
+            }
+            inviteLoopTargets = newTargets;
+        } catch (Exception e) {
             logger.error("Failed to refresh invite loop targets", e);
         } finally {
             lastInviteLoopRefreshAt = Instant.now();
@@ -711,9 +740,19 @@ public class FriendManager {
     }
 
     private void sendInvite(String xuid, boolean ignoreInitialInvite) {
+        sendInviteInternal(xuid, ignoreInitialInvite);
+    }
+
+    private void retryInviteLoopTarget() {
+        if (inviteLoopIndex > 0) {
+            inviteLoopIndex--;
+        }
+    }
+
+    private InviteSendResult sendInviteInternal(String xuid, boolean ignoreInitialInvite) {
         // Only invite if enabled
         if (!initialInvite && !ignoreInitialInvite) {
-            return;
+            return InviteSendResult.skipped();
         }
 
         try {
@@ -737,9 +776,51 @@ public class FriendManager {
                 .build();
 
             HttpResponse<String> inviteResponse = httpClient.send(sendInvite, HttpResponse.BodyHandlers.ofString());
-            logger.debug(inviteResponse.body());
+            if (inviteResponse.statusCode() == 429) {
+                int retryAfter = inviteResponse.headers()
+                    .firstValue("Retry-After")
+                    .map(Integer::parseInt)
+                    .orElse(60);
+                return InviteSendResult.rateLimited(retryAfter);
+            }
+            if (inviteResponse.statusCode() < 200 || inviteResponse.statusCode() >= 300) {
+                logger.warn("Failed to send invite to " + xuid + ", status " + inviteResponse.statusCode() + ": " + inviteResponse.body());
+            } else {
+                logger.debug(inviteResponse.body());
+            }
+            return InviteSendResult.sent();
         } catch (IOException | InterruptedException e) {
-            logger.error("Failed to send invite to " + xuid + ": " + e.getMessage());
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            logger.error("Failed to send invite to " + xuid, e);
+            return InviteSendResult.error();
+        }
+    }
+
+    private static final class InviteSendResult {
+        private final boolean rateLimited;
+        private final int retryAfterSeconds;
+
+        private InviteSendResult(boolean rateLimited, int retryAfterSeconds) {
+            this.rateLimited = rateLimited;
+            this.retryAfterSeconds = retryAfterSeconds;
+        }
+
+        private static InviteSendResult sent() {
+            return new InviteSendResult(false, 0);
+        }
+
+        private static InviteSendResult skipped() {
+            return new InviteSendResult(false, 0);
+        }
+
+        private static InviteSendResult error() {
+            return new InviteSendResult(false, 0);
+        }
+
+        private static InviteSendResult rateLimited(int retryAfterSeconds) {
+            return new InviteSendResult(true, Math.max(1, retryAfterSeconds));
         }
     }
 }
