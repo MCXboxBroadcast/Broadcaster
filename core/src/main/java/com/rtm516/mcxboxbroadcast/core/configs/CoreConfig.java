@@ -163,8 +163,28 @@ public interface CoreConfig {
         @DefaultBoolean(true)
         boolean initialInvite();
 
+        @Comment("Invite loop settings")
+        InviteLoopConfig inviteLoop();
+
         @Comment("Friend expiry settings")
         ExpiryConfig expiry();
+
+        @ConfigSerializable
+        interface InviteLoopConfig {
+            @Comment("Should we continuously invite everyone we follow")
+            @DefaultBoolean(false)
+            boolean enabled();
+
+            @Comment("Delay in seconds between invites")
+            @DefaultNumeric(60)
+            @NumericRange(from = 1, to = Integer.MAX_VALUE)
+            int delaySeconds();
+
+            @Comment("How often in seconds to refresh the invite loop target list")
+            @DefaultNumeric(300)
+            @NumericRange(from = 10, to = Integer.MAX_VALUE)
+            int refreshIntervalSeconds();
+        }
 
         @ConfigSerializable
         interface ExpiryConfig {
