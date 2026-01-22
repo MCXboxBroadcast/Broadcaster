@@ -78,7 +78,14 @@ public class FriendManager {
         String lastResponse = "";
         try {
             // Get the list of friends from the api
-            lastResponse = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString()).body();
+            HttpResponse<String> response = httpClient.send(xboxFollowersRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                if (response.statusCode() == 429) {
+                    throw new XboxFriendsException("429: " + response.body());
+                }
+                throw new XboxFriendsException("Follower request failed with status " + response.statusCode() + ": " + response.body());
+            }
+            lastResponse = response.body();
 
             // We sometimes get an empty response so don't try and parse it
             if (!lastResponse.isEmpty()) {
@@ -104,7 +111,14 @@ public class FriendManager {
 
         try {
             // Get the list of people we are following from the api
-            lastResponse = httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString()).body();
+            HttpResponse<String> response = httpClient.send(xboxSocialRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                if (response.statusCode() == 429) {
+                    throw new XboxFriendsException("429: " + response.body());
+                }
+                throw new XboxFriendsException("Social request failed with status " + response.statusCode() + ": " + response.body());
+            }
+            lastResponse = response.body();
 
             // We sometimes get an empty response so don't try and parse it
             if (!lastResponse.isEmpty()) {
@@ -385,11 +399,16 @@ public class FriendManager {
 
     private void refreshInviteLoopTargets() {
         try {
-            inviteLoopTargets = get().stream()
+            List<FollowerResponse.Person> newTargets = get().stream()
                 .filter(person -> person.isFollowedByCaller)
                 .filter(person -> !isGuestAccount(person.xuid))
                 .sorted(Comparator.comparing(person -> resolveGamertag(person).toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
+            if (newTargets.isEmpty() && !inviteLoopTargets.isEmpty()) {
+                logger.warn("Invite loop target refresh returned an empty list, keeping existing targets");
+                return;
+            }
+            inviteLoopTargets = newTargets;
         } catch (Exception e) {
             logger.error("Failed to refresh invite loop targets", e);
         } finally {
