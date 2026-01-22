@@ -18,6 +18,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +43,8 @@ public class FriendManager {
     private boolean shouldAcceptPendingRequests = true;
     private List<FollowerResponse.Person> inviteLoopTargets = new ArrayList<>();
     private int inviteLoopIndex = 0;
+    private int inviteLoopRefreshIntervalSeconds = 0;
+    private Instant lastInviteLoopRefreshAt;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
@@ -323,6 +326,7 @@ public class FriendManager {
             return;
         }
 
+        inviteLoopRefreshIntervalSeconds = inviteLoopConfig.refreshIntervalSeconds();
         inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             try {
                 FollowerResponse.Person target = nextInviteLoopTarget();
@@ -339,6 +343,11 @@ public class FriendManager {
     }
 
     private FollowerResponse.Person nextInviteLoopTarget() {
+        if (shouldRefreshInviteLoopTargets()) {
+            refreshInviteLoopTargets();
+            inviteLoopIndex = 0;
+        }
+
         if (inviteLoopTargets.isEmpty()) {
             refreshInviteLoopTargets();
             inviteLoopIndex = 0;
@@ -365,11 +374,20 @@ public class FriendManager {
             inviteLoopTargets = get().stream()
                 .filter(person -> person.isFollowedByCaller)
                 .filter(person -> !isGuestAccount(person.xuid))
-                .distinct()
+                .sorted(Comparator.comparing(person -> resolveGamertag(person).toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
         } catch (XboxFriendsException e) {
             logger.error("Failed to refresh invite loop targets", e);
+        } finally {
+            lastInviteLoopRefreshAt = Instant.now();
         }
+    }
+
+    private boolean shouldRefreshInviteLoopTargets() {
+        if (inviteLoopRefreshIntervalSeconds <= 0 || lastInviteLoopRefreshAt == null) {
+            return false;
+        }
+        return lastInviteLoopRefreshAt.plusSeconds(inviteLoopRefreshIntervalSeconds).isBefore(Instant.now());
     }
 
     private String resolveGamertag(FollowerResponse.Person person) {
