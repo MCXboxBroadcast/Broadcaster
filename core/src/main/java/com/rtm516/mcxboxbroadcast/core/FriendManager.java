@@ -339,12 +339,22 @@ public class FriendManager {
     }
 
     private FollowerResponse.Person nextInviteLoopTarget() {
-        if (inviteLoopTargets.isEmpty() || inviteLoopIndex >= inviteLoopTargets.size()) {
+        if (inviteLoopTargets.isEmpty()) {
             refreshInviteLoopTargets();
             inviteLoopIndex = 0;
-            if (inviteLoopTargets.isEmpty()) {
-                return null;
-            }
+        }
+
+        if (inviteLoopTargets.isEmpty()) {
+            return null;
+        }
+
+        if (inviteLoopIndex >= inviteLoopTargets.size()) {
+            refreshInviteLoopTargets();
+            inviteLoopIndex = 0;
+        }
+
+        if (inviteLoopTargets.isEmpty()) {
+            return null;
         }
 
         return inviteLoopTargets.get(inviteLoopIndex++);
