@@ -18,8 +18,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
-import java.util.Comparator;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +43,7 @@ public class FriendManager {
     private Future<?> inviteLoopFuture;
     private boolean initialInvite;
     private boolean shouldAcceptPendingRequests = true;
-    private List<FollowerResponse.Person> inviteLoopTargets = new ArrayList<>();
-    private int inviteLoopIndex = 0;
+    private final Deque<FollowerResponse.Person> inviteLoopQueue = new ArrayDeque<>();
     private int inviteLoopRefreshIntervalSeconds = 0;
     private Instant lastInviteLoopRefreshAt;
     private Instant inviteLoopBackoffUntil;
@@ -353,6 +354,8 @@ public class FriendManager {
                 if (target == null) {
                     return;
                 }
+
+                FollowerResponse.Person target = inviteLoopQueue.pollFirst();
                 String gamertag = resolveGamertag(target);
                 logger.info("Invite loop sending invite to " + gamertag + " (" + target.xuid + ")");
                 InviteSendResult result = sendInviteInternal(target.xuid, true);
@@ -365,36 +368,6 @@ public class FriendManager {
                 logger.error("Failed to send invite in loop", e);
             }
         }, 0, inviteLoopConfig.delaySeconds(), TimeUnit.SECONDS);
-    }
-
-    private FollowerResponse.Person nextInviteLoopTarget() {
-        if (shouldRefreshInviteLoopTargets()) {
-            refreshInviteLoopTargets();
-        }
-
-        if (inviteLoopTargets.isEmpty()) {
-            refreshInviteLoopTargets();
-        }
-
-        if (inviteLoopTargets.isEmpty()) {
-            return null;
-        }
-
-        if (inviteLoopIndex >= inviteLoopTargets.size()) {
-            refreshInviteLoopTargets();
-        }
-
-        if (inviteLoopTargets.isEmpty()) {
-            return null;
-        }
-
-        if (inviteLoopIndex >= inviteLoopTargets.size()) {
-            inviteLoopIndex = 0;
-        }
-
-        FollowerResponse.Person target = inviteLoopTargets.get(inviteLoopIndex++);
-        lastInviteLoopTargetXuid = target.xuid;
-        return target;
     }
 
     private void refreshInviteLoopTargets() {
@@ -436,9 +409,13 @@ public class FriendManager {
                 }
                 return;
             }
+            inviteLoopQueue.clear();
+            inviteLoopQueue.addAll(newTargets);
+        } catch (Exception e) {
+            logger.error("Failed to refresh invite loop targets", e);
+        } finally {
+            lastInviteLoopRefreshAt = Instant.now();
         }
-
-        inviteLoopIndex = 0;
     }
 
     private boolean shouldRefreshInviteLoopTargets() {
