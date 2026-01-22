@@ -44,6 +44,8 @@ public class FriendManager {
     private boolean initialInvite;
     private boolean shouldAcceptPendingRequests = true;
     private final Deque<FollowerResponse.Person> inviteLoopQueue = new ArrayDeque<>();
+    private int inviteLoopRefreshIntervalSeconds = 0;
+    private Instant lastInviteLoopRefreshAt;
     private Instant inviteLoopBackoffUntil;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
@@ -346,7 +348,7 @@ public class FriendManager {
                     return;
                 }
 
-                if (inviteLoopQueue.isEmpty()) {
+                if (shouldRefreshInviteLoopTargets() || inviteLoopQueue.isEmpty()) {
                     boolean refreshed = refreshInviteLoopTargets();
                     if (!refreshed && inviteLoopQueue.isEmpty()) {
                         logger.debug("Invite loop refresh failed and there are no targets to invite");
@@ -377,7 +379,6 @@ public class FriendManager {
     }
 
     private boolean refreshInviteLoopTargets() {
-        boolean refreshed = false;
         try {
             List<FollowerResponse.Person> newTargets = get().stream()
                 .filter(person -> person.isFollowedByCaller)
@@ -394,11 +395,18 @@ public class FriendManager {
             }
             inviteLoopQueue.clear();
             inviteLoopQueue.addAll(newTargets);
-            refreshed = true;
+            lastInviteLoopRefreshAt = Instant.now();
+            return true;
         } catch (Exception e) {
             logger.error("Failed to refresh invite loop targets", e);
+            return false;
         }
-        return refreshed;
+    }
+
+    private boolean shouldRefreshInviteLoopTargets() {
+        if (inviteLoopRefreshIntervalSeconds <= 0 || lastInviteLoopRefreshAt == null) {
+            return false;
+        }
     }
 
     private String resolveGamertag(FollowerResponse.Person person) {
