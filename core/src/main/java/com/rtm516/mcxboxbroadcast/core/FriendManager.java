@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -384,6 +385,14 @@ public class FriendManager {
             List<FollowerResponse.Person> newTargets = get().stream()
                 .filter(person -> person.isFollowedByCaller)
                 .filter(person -> !isGuestAccount(person.xuid))
+                .collect(Collectors.toMap(
+                    person -> person.xuid,
+                    person -> person,
+                    this::selectPreferredInviteLoopTarget,
+                    LinkedHashMap::new
+                ))
+                .values()
+                .stream()
                 .sorted(Comparator.comparing(person -> resolveGamertag(person).toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
             if (newTargets.isEmpty()) {
@@ -402,6 +411,23 @@ public class FriendManager {
             logger.error("Failed to refresh invite loop targets", e);
             return false;
         }
+    }
+
+    private FollowerResponse.Person selectPreferredInviteLoopTarget(
+        FollowerResponse.Person existing,
+        FollowerResponse.Person incoming
+    ) {
+        boolean existingHasGamertag = existing.gamertag != null && !existing.gamertag.isBlank();
+        boolean incomingHasGamertag = incoming.gamertag != null && !incoming.gamertag.isBlank();
+        if (!existingHasGamertag && incomingHasGamertag) {
+            return incoming;
+        }
+        boolean existingHasDisplayName = existing.displayName != null && !existing.displayName.isBlank();
+        boolean incomingHasDisplayName = incoming.displayName != null && !incoming.displayName.isBlank();
+        if (!existingHasDisplayName && incomingHasDisplayName) {
+            return incoming;
+        }
+        return existing;
     }
 
     private boolean shouldRefreshInviteLoopTargets() {
