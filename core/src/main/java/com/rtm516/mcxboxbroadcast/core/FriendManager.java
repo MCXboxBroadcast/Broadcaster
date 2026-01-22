@@ -37,8 +37,11 @@ public class FriendManager {
 
     private List<FollowerResponse.Person> lastFriendCache;
     private Future<?> internalScheduledFuture;
+    private Future<?> inviteLoopFuture;
     private boolean initialInvite;
     private boolean shouldAcceptPendingRequests = true;
+    private List<String> inviteLoopTargets = new ArrayList<>();
+    private int inviteLoopIndex = 0;
 
     public FriendManager(HttpClient httpClient, Logger logger, SessionManagerCore sessionManager) {
         this.httpClient = httpClient;
@@ -212,6 +215,9 @@ public class FriendManager {
         // Initialize the auto friend sync if enabled
         initAutoFriend(friendSyncConfig);
 
+        // Initialize the invite loop if enabled
+        initInviteLoop(friendSyncConfig);
+
         // Accept any pending friend requests if enabled incase we got any while offline
         acceptPendingFriendRequests();
 
@@ -308,6 +314,51 @@ public class FriendManager {
                     logger.error("Failed to sync friends", e);
                 }
             }, friendSyncConfig.updateInterval(), friendSyncConfig.updateInterval(), TimeUnit.SECONDS);
+        }
+    }
+
+    private void initInviteLoop(CoreConfig.FriendSyncConfig friendSyncConfig) {
+        CoreConfig.FriendSyncConfig.InviteLoopConfig inviteLoopConfig = friendSyncConfig.inviteLoop();
+        if (!inviteLoopConfig.enabled()) {
+            return;
+        }
+
+        inviteLoopFuture = sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
+            try {
+                String target = nextInviteLoopTarget();
+                if (target == null) {
+                    return;
+                }
+                sendInvite(target, true);
+            } catch (Exception e) {
+                logger.error("Failed to send invite in loop", e);
+            }
+        }, 0, inviteLoopConfig.delaySeconds(), TimeUnit.SECONDS);
+    }
+
+    private String nextInviteLoopTarget() {
+        if (inviteLoopTargets.isEmpty() || inviteLoopIndex >= inviteLoopTargets.size()) {
+            refreshInviteLoopTargets();
+            inviteLoopIndex = 0;
+            if (inviteLoopTargets.isEmpty()) {
+                return null;
+            }
+        }
+
+        return inviteLoopTargets.get(inviteLoopIndex++);
+    }
+
+    private void refreshInviteLoopTargets() {
+        try {
+            List<FollowerResponse.Person> people = get();
+            inviteLoopTargets = people.stream()
+                .filter(person -> person.isFollowedByCaller)
+                .filter(person -> !isGuestAccount(person.xuid))
+                .map(person -> person.xuid)
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
+        } catch (XboxFriendsException e) {
+            logger.error("Failed to refresh invite loop targets", e);
         }
     }
 
@@ -589,8 +640,12 @@ public class FriendManager {
      * @param xuid The XUID of the user to invite
      */
     public void sendInvite(String xuid) {
+        sendInvite(xuid, false);
+    }
+
+    private void sendInvite(String xuid, boolean ignoreInitialInvite) {
         // Only invite if enabled
-        if (!initialInvite) {
+        if (!initialInvite && !ignoreInitialInvite) {
             return;
         }
 
