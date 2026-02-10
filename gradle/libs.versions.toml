@@ -1,8 +1,8 @@
 [versions]
-protocol-connection = "3.0.0.Beta11-20251210.195537-15"
-protocol-common = "3.0.0.Beta11-20251210.195537-14"
-protocol-codec = "3.0.0.Beta11-20251210.195537-15"
-geyser ="2.9.0-SNAPSHOT"
+protocol-connection = "3.0.0.Beta12-20260129.225905-2"
+protocol-common = "3.0.0.Beta12-20260129.225905-2"
+protocol-codec = "3.0.0.Beta12-20260129.225905-2"
+geyser ="2.9.3-SNAPSHOT"
 java-websocket = "1.5.3"
 nimbus-jose-jwt = "9.23"
 log4j = "2.20.0"

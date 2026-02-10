@@ -3,7 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v898.Bedrock_v898;
+import org.cloudburstmc.protocol.bedrock.codec.v924.Bedrock_v924;
 
 import java.net.URI;
 import java.time.Duration;
@@ -15,12 +15,6 @@ public class Constants {
         .registerTypeAdapter(Instant.class, new InstantConverter())
         .registerTypeAdapter(Date.class, new DateConverter())
         .disableHtmlEscaping()
-        .create();
-
-    public static final Gson GSON_NULLS = new GsonBuilder()
-        .registerTypeAdapter(Instant.class, new InstantConverter())
-        .registerTypeAdapter(Date.class, new DateConverter())
-        .serializeNulls()
         .create();
 
     public static final String SERVICE_CONFIG_ID = "4fc10100-5f7a-4470-899b-280835760c07"; // The service config ID for Minecraft
@@ -56,7 +50,7 @@ public class Constants {
     /**
      * Used for the micro nethernet server that transfers the client to the real server
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v898.CODEC;
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v924.CODEC;
 
     /**
      * Config version for upgrade purposes
