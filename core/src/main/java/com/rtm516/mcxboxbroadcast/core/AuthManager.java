@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.rtm516.mcxboxbroadcast.core.exceptions.AgeVerificationException;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XblUsersMeProfileRequest;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
@@ -12,6 +13,7 @@ import net.raphimc.minecraftauth.msa.model.MsaDeviceCode;
 import net.raphimc.minecraftauth.msa.service.impl.DeviceCodeMsaAuthService;
 import net.raphimc.minecraftauth.util.MinecraftAuth4To5Migrator;
 import net.raphimc.minecraftauth.util.holder.listener.BasicChangeListener;
+import net.raphimc.minecraftauth.util.http.exception.InformativeHttpRequestException;
 
 import java.io.IOException;
 import java.util.function.Consumer;
@@ -102,15 +104,28 @@ public class AuthManager {
             }
 
         } catch (Exception e) {
+            // Dont log age verification errors as they are handled elsewhere
+            if (e instanceof AgeVerificationException) {
+                return;
+            }
+
             logger.error("Failed to get/refresh auth token", e);
         }
     }
 
-    private void refreshTokens() throws IOException {
-        // Requesting up-to-date tokens will automatically refresh them if expired
-        authManager.getXboxLiveXstsToken().getUpToDate();
-        authManager.getPlayFabToken().getUpToDate();
-        updateProfileInfo();
+    private void refreshTokens() throws IOException, AgeVerificationException {
+        try {
+            // Requesting up-to-date tokens will automatically refresh them if expired
+            authManager.getXboxLiveXstsToken().getUpToDate();
+            authManager.getPlayFabToken().getUpToDate();
+            updateProfileInfo();
+        } catch (InformativeHttpRequestException e) {
+            if (e.getMessage().contains("agecheck")) {
+                throw new AgeVerificationException("Authentication failed due to age verification requirement", e);
+            } else {
+                throw e; // Rethrow if it's a different error
+            }
+        }
     }
 
     private void updateProfileInfo() {

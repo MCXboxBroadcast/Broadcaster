@@ -72,11 +72,16 @@ public class SessionManager extends SessionManagerCore {
      * @throws SessionCreationException If the session failed to create either because it already exists or some other reason
      * @throws SessionUpdateException   If the session data couldn't be set due to some issue
      */
-    public void init(SessionInfo sessionInfo, CoreConfig.FriendSyncConfig friendSyncConfig) throws SessionCreationException, SessionUpdateException {
+    public boolean init(SessionInfo sessionInfo, CoreConfig.FriendSyncConfig friendSyncConfig) throws SessionCreationException, SessionUpdateException {
         // Set the internal session information based on the session info
         this.sessionInfo = new ExpandedSessionInfo("", "", sessionInfo);
 
         super.init();
+
+        // If we failed to initialize, don't continue with the rest of the setup
+        if (!this.initialized) {
+            return this.initialized;
+        }
 
         // Set up the auto friend sync
         this.friendSyncConfig = friendSyncConfig;
@@ -107,6 +112,8 @@ public class SessionManager extends SessionManagerCore {
                 }
             }
         });
+
+        return this.initialized;
     }
 
     @Override

@@ -241,7 +241,12 @@ public class MCXboxBroadcastExtension implements Extension {
         // Create the Xbox session
         sessionManager.restartCallback(this::restart);
         try {
-            sessionManager.init(sessionInfo, config.friendSync());
+            boolean initialized = sessionManager.init(sessionInfo, config.friendSync());
+            if (!initialized) {
+                // We assume an error has already been logged
+                this.setEnabled(false);
+                return;
+            }
         } catch (SessionCreationException | SessionUpdateException e) {
             sessionManager.logger().error("Failed to create xbox session!", e);
             return;

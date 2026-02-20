@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.github.mizosoft.methanol.Methanol;
 import com.google.gson.JsonParseException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.AgeVerificationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
@@ -156,7 +157,14 @@ public abstract class SessionManagerCore {
         logger.info("Starting SessionManager...");
 
         // Make sure we are logged in and get info
-        BedrockAuthManager manager = getAuthManager();
+        try {
+            BedrockAuthManager manager = getAuthManager();
+        } catch (AgeVerificationException e) {
+            logger.error("Authentication failed due to the account requiring age verification. Please login to xbox.com and complete the age verification process, then try again.");
+            logger.error("You can skip it/opt out and continue using the tool, but some features may not work correctly.");
+            shutdown();
+            return;
+        }
 
         int friendCount = -1;
         try {

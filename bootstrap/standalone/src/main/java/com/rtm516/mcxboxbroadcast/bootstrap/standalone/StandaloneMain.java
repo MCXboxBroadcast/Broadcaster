@@ -83,7 +83,13 @@ public class StandaloneMain {
 
     private static void createSession() throws SessionCreationException, SessionUpdateException {
         sessionManager.restartCallback(StandaloneMain::restart);
-        sessionManager.init(sessionInfo, config.friendSync());
+        boolean initialized = sessionManager.init(sessionInfo, config.friendSync());
+
+        // If the session failed to initialize, don't start the update loop
+        // We assume an error has already been logged
+        if (!initialized) {
+            return;
+        }
 
         sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
             updateSessionInfo(sessionInfo);
