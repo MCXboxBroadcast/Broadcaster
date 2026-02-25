@@ -6,6 +6,8 @@ import net.minecrell.terminalconsole.SimpleTerminalConsole;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 
+import java.util.Arrays;
+
 public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logger {
     private final org.slf4j.Logger logger;
     private final String prefixString;
@@ -68,10 +70,11 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
 
     @Override
     protected void runCommand(String command) {
-        String commandNode = command.split(" ")[0].toLowerCase();
-        if (commandNode.equals("mcxboxbroadcast")) {
-            commandNode = command.split(" ")[1].toLowerCase();
-        }
+        String[] parts = command.split(" ");
+        int offset = parts[0].equalsIgnoreCase("mcxboxbroadcast") ? 1 : 0;
+
+        String commandNode = parts[offset].toLowerCase();
+        String[] args = Arrays.copyOfRange(parts, offset + 1, parts.length);
 
         try {
             switch (commandNode) {
@@ -82,23 +85,18 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                     StandaloneMain.sessionManager.dumpSession();
                 }
                 case "accounts" -> {
-                    String[] args = command.split(" ");
-                    if (args.length < 3) {
-                        if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
-                            StandaloneMain.sessionManager.listSessions();
-                            return;
-                        }
-
+                    if (args.length == 0) {
                         warn("Usage:");
                         warn("accounts list");
                         warn("accounts add/remove <sub-session-id>");
                         return;
                     }
 
-                    switch (args[1].toLowerCase()) {
-                        case "add" -> StandaloneMain.sessionManager.addSubSession(args[2]);
-                        case "remove" -> StandaloneMain.sessionManager.removeSubSession(args[2]);
-                        default -> warn("Unknown accounts command: " + args[1]);
+                    switch (args[0].toLowerCase()) {
+                        case "list" -> StandaloneMain.sessionManager.listSessions();
+                        case "add" -> StandaloneMain.sessionManager.addSubSession(args[1]);
+                        case "remove" -> StandaloneMain.sessionManager.removeSubSession(args[1]);
+                        default -> warn("Unknown accounts command: " + args[0]);
                     }
                 }
                 case "version" -> info("MCXboxBroadcast Standalone " + BuildData.VERSION);
