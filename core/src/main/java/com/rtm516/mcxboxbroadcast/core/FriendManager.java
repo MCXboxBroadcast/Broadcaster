@@ -551,6 +551,12 @@ public class FriendManager {
             // Parse and extract the xuids
             HttpResponse<String> response = httpClient.send(friendRequests, HttpResponse.BodyHandlers.ofString());
             FriendRequestResponse friendRequestResponse = Constants.GSON.fromJson(response.body(), FriendRequestResponse.class);
+
+            // We got no pending friend requests returned
+            if (friendRequestResponse.people == null) {
+                return;
+            }
+
             List<String> xuids = friendRequestResponse.people.stream().map(person -> person.xuid).collect(Collectors.toUnmodifiableList());
 
             // Don't try and accept if there are no requests
