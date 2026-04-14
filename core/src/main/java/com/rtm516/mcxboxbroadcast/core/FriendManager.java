@@ -569,6 +569,11 @@ public class FriendManager {
             HttpResponse<String> acceptResponse = httpClient.send(acceptRequests, HttpResponse.BodyHandlers.ofString());
             FriendRequestAcceptResponse friendRequestAcceptResponse = Constants.GSON.fromJson(acceptResponse.body(), FriendRequestAcceptResponse.class);
 
+            // If we don't have any updated people then we don't need to do anything else
+            if (friendRequestAcceptResponse.updatedPeople == null) {
+                return;
+            }
+
             // Let the user know we accepted the friend requests
             for (String xuid : friendRequestAcceptResponse.updatedPeople) {
                 Optional<FollowerResponse.Person> friend = friendRequestResponse.people.stream().filter(p -> p.xuid.equals(xuid)).findFirst();
