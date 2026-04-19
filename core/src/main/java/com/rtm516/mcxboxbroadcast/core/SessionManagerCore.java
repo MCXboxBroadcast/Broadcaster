@@ -70,7 +70,7 @@ public abstract class SessionManagerCore {
         this.httpClient = Methanol.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .followRedirects(HttpClient.Redirect.NORMAL)
-            .requestTimeout(Duration.ofMillis(5000))
+            .requestTimeout(Duration.ofMillis(Integer.getInteger("http.request.timeout", 5000)))
             .build();
 
         this.logger = logger;
