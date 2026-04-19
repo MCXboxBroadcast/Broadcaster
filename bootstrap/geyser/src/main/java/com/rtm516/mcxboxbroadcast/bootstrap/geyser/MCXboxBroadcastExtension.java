@@ -113,6 +113,25 @@ public class MCXboxBroadcastExtension implements Extension {
                 source.sendMessage("MCXboxBroadcast Extension " + BuildData.VERSION);
             })
             .build());
+
+        event.register(Command.builder(this)
+            .source(CommandSource.class)
+            .name("invite")
+            .description("Invite a friend to the current session.")
+            .executor((source, command, args) -> {
+                if (!source.isConsole()) {
+                    source.sendMessage("This command can only be ran from the console.");
+                    return;
+                }
+
+                if (args.length == 0) {
+                    source.sendMessage("Usage: invite <gamertag or xuid>");
+                    return;
+                }
+
+                sessionManager.inviteFriend(args[0]);
+            })
+            .build());
     }
 
     private void restart() {
