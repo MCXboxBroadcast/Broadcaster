@@ -77,6 +77,11 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
         String[] args = Arrays.copyOfRange(parts, offset + 1, parts.length);
 
         try {
+            if (offset == 0 && commandNode.equals("invite")) {
+                warn("Use '/mcxboxbroadcast invite' instead");
+                return;
+            }
+
             switch (commandNode) {
                 case "stop", "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
