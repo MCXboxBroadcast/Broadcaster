@@ -22,7 +22,7 @@ You use this project at your own risk, the contributors are not responsible for 
  - Uploading of a custom image for the account (see below for more info)
 
 ## Game control panel
-There is an egg for easy instance creation supplied for [Calagopus](https://calagopus.com), [Pelican](https://pelican.dev/) and [Pterodactyl Panel](https://pterodactyl.io/), this being [`egg-m-c-xbox-broadcast.json`](https://github.com/MCXboxBroadcast/Broadcaster/blob/master/egg-m-c-xbox-broadcast.json). This so called "egg" will work for all previously mentioned control panels.
+There is an egg for easy instance creation supplied for [Calagopus](https://calagopus.com), [Pelican](https://pelican.dev/) and [Pterodactyl Panel](https://pterodactyl.io/), this being [`egg-m-c-xbox-broadcast.json`](./egg-m-c-xbox-broadcast.json). This so called "egg" will work for all previously mentioned control panels.
 
 ## Docker
 There is a docker image available for the standalone version of the tool, this can be found at `ghcr.io/mcxboxbroadcast/standalone:latest`
