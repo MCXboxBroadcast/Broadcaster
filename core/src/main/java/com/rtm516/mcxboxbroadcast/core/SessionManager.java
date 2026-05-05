@@ -6,6 +6,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.member.SessionMember;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import org.java_websocket.util.NamedThreadFactory;
@@ -17,10 +18,13 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -31,6 +35,8 @@ public class SessionManager extends SessionManagerCore {
 
     private CoreConfig.FriendSyncConfig friendSyncConfig;
     private Runnable restartCallback;
+
+    private Map<String, String> nonces;
 
     /**
      * Create an instance of SessionManager
@@ -43,6 +49,7 @@ public class SessionManager extends SessionManagerCore {
         super(storageManager, notificationManager, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
         this.subSessionManagers = new HashMap<>();
+        this.nonces = new HashMap<>();
     }
 
     @Override
@@ -134,11 +141,64 @@ public class SessionManager extends SessionManagerCore {
     }
 
     @Override
+    public void updateNonces() throws SessionUpdateException {
+        // Get session
+        HttpRequest createSessionRequest = HttpRequest.newBuilder()
+            .uri(URI.create(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId())))
+            .header("Content-Type", "application/json")
+            .header("Authorization", getTokenHeader())
+            .header("x-xbl-contract-version", "107")
+            .GET()
+            .build();
+
+        try {
+            HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
+            CreateSessionResponse sessionResponse = Constants.GSON.fromJson(createSessionResponse.body(), CreateSessionResponse.class);
+
+            boolean hasChanges = false;
+
+            // Collect active XUIDs from the session
+            Set<String> activeXuids = new HashSet<>();
+            for (Map.Entry<String, SessionMember> entry : sessionResponse.members().entrySet()) {
+                activeXuids.add(entry.getValue().constants().get("system").xuid());
+            }
+
+            // Remove stale nonces
+            hasChanges = nonces.keySet().retainAll(activeXuids);
+
+            for (String xuid : activeXuids) {
+                if (!nonces.containsKey(xuid)) {
+                    // Generate a nonce
+                    byte[] bytes = new byte[8];
+                    ThreadLocalRandom.current().nextBytes(bytes);
+                    StringBuilder hex = new StringBuilder(16);
+                    for (byte b : bytes) {
+                        hex.append(String.format("%02x", b));
+                    }
+
+                    // Put the nonce
+                    nonces.put(xuid, hex.toString());
+
+                    hasChanges = true;
+                }
+            }
+
+            // Only update the session properties if something changed
+            if (hasChanges) {
+                updateSession();
+            }
+        } catch (IOException | InterruptedException e) {
+            // TODO improve
+            throw new SessionUpdateException("Failed to get session for nonces: " + e.getMessage());
+        }
+    }
+
+    @Override
     protected void updateSession() throws SessionUpdateException {
         // Make sure the websocket connection is still active
         checkConnection();
 
-        String responseBody = super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo));
+        String responseBody = super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo, nonces));
         try {
             CreateSessionResponse sessionResponse = Constants.GSON.fromJson(responseBody, CreateSessionResponse.class);
 

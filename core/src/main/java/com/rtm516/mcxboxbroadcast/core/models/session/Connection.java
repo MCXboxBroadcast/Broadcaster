@@ -8,9 +8,10 @@ public record Connection(
     int ConnectionType,
     String HostIpAddress,
     int HostPort,
-    BigInteger NetherNetId
+    BigInteger NetherNetId,
+    String PmsgId
 ) {
-    public Connection(BigInteger netherNetId) {
-        this(Constants.ConnectionTypeWebRTC, "", 0, netherNetId);
+    public Connection(BigInteger netherNetId, String pmsgId) {
+        this(Constants.ConnectionTypeJsonRpc, "", 0, netherNetId, pmsgId);
     }
 }

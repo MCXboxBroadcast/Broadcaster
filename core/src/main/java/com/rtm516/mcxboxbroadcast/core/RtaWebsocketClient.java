@@ -1,5 +1,6 @@
 package com.rtm516.mcxboxbroadcast.core;
 
+import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.ws.MessageType;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -99,6 +100,16 @@ public class RtaWebsocketClient extends WebSocketClient {
                     logger.debug("RTA Websocket [" + connectionId + "] friend request: " + message);
                     sessionManager.friendManager().acceptPendingFriendRequests();
                 }
+
+                // TODO Make better
+                if (message.contains("changeNumber")) {
+                    try {
+                        sessionManager.updateNonces();
+                    } catch (SessionUpdateException e) {
+                        logger.error("RTA Websocket [" + connectionId + "] failed to update session nonces: " + e.getMessage(), e);
+                    }
+                }
+
                 break;
             case Resync:
                 logger.debug("RTA Websocket [" + connectionId + "] resync: " + message);

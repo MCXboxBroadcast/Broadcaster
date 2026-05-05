@@ -3,11 +3,12 @@ package com.rtm516.mcxboxbroadcast.core.models.session;
 import com.rtm516.mcxboxbroadcast.core.ExpandedSessionInfo;
 
 import java.util.Collections;
+import java.util.Map;
 
 public class CreateSessionRequest extends JoinSessionRequest {
     public final SessionProperties properties;
 
-    public CreateSessionRequest(ExpandedSessionInfo sessionInfo) {
+    public CreateSessionRequest(ExpandedSessionInfo sessionInfo, Map<String, String> nonces) {
         super(sessionInfo);
         this.properties = new SessionProperties(new SessionSystemProperties(), new SessionCustomProperties(
             3,
@@ -17,7 +18,7 @@ public class CreateSessionRequest extends JoinSessionRequest {
             sessionInfo.getMaxPlayers(),
             sessionInfo.getPlayers(),
             true,
-            Collections.singletonList(new Connection(sessionInfo.getNetherNetId())),
+            Collections.singletonList(new Connection(sessionInfo.getNetherNetId(), sessionInfo.getPmsgId())),
             0,
             2,
             "level",
@@ -29,7 +30,8 @@ public class CreateSessionRequest extends JoinSessionRequest {
             sessionInfo.getProtocol(),
             sessionInfo.getVersion(),
             false,
-            false
+            false,
+            nonces
         ));
     }
 }

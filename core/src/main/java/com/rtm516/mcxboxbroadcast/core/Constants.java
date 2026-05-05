@@ -3,7 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v944.Bedrock_v944;
+import org.cloudburstmc.protocol.bedrock.codec.v975.Bedrock_v975;
 
 import java.net.URI;
 import java.time.Duration;
@@ -38,9 +38,10 @@ public class Constants {
     public static final Duration WEBSOCKET_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
 
     /**
-     * Gathered from scraped web requests
+     * Gathered from scraped web requests, seems to use the below enum
+     * https://github.com/LiteLDev/LeviLamina/blob/main/src/mc/network/ConnectionType.h
      */
-    public static final int ConnectionTypeWebRTC = 3;
+    public static final int ConnectionTypeJsonRpc = 7;
 
     /**
      * Used to be 1000, but the limit was increased in Aug 2024
@@ -50,7 +51,7 @@ public class Constants {
     /**
      * Used for the micro nethernet server that transfers the client to the real server
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v944.CODEC;
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v975.CODEC;
 
     /**
      * Config version for upgrade purposes
