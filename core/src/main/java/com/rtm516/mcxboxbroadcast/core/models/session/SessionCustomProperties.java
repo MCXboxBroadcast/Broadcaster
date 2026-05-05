@@ -1,6 +1,7 @@
 package com.rtm516.mcxboxbroadcast.core.models.session;
 
 import java.util.List;
+import java.util.Map;
 
 public record SessionCustomProperties(
     int BroadcastSetting,
@@ -22,6 +23,7 @@ public record SessionCustomProperties(
     int protocol,
     String version,
     boolean isEditorWorld,
-    boolean isHardcore // If true then shows as hardcore
+    boolean isHardcore, // If true then shows as hardcore
+    Map<String, String> nonces
 ) {
 }

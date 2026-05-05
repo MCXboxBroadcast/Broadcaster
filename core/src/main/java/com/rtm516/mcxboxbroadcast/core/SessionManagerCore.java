@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.github.mizosoft.methanol.Methanol;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.rtm516.mcxboxbroadcast.core.exceptions.AgeVerificationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
@@ -13,7 +14,7 @@ import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.core.nethernet.BroadcasterChannelInitializer;
 import dev.kastle.netty.channel.nethernet.NetherNetChannelFactory;
-import dev.kastle.netty.channel.nethernet.signaling.NetherNetXboxSignaling;
+import dev.kastle.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
 import dev.kastle.webrtc.PeerConnectionFactory;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -29,7 +30,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.UUID;
+import java.util.Base64;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,7 @@ public abstract class SessionManagerCore {
     private Channel netherNetChannel;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
-    private NetherNetXboxSignaling signaling;
+    private NetherNetXboxRpcSignaling signaling;
 
     /**
      * Create an instance of SessionManager
@@ -320,6 +321,14 @@ public abstract class SessionManagerCore {
     protected abstract void updateSession() throws SessionUpdateException;
 
     /**
+     * Update the nonces in the session based on the current players
+     * @throws SessionUpdateException
+     */
+    public void updateNonces() throws SessionUpdateException {
+        // Nothing by default
+    }
+
+    /**
      * The internal method for making the web request to update the session
      *
      * @param url The url to send the PUT request containing the session data
@@ -416,7 +425,18 @@ public abstract class SessionManagerCore {
         shutdownNetherNet();
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
-        this.signaling = new NetherNetXboxSignaling(netherNetId, getMCTokenHeader());
+        String mcToken = getMCTokenHeader();
+
+        // Very hacky
+        String payload = mcToken.split("\\.")[1];
+        String json = new String(Base64.getUrlDecoder().decode(payload));
+        String pmid = JsonParser.parseString(json)
+            .getAsJsonObject()
+            .get("pmid")
+            .getAsString();
+
+        this.sessionInfo.setPmsgId(pmid);
+        this.signaling = new NetherNetXboxRpcSignaling(netherNetId, mcToken);
 
         this.bossGroup = new NioEventLoopGroup(1);
         this.workerGroup = new NioEventLoopGroup();
