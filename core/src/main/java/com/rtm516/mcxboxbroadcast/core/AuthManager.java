@@ -3,6 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rtm516.mcxboxbroadcast.core.exceptions.AgeVerificationException;
+import com.rtm516.mcxboxbroadcast.core.models.auth.CachedProfileInfo;
 import com.rtm516.mcxboxbroadcast.core.models.auth.XblUsersMeProfileRequest;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
@@ -12,6 +13,7 @@ import net.raphimc.minecraftauth.bedrock.BedrockAuthManager;
 import net.raphimc.minecraftauth.msa.model.MsaDeviceCode;
 import net.raphimc.minecraftauth.msa.service.impl.DeviceCodeMsaAuthService;
 import net.raphimc.minecraftauth.util.MinecraftAuth4To5Migrator;
+import net.raphimc.minecraftauth.util.holder.Holder;
 import net.raphimc.minecraftauth.util.holder.listener.BasicChangeListener;
 import net.raphimc.minecraftauth.util.http.exception.InformativeHttpRequestException;
 
@@ -26,8 +28,7 @@ public class AuthManager {
     private BedrockAuthManager authManager;
     private Runnable onDeviceTokenRefreshCallback;
 
-    private String gamertag;
-    private String xuid;
+    private final Holder<CachedProfileInfo> profileInfo;
 
     /**
      * Create an instance of AuthManager
@@ -42,6 +43,12 @@ public class AuthManager {
         this.logger = logger.prefixed("Auth");
 
         this.authManager = null;
+        this.profileInfo = new Holder<>(() -> {
+            HttpClient httpClient = MinecraftAuth.createHttpClient();
+            XblUsersMeProfileRequest.Response response = httpClient.executeAndHandle(new XblUsersMeProfileRequest(authManager.getXboxLiveXstsToken().getUpToDate()));
+            XblUsersMeProfileRequest.Response.ProfileUser profileUser = response.profileUsers().get(0);
+            return new CachedProfileInfo(profileUser.settings().get("Gamertag"), profileUser.id());
+        });
     }
 
     /**
@@ -118,26 +125,13 @@ public class AuthManager {
             // Requesting up-to-date tokens will automatically refresh them if expired
             authManager.getXboxLiveXstsToken().getUpToDate();
             authManager.getPlayFabToken().getUpToDate();
-            updateProfileInfo();
+            profileInfo.getUpToDate();
         } catch (InformativeHttpRequestException e) {
             if (e.getMessage().contains("agecheck")) {
                 throw new AgeVerificationException("Authentication failed due to age verification requirement", e);
             } else {
                 throw e; // Rethrow if it's a different error
             }
-        }
-    }
-
-    private void updateProfileInfo() {
-        HttpClient httpClient = MinecraftAuth.createHttpClient();
-
-        try {
-            XblUsersMeProfileRequest.Response response = httpClient.executeAndHandle(new XblUsersMeProfileRequest(authManager.getXboxLiveXstsToken().getUpToDate()));
-            XblUsersMeProfileRequest.Response.ProfileUser profileUser = response.profileUsers().get(0);
-            gamertag = profileUser.settings().get("Gamertag");
-            xuid = profileUser.id();
-        } catch (IOException e) {
-            logger.error("Failed to get Xbox profile info", e);
         }
     }
 
@@ -201,7 +195,7 @@ public class AuthManager {
      * @return The Gamertag of the current user
      */
     public String getGamertag() {
-        return gamertag;
+        return profileInfo.getCached().gamertag();
     }
 
     /**
@@ -210,6 +204,6 @@ public class AuthManager {
      * @return The XUID of the current user
      */
     public String getXuid() {
-        return xuid;
+        return profileInfo.getCached().xuid();
     }
 }
