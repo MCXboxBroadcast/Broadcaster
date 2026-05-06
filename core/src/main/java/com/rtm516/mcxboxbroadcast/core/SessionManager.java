@@ -155,6 +155,10 @@ public class SessionManager extends SessionManagerCore {
             HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
             CreateSessionResponse sessionResponse = Constants.GSON.fromJson(createSessionResponse.body(), CreateSessionResponse.class);
 
+            if (sessionResponse == null) {
+                throw new SessionUpdateException("Failed to get session for nonces, joining will not work: sessionResponse is null");
+            }
+
             boolean hasChanges = false;
 
             // Collect active XUIDs from the session
@@ -162,6 +166,9 @@ public class SessionManager extends SessionManagerCore {
             for (Map.Entry<String, SessionMember> entry : sessionResponse.members().entrySet()) {
                 activeXuids.add(entry.getValue().constants().get("system").xuid());
             }
+
+            // Remove our own xuid
+            activeXuids.remove(sessionInfo.getXuid());
 
             // Remove stale nonces
             hasChanges = nonces.keySet().retainAll(activeXuids);
@@ -179,6 +186,8 @@ public class SessionManager extends SessionManagerCore {
                     // Put the nonce
                     nonces.put(xuid, hex.toString());
 
+                    logger.debug("Generated nonce for XUID " + xuid + ": " + hex);
+
                     hasChanges = true;
                 }
             }
@@ -188,8 +197,7 @@ public class SessionManager extends SessionManagerCore {
                 updateSession();
             }
         } catch (IOException | InterruptedException e) {
-            // TODO improve
-            throw new SessionUpdateException("Failed to get session for nonces: " + e.getMessage());
+            throw new SessionUpdateException("Failed to get session for nonces, joining will not work: " + e.getMessage());
         }
     }
 

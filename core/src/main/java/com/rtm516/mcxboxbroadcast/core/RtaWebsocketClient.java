@@ -101,8 +101,8 @@ public class RtaWebsocketClient extends WebSocketClient {
                     sessionManager.friendManager().acceptPendingFriendRequests();
                 }
 
-                // TODO Make better
-                if (message.contains("changeNumber")) {
+                // Check for a session update
+                if (data.containsKey("ncid")) {
                     try {
                         sessionManager.updateNonces();
                     } catch (SessionUpdateException e) {

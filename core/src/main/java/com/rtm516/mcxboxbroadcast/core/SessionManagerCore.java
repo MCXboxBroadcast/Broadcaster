@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import net.raphimc.minecraftauth.bedrock.BedrockAuthManager;
+import net.raphimc.minecraftauth.util.jwt.Jwt;
 
 import java.io.File;
 import java.io.IOException;
@@ -322,7 +323,8 @@ public abstract class SessionManagerCore {
 
     /**
      * Update the nonces in the session based on the current players
-     * @throws SessionUpdateException
+     *
+     * @throws SessionUpdateException If the update fails
      */
     public void updateNonces() throws SessionUpdateException {
         // Nothing by default
@@ -427,13 +429,9 @@ public abstract class SessionManagerCore {
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
         String mcToken = getMCTokenHeader();
 
-        // Very hacky
-        String payload = mcToken.split("\\.")[1];
-        String json = new String(Base64.getUrlDecoder().decode(payload));
-        String pmid = JsonParser.parseString(json)
-            .getAsJsonObject()
-            .get("pmid")
-            .getAsString();
+        // Parse the MCToken JWT to extract the pmid
+        Jwt parsedToken = Jwt.parse(mcToken.split(" ")[1]);
+        String pmid = parsedToken.getPayload().getString("pmid");
 
         this.sessionInfo.setPmsgId(pmid);
         this.signaling = new NetherNetXboxRpcSignaling(netherNetId, mcToken);
