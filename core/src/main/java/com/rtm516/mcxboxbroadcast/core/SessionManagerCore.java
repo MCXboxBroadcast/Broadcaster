@@ -427,14 +427,9 @@ public abstract class SessionManagerCore {
         shutdownNetherNet();
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
-        String mcToken = getMCTokenHeader();
 
-        // Parse the MCToken JWT to extract the pmid
-        Jwt parsedToken = Jwt.parse(mcToken.split(" ")[1]);
-        String pmid = parsedToken.getPayload().getString("pmid");
-
-        this.sessionInfo.setPmsgId(pmid);
-        this.signaling = new NetherNetXboxRpcSignaling(netherNetId, mcToken);
+        this.signaling = new NetherNetXboxRpcSignaling(netherNetId, getMCTokenHeader());
+        this.sessionInfo.setPmsgId(getAuthManager().getMinecraftSession().getCached().getParsedToken().getPayload().reqString("pmid"));
 
         this.bossGroup = new NioEventLoopGroup(1);
         this.workerGroup = new NioEventLoopGroup();
