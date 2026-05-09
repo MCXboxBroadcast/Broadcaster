@@ -21,7 +21,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import net.raphimc.minecraftauth.bedrock.BedrockAuthManager;
-import net.raphimc.minecraftauth.util.jwt.Jwt;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +30,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
