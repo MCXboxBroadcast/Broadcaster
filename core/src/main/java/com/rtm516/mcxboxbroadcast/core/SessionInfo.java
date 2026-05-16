@@ -105,6 +105,9 @@ public class SessionInfo {
     }
 
     private static String removeColorCodes(String string) {
+        if (string == null) {
+            return "";
+        }
         Matcher matcher = COLOR_PATTERN.matcher(string);
         return matcher.replaceAll("");
     }
