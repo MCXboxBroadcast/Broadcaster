@@ -5,7 +5,7 @@
 
 A simple tool that broadcasts an existing [Geyser](https://github.com/GeyserMC/Geyser)/Bedrock server over Xbox Live.
 
-This shows up to the authenticated accounts friends in-game as a joinable session and then anyone thats friends with someone who joined through that method will also see the session as joinable ingame.
+This shows up to the authenticated accounts friends in-game as a joinable session.
 
 ![Example screenshot](https://user-images.githubusercontent.com/5401186/159083033-b965bfba-de17-4708-8979-1f33bfd5fa28.png)
 
