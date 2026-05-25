@@ -372,4 +372,29 @@ public class SessionManager extends SessionManagerCore {
             logger.error("No restart callback set");
         }
     }
+
+    /**
+     * Invite a friend to the current session by gamertag or XUID
+     *
+     * @param gamertagOrXuid The gamertag or XUID of the friend to invite
+     */
+    public void inviteFriend(String gamertagOrXuid) {
+        try {
+            var friends = friendManager().lastFriendCache();
+            var friend = friends.stream()
+                .filter(f -> f.gamertag.equalsIgnoreCase(gamertagOrXuid) || f.xuid.equals(gamertagOrXuid))
+                .findFirst();
+
+            if (friend.isEmpty()) {
+                coreLogger.warn("Friend not found: " + gamertagOrXuid);
+                return;
+            }
+
+            var foundFriend = friend.get();
+            friendManager().sendInvite(foundFriend.xuid);
+            coreLogger.info("Sent invite to " + foundFriend.gamertag + " (" + foundFriend.xuid + ")");
+        } catch (Exception e) {
+            coreLogger.error("Failed to invite friend", e);
+        }
+    }
 }
