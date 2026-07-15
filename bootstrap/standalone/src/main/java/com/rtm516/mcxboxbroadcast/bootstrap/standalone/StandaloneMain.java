@@ -50,6 +50,7 @@ public class StandaloneMain {
         notificationManager = new SlackNotificationManager(logger, config.notifications());
 
         sessionManager = new SessionManager(new FileStorageManager("./cache", "./screenshot.jpg"), notificationManager, logger);
+        sessionManager.setNetherNetPortRange(config.session().icePortRange().min(), config.session().icePortRange().max());
 
         sessionInfo = new SessionInfo(config.session().sessionInfo());
 
@@ -74,6 +75,7 @@ public class StandaloneMain {
 
             // Create a new session manager, but reuse the notification manager as config hasn't been reloaded
             sessionManager = new SessionManager(new FileStorageManager("./cache", "./screenshot.jpg"), notificationManager, logger);
+            sessionManager.setNetherNetPortRange(config.session().icePortRange().min(), config.session().icePortRange().max());
 
             createSession();
         } catch (SessionCreationException | SessionUpdateException e) {

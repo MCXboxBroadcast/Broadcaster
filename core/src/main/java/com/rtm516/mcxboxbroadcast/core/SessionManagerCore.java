@@ -14,8 +14,10 @@ import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.core.nethernet.BroadcasterChannelInitializer;
 import dev.kastle.netty.channel.nethernet.NetherNetChannelFactory;
+import dev.kastle.netty.channel.nethernet.config.NetherChannelOption;
 import dev.kastle.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
 import dev.kastle.webrtc.PeerConnectionFactory;
+import dev.kastle.webrtc.PortAllocatorConfig;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -58,6 +60,8 @@ public abstract class SessionManagerCore {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private NetherNetXboxRpcSignaling signaling;
+
+    private PortAllocatorConfig netherNetPortAllocatorConfig;
 
     /**
      * Create an instance of SessionManager
@@ -421,6 +425,43 @@ public abstract class SessionManagerCore {
         rtaWebsocket.connect();
     }
 
+    /**
+     * Restrict the local UDP port range used for WebRTC (NetherNet) ICE candidates.
+     * Passing 0 for both min and max keeps the transport default (the OS ephemeral
+     * range).
+     *
+     * @param min The lowest UDP port to use, or 0 for the OS default
+     * @param max The highest UDP port to use, or 0 for the OS default
+     */
+    public void setNetherNetPortRange(int min, int max) {
+        if (min <= 0 && max <= 0) {
+            this.netherNetPortAllocatorConfig = null;
+            return;
+        }
+
+        // Setting the channel option replaces the whole PortAllocatorConfig, so the
+        // transport's default flags (see DefaultNetherChannelConfig) are mirrored
+        // here and only the port range is overridden.
+        PortAllocatorConfig config = new PortAllocatorConfig()
+            .setDisableTcp(true)
+            .setEnableIpv6(true)
+            .setEnableIpv6OnWifi(true)
+            .setEnableAnyAddressPorts(true)
+            .setEnableSharedSocket(true);
+        config.minPort = min;
+        config.maxPort = max;
+
+        this.netherNetPortAllocatorConfig = config;
+    }
+
+    /**
+     * @return The WebRTC port allocator config to use for NetherNet, or null to use
+     *         the transport default
+     */
+    protected PortAllocatorConfig netherNetPortAllocatorConfig() {
+        return netherNetPortAllocatorConfig;
+    }
+
     protected void setupNetherNet() {
         shutdownNetherNet();
 
@@ -438,9 +479,17 @@ public abstract class SessionManagerCore {
                 .channelFactory(NetherNetChannelFactory.server(new PeerConnectionFactory(), signaling))
                 .childHandler(new BroadcasterChannelInitializer(sessionInfo, this, logger));
 
+            PortAllocatorConfig portAllocatorConfig = netherNetPortAllocatorConfig();
+            if (portAllocatorConfig != null) {
+                b.option(NetherChannelOption.NETHER_PORT_ALLOCATOR_CONFIG, portAllocatorConfig);
+            }
+
             this.netherNetChannel = b.bind(new InetSocketAddress(0)).sync().channel();
 
-            logger.info("NetherNet Broadcaster started on ID: " + netherNetId);
+            logger.info("NetherNet Broadcaster started on ID: " + netherNetId
+                + (portAllocatorConfig != null
+                    ? " (ICE ports " + portAllocatorConfig.minPort + "-" + portAllocatorConfig.maxPort + ")"
+                    : ""));
         } catch (Exception e) {
             logger.error("Failed to start NetherNet", e);
         }

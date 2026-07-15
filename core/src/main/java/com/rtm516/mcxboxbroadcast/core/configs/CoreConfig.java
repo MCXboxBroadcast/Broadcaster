@@ -79,6 +79,26 @@ public interface CoreConfig {
         @ExcludePlatform(platforms = {"Extension"})
         SessionInfo sessionInfo();
 
+        @Comment("""
+            Restrict the local UDP port range used for WebRTC (NetherNet) ICE candidates.
+            Useful when running behind a firewall or in Docker with host networking, so
+            only a small range needs to be opened. Leave both at 0 to use the operating
+            system's ephemeral range (the default behaviour).""")
+        IcePortRange icePortRange();
+
+        @ConfigSerializable
+        interface IcePortRange {
+            @Comment("Lowest UDP port to use, or 0 for the OS default")
+            @DefaultNumeric(0)
+            @NumericRange(from = 0, to = 65535)
+            int min();
+
+            @Comment("Highest UDP port to use, or 0 for the OS default")
+            @DefaultNumeric(0)
+            @NumericRange(from = 0, to = 65535)
+            int max();
+        }
+
         @ConfigSerializable
         interface SessionInfo {
             @Comment("The host name to broadcast")
