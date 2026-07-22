@@ -54,7 +54,7 @@ public class AuthManager {
     /**
      * Follow the auth flow to get the Xbox token and store it
      */
-    private void initialise() {
+    private void initialise(boolean isReauth) {
         HttpClient httpClient = MinecraftAuth.createHttpClient();
 
         // Try to load xboxToken from cache.json if is not already loaded
@@ -101,18 +101,36 @@ public class AuthManager {
             refreshTokens();
 
             // Set up listener for saving
-            // Explicitly cast to BasicChangeListener to resolve ambiguity with Runnable
-            authManager.getChangeListeners().add((BasicChangeListener) this::saveToCache);
+            authManager.getChangeListeners().add(this::saveToCache);
             saveToCache();
 
             // Setup device token refresh callback
             if (onDeviceTokenRefreshCallback != null) {
-                authManager.getXblDeviceToken().getChangeListeners().add((BasicChangeListener) onDeviceTokenRefreshCallback::run);
+                authManager.getXblDeviceToken().getChangeListeners().add(onDeviceTokenRefreshCallback::run);
             }
-
         } catch (Exception e) {
             // Dont log age verification errors as they are handled elsewhere
             if (e instanceof AgeVerificationException) {
+                return;
+            }
+
+            if (e.getMessage() != null && e.getMessage().contains("invalid_grant")) {
+                if (isReauth) {
+                    // Already cleared cache and re-ran device code, still invalid_grant
+                    logger.error("Re-auth still failed with invalid_grant. Sign in with username and password, not a passwordless method.", e);
+                    return;
+                }
+
+                logger.warn("Auth grant expired, clearing cache and re-authenticating...");
+
+                // Clear any cache and ignore errors
+                try {
+                    storageManager.cache("");
+                } catch (IOException ignored) {}
+
+                // Clear the auth manager and restart the initialise process
+                authManager = null;
+                initialise(true);
                 return;
             }
 
@@ -151,7 +169,7 @@ public class AuthManager {
      */
     public BedrockAuthManager getManager() {
         if (authManager == null) {
-            initialise();
+            initialise(false);
         }
 
         try {
@@ -160,14 +178,14 @@ public class AuthManager {
         } catch (IOException e) {
             logger.error("Failed to refresh tokens", e);
             // Try to re-initialize (force login if refresh failed fatally)
-            initialise();
+            initialise(false);
         }
         return authManager;
     }
 
     public String getPlayfabSessionTicket() {
         if (authManager == null) {
-            initialise();
+            initialise(false);
         }
         try {
             return authManager.getPlayFabToken().getUpToDate().getSessionTicket();
@@ -185,7 +203,7 @@ public class AuthManager {
     public void setOnDeviceTokenRefreshCallback(Runnable onDeviceTokenRefreshCallback) {
         this.onDeviceTokenRefreshCallback = onDeviceTokenRefreshCallback;
         if (authManager != null) {
-            authManager.getXblDeviceToken().getChangeListeners().add((BasicChangeListener) onDeviceTokenRefreshCallback::run);
+            authManager.getXblDeviceToken().getChangeListeners().add(onDeviceTokenRefreshCallback::run);
         }
     }
 
