@@ -80,12 +80,11 @@ public interface CoreConfig {
         SessionInfo sessionInfo();
 
         @Comment("""
-            Restrict the local UDP port range used for WebRTC (NetherNet) ICE candidates.
-            Useful when running behind a firewall or in Docker with host networking, so
-            only a small range needs to be opened. Each in-progress join uses one port
-            from the range (freed once the player is transferred), so the range caps how
-            many players can be joining at the same moment, not the total player count.
-            Leave both at 0 to use the operating system's ephemeral range (default).""")
+            Restrict the local UDP port range for WebRTC (NetherNet) ICE candidates,
+            so only a small range needs opening behind a firewall or in Docker with
+            host networking. Each in-progress join uses one port (freed once the player
+            is transferred), so this caps concurrent joins, not total players.
+            Leave both at 0 for the OS ephemeral range (default).""")
         IcePortRange icePortRange();
 
         @ConfigSerializable
