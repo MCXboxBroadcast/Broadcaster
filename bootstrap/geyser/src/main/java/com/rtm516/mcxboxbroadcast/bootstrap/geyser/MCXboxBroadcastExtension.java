@@ -120,6 +120,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // Create a new session manager, but reuse the notification manager as config hasn't been reloaded
         sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString(), this.dataFolder().resolve("screenshot.jpg").toString()), notificationManager, logger);
+        sessionManager.setNetherNetPortRange(config.session().icePortRange().min(), config.session().icePortRange().max());
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(this::createSession);
@@ -156,6 +157,7 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // Create the session manager
         sessionManager = new SessionManager(new FileStorageManager(this.dataFolder().toString(), this.dataFolder().resolve("screenshot.jpg").toString()), notificationManager, logger);
+        sessionManager.setNetherNetPortRange(config.session().icePortRange().min(), config.session().icePortRange().max());
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(() -> {
