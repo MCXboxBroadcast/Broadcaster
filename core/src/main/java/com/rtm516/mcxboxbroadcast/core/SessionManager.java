@@ -241,11 +241,13 @@ public class SessionManager extends SessionManagerCore {
     /**
      * Dump the current and last session responses to json files
      */
-    public void dumpSession() {
+    public List<String> dumpSession() {
+        List<String> response = new ArrayList<String>();
         try {
             storageManager().lastSessionResponse(lastSessionResponse);
         } catch (IOException e) {
             logger.error("Error dumping last session: " + e.getMessage());
+            response.add("Error dumping last session: " + e.getMessage());
         }
 
         HttpRequest createSessionRequest = HttpRequest.newBuilder()
@@ -262,7 +264,9 @@ public class SessionManager extends SessionManagerCore {
             storageManager().currentSessionResponse(createSessionResponse.body());
         } catch (IOException | InterruptedException e) {
             logger.error("Error dumping current session: " + e.getMessage());
+            response.add("Error dumping current session: " + e.getMessage());
         }
+        return response;
     }
 
     /**
@@ -270,11 +274,14 @@ public class SessionManager extends SessionManagerCore {
      *
      * @param id The ID of the sub-session to create
      */
-    public void addSubSession(String id) {
+    public List<String> addSubSession(String id) {
+        List<String> response = new ArrayList<String>();
+
         // Make sure we don't already have that ID
         if (subSessionManagers.containsKey(id)) {
             coreLogger.error("Sub-session already exists with that ID");
-            return;
+            response.add("Sub-session already exists with that ID");
+            return response;
         }
 
         // Create the sub-session manager
@@ -285,7 +292,8 @@ public class SessionManager extends SessionManagerCore {
             subSessionManagers.put(id, subSessionManager);
         } catch (SessionCreationException | SessionUpdateException e) {
             coreLogger.error("Failed to create sub-session", e);
-            return;
+            response.add("Failed to create sub-session" + e.toString());
+            return response;
         }
 
         // Update the list of sub-sessions
@@ -293,7 +301,10 @@ public class SessionManager extends SessionManagerCore {
             storageManager().subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
+            response.add("Failed to update sub-session list" + e.toString());
         }
+
+        return response;
     }
 
     /**
@@ -301,11 +312,14 @@ public class SessionManager extends SessionManagerCore {
      *
      * @param id The ID of the sub-session to remove
      */
-    public void removeSubSession(String id) {
+    public List<String> removeSubSession(String id) {
+        List<String> response = new ArrayList<String>();
+
         // Make sure we have that ID
         if (!subSessionManagers.containsKey(id)) {
             coreLogger.error("Sub-session does not exist with that ID");
-            return;
+            response.add("Sub-session does not exist with that ID");
+            return response;
         }
 
         // Remove the sub-session manager
@@ -317,6 +331,7 @@ public class SessionManager extends SessionManagerCore {
             storageManager().subSession(id).cleanup();
         } catch (IOException e) {
             coreLogger.error("Failed to delete sub-session cache file", e);
+            response.add("Failed to delete sub-session cache file" + e.toString());
         }
 
         // Update the list of sub-sessions
@@ -324,15 +339,19 @@ public class SessionManager extends SessionManagerCore {
             storageManager().subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
         } catch (JsonParseException | IOException e) {
             coreLogger.error("Failed to update sub-session list", e);
+            response.add("Failed to update sub-session list" + e.toString());
         }
 
         coreLogger.info("Removed sub-session with ID " + id);
+        response.add("Removed sub-session with ID " + id);
+
+        return response;
     }
 
     /**
      * List all sessions and their information
      */
-    public void listSessions() {
+    public List<String>  listSessions() {
         List<String> messages = new ArrayList<>();
         coreLogger.info("Loading status of sessions...");
 
@@ -354,6 +373,7 @@ public class SessionManager extends SessionManagerCore {
         for (String message : messages) {
             coreLogger.info(message);
         }
+        return messages;
     }
 
     /**
