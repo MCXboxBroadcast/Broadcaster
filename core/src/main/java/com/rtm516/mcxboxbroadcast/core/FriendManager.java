@@ -564,24 +564,31 @@ public class FriendManager {
                 return;
             }
 
-            // Accept the friend requests
-            HttpRequest acceptRequests = HttpRequest.newBuilder()
-                .uri(URI.create("https://social.xboxlive.com/bulk/users/me/people/friends/v2?method=add"))
-                .header("Authorization", sessionManager.getTokenHeader())
-                .POST(HttpRequest.BodyPublishers.ofString(Constants.GSON.toJson(Map.of("xuids", xuids))))
-                .build();
+            List<String> acceptedXuids = new ArrayList<>();
 
-            // Parse the response
-            HttpResponse<String> acceptResponse = httpClient.send(acceptRequests, HttpResponse.BodyHandlers.ofString());
-            FriendRequestAcceptResponse friendRequestAcceptResponse = Constants.GSON.fromJson(acceptResponse.body(), FriendRequestAcceptResponse.class);
+            // Accept the friend requests, bulk seemed to have issues so 1 by 1
+            for (String xuid : xuids) {
+                HttpRequest acceptRequest = HttpRequest.newBuilder()
+                    .uri(URI.create("https://social.xboxlive.com/users/me/people/friends/v2/xuid(" + xuid + ")"))
+                    .header("Authorization", sessionManager.getTokenHeader())
+                    .PUT(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+                HttpResponse<String> acceptResponse = httpClient.send(acceptRequest, HttpResponse.BodyHandlers.ofString());
+                FriendRequestAcceptResponse friendRequestAcceptResponse = Constants.GSON.fromJson(acceptResponse.body(), FriendRequestAcceptResponse.class);
+
+                if (friendRequestAcceptResponse.isFriend) {
+                    acceptedXuids.add(xuid);
+                }
+            }
 
             // If we don't have any updated people then we don't need to do anything else
-            if (friendRequestAcceptResponse.updatedPeople == null) {
+            if (acceptedXuids.isEmpty()) {
                 return;
             }
 
             // Let the user know we accepted the friend requests
-            for (String xuid : friendRequestAcceptResponse.updatedPeople) {
+            for (String xuid : acceptedXuids) {
                 Optional<FollowerResponse.Person> friend = friendRequestResponse.people.stream().filter(p -> p.xuid.equals(xuid)).findFirst();
                 if (friend.isEmpty()) {
                     continue;
