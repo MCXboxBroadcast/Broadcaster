@@ -116,8 +116,8 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
         session.sendPacket(status);
 
         ResourcePacksInfoPacket info = new ResourcePacksInfoPacket();
-        info.setWorldTemplateId(UUID.randomUUID());
-        info.setWorldTemplateVersion("*");
+        info.setWorldTemplateId(new UUID(0, 0));
+        info.setWorldTemplateVersion("");
         info.setVibrantVisualsForceDisabled(true);
         info.setForcedToAccept(false);
         session.sendPacket(info);
@@ -136,6 +136,7 @@ public class RedirectPacketHandler implements BedrockPacketHandler {
 
             identityData = result.identityClaims().extraData;
         } catch (AssertionError | Exception error) {
+            logger.debug("Failed to validate login packet: " + logger.getStackTrace(error));
             disconnect("disconnect.loginFailed");
         }
         return PacketSignal.HANDLED;
