@@ -16,7 +16,7 @@ modrinth {
     changelog.set(releaseNotes.exists().let {
         if (it) releaseNotes.readText() else ""
     })
-    gameVersions.addAll("1.21.11")
+    gameVersions.addAll("26.2")
     loaders.addAll("geyser")
     failSilently.set(true)
 

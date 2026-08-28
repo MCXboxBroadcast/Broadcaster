@@ -1,7 +1,7 @@
 [versions]
 protocol-connection = "3.0.0.Beta13-20260729.224915-5"
 protocol-common = "3.0.0.Beta13-20260729.224915-5"
-protocol-codec = "3.0.0.Beta13-20260729.224915-5"
+protocol-codec = "3.0.0.Beta13-20260820.124150-16"
 geyser ="2.9.3-SNAPSHOT"
 java-websocket = "1.5.3"
 log4j = "2.20.0"
