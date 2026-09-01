@@ -5,6 +5,12 @@ plugins {
 // Ensure that the readme is synched
 tasks.modrinth.get().dependsOn(tasks.modrinthSyncBody)
 
+// Follow whatever Java Edition version Geyser currently supports
+val geyserMinecraftVersion = providers.of(GeyserMinecraftVersion::class) {
+    parameters.catalogUrl.set("https://raw.githubusercontent.com/GeyserMC/Geyser/master/gradle/libs.versions.toml")
+    parameters.fallback.set("26.2")
+}
+
 modrinth {
     token.set(System.getenv("MODRINTH_TOKEN") ?: "") // Even though this is the default value, apparently this prevents GitHub Actions caching the token?
     debugMode.set(System.getenv("MODRINTH_TOKEN") == null)
@@ -16,7 +22,7 @@ modrinth {
     changelog.set(releaseNotes.exists().let {
         if (it) releaseNotes.readText() else ""
     })
-    gameVersions.addAll("26.2")
+    gameVersions.add(geyserMinecraftVersion)
     loaders.addAll("geyser")
     failSilently.set(true)
 
