@@ -90,3 +90,4 @@ For the extension version prefix with `/mcxboxbroadcast`
 | `accounts list` | Lists the accounts that are currently in use and their followers count |
 | `accounts add <sub-session-id>` | Adds an account to the list of accounts to use |
 | `accounts remove <sub-session-id>` | Removes an account from the list of accounts to use |
+| `friends remove <xuid>` (Standalone Only) | Removes both friend relationship directions for an XUID |

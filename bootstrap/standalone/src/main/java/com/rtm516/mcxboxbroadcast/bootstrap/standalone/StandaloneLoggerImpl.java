@@ -99,7 +99,35 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                         default -> warn("Unknown accounts command: " + args[0]);
                     }
                 }
-                case "version" -> info("MCXboxBroadcast Standalone " + BuildData.VERSION);
+                case "friends" -> {
+                    if (args.length != 2 || !args[0].equalsIgnoreCase("remove")) {
+                        warn("Usage: friends remove <xuid>");
+                        return;
+                    }
+
+                    String xuid = args[1];
+                    if (xuid.isEmpty() || xuid.chars().anyMatch(character -> character < '0' || character > '9')) {
+                        warn("Invalid XUID '" + xuid + "'. XUIDs must contain only digits.");
+                        return;
+                    }
+
+                    var friendManager = StandaloneMain.sessionManager.friendManager();
+                    String gamertag = friendManager.lastFriendCache().stream()
+                            .filter(person -> xuid.equals(person.xuid))
+                            .map(person -> person.gamertag)
+                            .filter(name -> name != null && !name.isBlank())
+                            .findFirst()
+                            .orElse(null);
+                    String target = "XUID " + xuid + (gamertag == null ? "" : " (" + gamertag + ")");
+
+                    info("Removing all friend relationships for " + target + "...");
+                    try {
+                        friendManager.removeRelationship(xuid);
+                        info("Successfully removed all friend relationships for " + target + ".");
+                    } catch (Exception e) {
+                        error("Failed to remove all friend relationships for " + target + ".", e);
+                    }
+                }                case "version" -> info("MCXboxBroadcast Standalone " + BuildData.VERSION);
                 case "help" -> {
                     info("Available commands:");
                     info("exit - Exit the application");
@@ -108,6 +136,7 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                     info("accounts list - List sub-accounts");
                     info("accounts add <sub-session-id> - Add a sub-account");
                     info("accounts remove <sub-session-id> - Remove a sub-account");
+                    info("friends remove <xuid> - Remove both friend relationship directions for an XUID");
                     info("version - Display the version");
                 }
                 default -> warn("Unknown command: " + commandNode);
