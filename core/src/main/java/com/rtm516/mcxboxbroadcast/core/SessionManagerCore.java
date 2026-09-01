@@ -370,18 +370,19 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Check the connection to the websocket and if its closed re-open it and re-create the session
+     * Check the connections we depend on and if any are down re-open them and re-create the session
      * This should be called before any updates to the session otherwise they might fail
      */
     protected void checkConnection() {
         boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
         boolean rtcIsOpen = this.netherNetChannel != null && this.netherNetChannel.isOpen();
+        boolean signalingIsOpen = this.signaling != null && this.signaling.isActive();
 
         // Check if the connection is Lost
-        if (!rtaIsOpen || !rtcIsOpen) {
+        if (!rtaIsOpen || !rtcIsOpen || !signalingIsOpen) {
             try {
                 logger.warn("Connection to websocket lost, re-creating session...");
-                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + " RTC Open: " + rtcIsOpen);
+                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + ", RTC Open: " + rtcIsOpen + ", Signaling: " + signalingIsOpen);
 
                 createSession();
                 logger.info("WebSocket session reconnected");
