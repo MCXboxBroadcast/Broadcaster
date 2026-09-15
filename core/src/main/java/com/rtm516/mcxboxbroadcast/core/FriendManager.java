@@ -188,7 +188,7 @@ public class FriendManager {
     public void remove(String xuid, String gamertag) {
         // Try and get the gamertag from the cache if it wasn't provided
         if (gamertag == null) {
-            Optional<FollowerResponse.Person> foundFriend = lastFriendCache.stream().filter(person -> person.xuid.equals(xuid)).findFirst();
+            Optional<FollowerResponse.Person> foundFriend = lastFriendCache().stream().filter(person -> person.xuid.equals(xuid)).findFirst();
             if (foundFriend.isPresent()) {
                 gamertag = foundFriend.get().gamertag;
             } else {
@@ -206,6 +206,44 @@ public class FriendManager {
         callInternalProcess();
     }
 
+    /**
+     * Remove both directions of the relationship for one XUID.
+     *
+     * <p>The follower relationship is removed first so auto-follow cannot immediately
+     * queue the user to be followed again. The outgoing friend relationship is then
+     * removed synchronously so callers can report the real result.</p>
+     *
+     * @param xuid The XUID to remove
+     * @throws Exception If either Xbox Live relationship request fails
+     */
+    public void removeRelationship(String xuid) throws Exception {
+        // Initialize the cache before forceUnfollow updates it.
+        lastFriendCache();
+
+        // Cancel any queued operation for this XUID before performing the explicit cleanup.
+        toAdd.remove(xuid);
+        toRemove.remove(xuid);
+
+        // Remove the incoming follower side first. This is the condition auto-follow checks.
+        forceUnfollow(xuid);
+
+        HttpRequest friendDeleteRequest = HttpRequest.newBuilder()
+                .uri(URI.create(Constants.PEOPLE.formatted(xuid)))
+                .header("Authorization", sessionManager.getTokenHeader())
+                .DELETE()
+                .build();
+        HttpResponse<String> response = httpClient.send(friendDeleteRequest, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 204) {
+            throw new RuntimeException(response.statusCode() + ": " + response.body());
+        }
+
+        // Clear any operation queued during the request and remove stale local state.
+        toAdd.remove(xuid);
+        toRemove.remove(xuid);
+        lastFriendCache().removeIf(person -> person.xuid.equals(xuid));
+        sessionManager.storageManager().playerHistory().clear(xuid);
+    }
     public void init(CoreConfig.FriendSyncConfig friendSyncConfig) {
         shouldAcceptPendingRequests = friendSyncConfig.autoFollow();
 
@@ -505,7 +543,7 @@ public class FriendManager {
         HttpResponse<String> response = httpClient.send(followerDeleteRequest, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 204) {
             // Remove the user from the cache
-            lastFriendCache.removeIf(person -> person.xuid.equals(xuid));
+            lastFriendCache().removeIf(person -> person.xuid.equals(xuid));
 
             sessionManager.storageManager().playerHistory().clear(xuid);
         } else {
