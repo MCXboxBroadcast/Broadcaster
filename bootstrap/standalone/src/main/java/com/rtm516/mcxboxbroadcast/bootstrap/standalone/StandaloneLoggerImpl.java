@@ -77,6 +77,11 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
         String[] args = Arrays.copyOfRange(parts, offset + 1, parts.length);
 
         try {
+            if (offset == 0 && commandNode.equals("invite")) {
+                warn("Use '/mcxboxbroadcast invite' instead");
+                return;
+            }
+
             switch (commandNode) {
                 case "stop", "exit" -> System.exit(0);
                 case "restart" -> StandaloneMain.restart();
@@ -99,6 +104,14 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                         default -> warn("Unknown accounts command: " + args[0]);
                     }
                 }
+                case "invite" -> {
+                    if (args.length == 0) {
+                        warn("Usage: invite <gamertag or xuid>");
+                        return;
+                    }
+
+                    StandaloneMain.sessionManager.inviteFriend(args[0]);
+                }
                 case "version" -> info("MCXboxBroadcast Standalone " + BuildData.VERSION);
                 case "help" -> {
                     info("Available commands:");
@@ -108,6 +121,7 @@ public class StandaloneLoggerImpl extends SimpleTerminalConsole implements Logge
                     info("accounts list - List sub-accounts");
                     info("accounts add <sub-session-id> - Add a sub-account");
                     info("accounts remove <sub-session-id> - Remove a sub-account");
+                    info("invite <gamertag or xuid> - Invite a friend to the current session");
                     info("version - Display the version");
                 }
                 default -> warn("Unknown command: " + commandNode);
