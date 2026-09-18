@@ -2,6 +2,8 @@
 protocol-connection = "3.0.0.Beta13-20260828.182244-20"
 protocol-common = "3.0.0.Beta13-20260828.182244-20"
 protocol-codec = "3.0.0.Beta13-20260828.182244-20"
+libdatachannel = "0.24.5.0-SNAPSHOT"
+network = "2.0.0.CR3-20260916.135337-10"
 geyser ="2.9.3-SNAPSHOT"
 java-websocket = "1.5.3"
 log4j = "2.20.0"
@@ -11,10 +13,8 @@ methanol = "1.7.0"
 minecraftauth = "5.0.2"
 gson = "2.11.0"
 sqlite = "3.50.2.0"
-webrtc = "1.0.4"
 configurate = "4.2.0-GeyserMC-20251111.004649-11"
 configurate-core = "4.2.0-GeyserMC-20251111.004649-12"
-netty-transport-nethernet = "1.7.4"
 
 shadow = "9.3.0"
 indra = "3.1.3"
@@ -58,9 +58,9 @@ methanol = { group = "com.github.mizosoft.methanol", name = "methanol", version.
 
 minecraftauth = { group = "net.raphimc", name = "MinecraftAuth", version.ref = "minecraftauth" }
 
-netty-transport-nethernet = { group = "dev.kastle.netty", name = "netty-transport-nethernet", version.ref = "netty-transport-nethernet" }
+libdatachannel = { group = "dev.opencollab", name = "libdatachannel-java-arch-detect", version.ref = "libdatachannel" }
+nethernet-transport = { group = "org.cloudburstmc.netty", name = "netty-transport-nethernet", version.ref = "network" }
 
-webrtc = { group = "dev.kastle.webrtc", name = "webrtc-java", version.ref = "webrtc" }
 sqlite = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite" }
 
 [bundles]

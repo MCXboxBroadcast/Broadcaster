@@ -2,7 +2,6 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.github.mizosoft.methanol.Methanol;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
 import com.rtm516.mcxboxbroadcast.core.exceptions.AgeVerificationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
@@ -13,11 +12,11 @@ import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.core.nethernet.BroadcasterChannelInitializer;
-import dev.kastle.netty.channel.nethernet.NetherNetChannelFactory;
-import dev.kastle.netty.channel.nethernet.config.NetherChannelOption;
-import dev.kastle.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
-import dev.kastle.webrtc.PeerConnectionFactory;
-import dev.kastle.webrtc.PortAllocatorConfig;
+import org.cloudburstmc.netty.channel.nethernet.NetherNetChannelFactory;
+import org.cloudburstmc.netty.channel.nethernet.config.NetherChannelOption;
+import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
+import tel.schich.libdatachannel.LibDataChannelArchDetect;
+import tel.schich.libdatachannel.PeerConnectionConfiguration;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -61,7 +60,7 @@ public abstract class SessionManagerCore {
     private EventLoopGroup workerGroup;
     private NetherNetXboxRpcSignaling signaling;
 
-    private PortAllocatorConfig netherNetPortAllocatorConfig;
+    private PeerConnectionConfiguration netherNetPeerConnectionConfig;
 
     /**
      * Create an instance of SessionManager
@@ -436,35 +435,32 @@ public abstract class SessionManagerCore {
      */
     public void setNetherNetPortRange(int min, int max) {
         if (min <= 0 && max <= 0) {
-            this.netherNetPortAllocatorConfig = null;
+            this.netherNetPeerConnectionConfig = null;
             return;
         }
 
-        // Setting the channel option replaces the whole PortAllocatorConfig, so the
-        // transport's default flags (see DefaultNetherChannelConfig) are mirrored
-        // here and only the port range is overridden.
-        PortAllocatorConfig config = new PortAllocatorConfig()
-            .setDisableTcp(true)
-            .setEnableIpv6(true)
-            .setEnableIpv6OnWifi(true)
-            .setEnableAnyAddressPorts(true)
-            .setEnableSharedSocket(true);
-        config.minPort = min;
-        config.maxPort = max;
-
-        this.netherNetPortAllocatorConfig = config;
+        this.netherNetPeerConnectionConfig = PeerConnectionConfiguration.DEFAULT
+            .withPortRangeBegin(min)
+            .withPortRangeEnd(max);
     }
 
     /**
-     * @return The WebRTC port allocator config to use for NetherNet, or null to use
+     * @return The peer connection config to use for NetherNet, or null to use
      *         the transport default
      */
-    protected PortAllocatorConfig netherNetPortAllocatorConfig() {
-        return netherNetPortAllocatorConfig;
+    protected PeerConnectionConfiguration netherNetPeerConnectionConfig() {
+        return netherNetPeerConnectionConfig;
     }
 
     protected void setupNetherNet() {
         shutdownNetherNet();
+
+        try {
+            LibDataChannelArchDetect.initialize();
+        } catch (LinkageError e) {
+            logger.error("Failed to load the libdatachannel native library", e);
+            return;
+        }
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
 
@@ -477,20 +473,17 @@ public abstract class SessionManagerCore {
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
-                .channelFactory(NetherNetChannelFactory.server(new PeerConnectionFactory(), signaling))
+                .channelFactory(NetherNetChannelFactory.server(signaling))
                 .childHandler(new BroadcasterChannelInitializer(sessionInfo, this, logger));
 
-            PortAllocatorConfig portAllocatorConfig = netherNetPortAllocatorConfig();
-            if (portAllocatorConfig != null) {
-                b.option(NetherChannelOption.NETHER_PORT_ALLOCATOR_CONFIG, portAllocatorConfig);
+            PeerConnectionConfiguration peerConnectionConfig = netherNetPeerConnectionConfig();
+            if (peerConnectionConfig != null) {
+                b.option(NetherChannelOption.NETHER_PEER_CONNECTION_CONFIG, peerConnectionConfig);
             }
 
             this.netherNetChannel = b.bind(new InetSocketAddress(0)).sync().channel();
 
-            logger.info("NetherNet Broadcaster started on ID: " + netherNetId
-                + (portAllocatorConfig != null
-                    ? " (ICE ports " + portAllocatorConfig.minPort + "-" + portAllocatorConfig.maxPort + ")"
-                    : ""));
+            logger.info("NetherNet Broadcaster started on ID: " + netherNetId + (peerConnectionConfig != null ? " (ICE ports " + peerConnectionConfig.portRangeBegin() + "-" + peerConnectionConfig.portRangeEnd() + ")" : ""));
         } catch (Exception e) {
             logger.error("Failed to start NetherNet", e);
         }

@@ -4,7 +4,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.JoinSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
-import dev.kastle.webrtc.PortAllocatorConfig;
+import tel.schich.libdatachannel.PeerConnectionConfiguration;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -34,8 +34,8 @@ public class SubSessionManager extends SessionManagerCore {
     }
 
     @Override
-    protected PortAllocatorConfig netherNetPortAllocatorConfig() {
-        return parent.netherNetPortAllocatorConfig();
+    protected PeerConnectionConfiguration netherNetPeerConnectionConfig() {
+        return parent.netherNetPeerConnectionConfig();
     }
 
     @Override

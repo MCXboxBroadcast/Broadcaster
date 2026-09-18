@@ -2,31 +2,15 @@ plugins {
     id("com.rtm516.mcxboxbroadcast.java-conventions")
 }
 
-val nativePlatforms = listOf(
-    "windows-x86_64",
-    "windows-aarch64",
-    "linux-x86_64",
-    "linux-aarch64",
-    "macos-x86_64",
-    "macos-aarch64"
-)
-
 dependencies {
     api(libs.gson)
     api(libs.java.websocket)
     api(libs.methanol)
     api(libs.minecraftauth)
     api(libs.bundles.protocol)
-    api(libs.netty.transport.nethernet)
 
-    api(libs.webrtc)
-    nativePlatforms.forEach { platform ->
-        runtimeOnly(libs.webrtc) {
-            artifact {
-                classifier = platform
-            }
-        }
-    }
+    api(libs.nethernet.transport)
+    api(libs.libdatachannel)
 
     api(libs.sqlite)
 
