@@ -12,6 +12,7 @@ import com.rtm516.mcxboxbroadcast.core.notifications.SlackNotificationManager;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
+import org.cloudburstmc.netty.util.nethernet.NetherNetLogging;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.command.Command;
@@ -151,6 +152,8 @@ public class MCXboxBroadcastExtension implements Extension {
             this.disable();
             return;
         }
+        
+        NetherNetLogging.setNativeLogLevel(this.logger().isDebug() ? "DEBUG" : "WARN");
 
         // TODO Support multiple notification types
         notificationManager = new SlackNotificationManager(logger, config.notifications());
