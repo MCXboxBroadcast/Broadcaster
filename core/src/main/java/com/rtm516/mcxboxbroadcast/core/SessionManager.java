@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,12 +25,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
  */
 public class SessionManager extends SessionManagerCore {
+    private static final SecureRandom NONCE_RANDOM = new SecureRandom();
+
     private final ScheduledExecutorService scheduledThreadPool;
     private final Map<String, SubSessionManager> subSessionManagers;
 
@@ -49,7 +51,7 @@ public class SessionManager extends SessionManagerCore {
         super(storageManager, notificationManager, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
         this.subSessionManagers = new HashMap<>();
-        this.nonces = new HashMap<>();
+        this.nonces = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -163,8 +165,8 @@ public class SessionManager extends SessionManagerCore {
 
             // Collect active XUIDs from the session
             Set<String> activeXuids = new HashSet<>();
-            for (Map.Entry<String, SessionMember> entry : sessionResponse.members().entrySet()) {
-                activeXuids.add(entry.getValue().constants().get("system").xuid());
+            for (SessionMember member : sessionResponse.members().values()) {
+                activeXuids.add(member.constants().get("system").xuid());
             }
 
             // Remove our own xuid
@@ -177,7 +179,7 @@ public class SessionManager extends SessionManagerCore {
                 if (!nonces.containsKey(xuid)) {
                     // Generate a nonce
                     byte[] bytes = new byte[8];
-                    ThreadLocalRandom.current().nextBytes(bytes);
+                    NONCE_RANDOM.nextBytes(bytes);
                     StringBuilder hex = new StringBuilder(16);
                     for (byte b : bytes) {
                         hex.append(String.format("%02x", b));
