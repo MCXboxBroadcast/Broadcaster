@@ -6,6 +6,10 @@ public record SessionSystemProperties(
     boolean closed
 ) {
     public SessionSystemProperties() {
-        this("followed", "followed", false);
+        this(false);
+    }
+
+    public SessionSystemProperties(boolean closed) {
+        this("followed", "followed", closed);
     }
 }

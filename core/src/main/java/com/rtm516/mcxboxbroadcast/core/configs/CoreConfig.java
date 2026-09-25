@@ -80,6 +80,13 @@ public interface CoreConfig {
         SessionInfo sessionInfo();
 
         @Comment("""
+            When the session fills up a new one is created and the old one is closed
+            true: Players in the old session lose the friends of friends tag, so their friends can't see the server
+            false: Players in the old session keep the friends of friends tag, but their friends get an error when trying to join""")
+        @DefaultBoolean(true)
+        boolean hideOldSessions();
+
+        @Comment("""
             Restrict the local UDP port range for WebRTC (NetherNet) ICE candidates,
             so only a small range needs opening behind a firewall or in Docker with
             host networking. Each in-progress join uses one port (freed once the player

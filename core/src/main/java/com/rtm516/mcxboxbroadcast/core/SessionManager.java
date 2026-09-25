@@ -6,6 +6,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.SessionSystemProperties;
 import com.rtm516.mcxboxbroadcast.core.models.session.member.SessionMember;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
@@ -23,9 +24,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -39,7 +43,10 @@ public class SessionManager extends SessionManagerCore {
     private CoreConfig.FriendSyncConfig friendSyncConfig;
     private Runnable restartCallback;
 
-    private Map<String, String> nonces;
+    private final Map<String, String> nonces;
+
+    private final AtomicBoolean rotating = new AtomicBoolean(false);
+    private boolean hideOldSessions;
 
     /**
      * Create an instance of SessionManager
@@ -51,7 +58,7 @@ public class SessionManager extends SessionManagerCore {
     public SessionManager(StorageManager storageManager, NotificationManager notificationManager, Logger logger) {
         super(storageManager, notificationManager, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
-        this.subSessionManagers = new HashMap<>();
+        this.subSessionManagers = new ConcurrentHashMap<>();
         this.nonces = new ConcurrentHashMap<>();
     }
 
@@ -198,6 +205,9 @@ public class SessionManager extends SessionManagerCore {
             // Only update the session properties if something changed
             if (hasChanges) {
                 updateSession();
+            } else {
+                // Check member count even if nothing changed, so we can rotate if needed
+                checkMemberCount(sessionResponse.members().size());
             }
         } catch (IOException | InterruptedException e) {
             throw new SessionUpdateException("Failed to get session for nonces, joining will not work: " + e.getMessage());
@@ -213,14 +223,82 @@ public class SessionManager extends SessionManagerCore {
         try {
             CreateSessionResponse sessionResponse = Constants.GSON.fromJson(responseBody, CreateSessionResponse.class);
 
-            // Restart if we have 28/30 session members
-            int players = sessionResponse.members().size();
-            if (players >= 28) {
-                logger.info("Restarting session due to " + players + "/30 players");
-                restart();
-            }
+            checkMemberCount(sessionResponse.members().size());
         } catch (JsonParseException e) {
             throw new SessionUpdateException("Failed to parse session response: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Queue a session rotation if the session is close to the member limit
+     *
+     * @param members The current number of session members
+     */
+    private void checkMemberCount(int members) {
+        if (members < Constants.ROTATE_MEMBER_COUNT || !rotating.compareAndSet(false, true)) {
+            return;
+        }
+
+        logger.info("Rotating session due to " + members + "/30 members");
+        scheduledThreadPool.execute(this::rotateSession);
+    }
+
+    /**
+     * Swap to a new session and activity handle without recreating the websocket or NetherNet connections
+     * Falls back to a full restart if this fails
+     */
+    private void rotateSession() {
+        try {
+            String oldSessionId = sessionInfo.getSessionId();
+            sessionInfo.setSessionId(UUID.randomUUID().toString());
+
+            // Nonces belong to the members of the old session
+            nonces.clear();
+
+            publishSession();
+
+            logger.info("Rotated session " + oldSessionId + " -> " + sessionInfo.getSessionId());
+
+            // Point the sub-sessions at the new session
+            for (SubSessionManager subSessionManager : subSessionManagers.values()) {
+                try {
+                    subSessionManager.publishSession();
+                } catch (SessionCreationException | SessionUpdateException e) {
+                    logger.error("Failed to move sub-session to the new session", e);
+                }
+            }
+
+            // Give players that are mid-join time to connect before closing the old session
+            scheduledThreadPool.schedule(() -> closeSession(oldSessionId), Constants.ROTATE_GRACE_PERIOD.toSeconds(), TimeUnit.SECONDS);
+        } catch (SessionCreationException | SessionUpdateException e) {
+            logger.error("Failed to rotate session, restarting instead", e);
+            restart();
+        } finally {
+            rotating.set(false);
+        }
+    }
+
+    /**
+     * Close an old session so no new members can join it, as its members still show it to their friends
+     *
+     * @param sessionId The id of the session to close
+     */
+    private void closeSession(String sessionId) {
+        try {
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("system", new SessionSystemProperties(true));
+
+            if (hideOldSessions) {
+                properties.put("custom", Map.of(
+                    "BroadcastSetting", 1,
+                    "Joinability", "invite_only"
+                ));
+            }
+
+            super.updateSessionInternal(Constants.CREATE_SESSION.formatted(sessionId), Map.of("properties", properties));
+            logger.debug("Closed old session " + sessionId);
+        } catch (SessionUpdateException e) {
+            logger.warn("Failed to close old session " + sessionId + ": " + e.getMessage());
         }
     }
 
@@ -354,6 +432,16 @@ public class SessionManager extends SessionManagerCore {
         for (String message : messages) {
             coreLogger.info(message);
         }
+    }
+
+    /**
+     * Apply the session settings from the config
+     *
+     * @param sessionConfig The session config to apply
+     */
+    public void setSessionConfig(CoreConfig.SessionConfig sessionConfig) {
+        setNetherNetPortRange(sessionConfig.icePortRange().min(), sessionConfig.icePortRange().max());
+        this.hideOldSessions = sessionConfig.hideOldSessions();
     }
 
     /**

@@ -218,15 +218,6 @@ public abstract class SessionManagerCore {
      * @throws SessionUpdateException If the updating of the session information fails
      */
     private void createSession() throws SessionCreationException, SessionUpdateException {
-        // Get the token for authentication
-        BedrockAuthManager manager = getAuthManager();
-        String token;
-        try {
-            token = manager.getXboxLiveXstsToken().getUpToDate().getAuthorizationHeader();
-        } catch (Exception e) {
-             throw new SessionCreationException("Failed to get authorization headers: " + e.getMessage());
-        }
-
         // We only need a websocket for the primary session manager
         if (this.sessionInfo != null) {
             // Update the current session XUID
@@ -259,6 +250,25 @@ public abstract class SessionManagerCore {
             if (galleryManager.setShowcase(imageFile)) {
                 logger.info("Successfully set showcase image");
             }
+        }
+
+        publishSession();
+    }
+
+    /**
+     * Push the session to the session directory and create an activity handle for it
+     * This is safe to call again without recreating the websocket or NetherNet connections
+     *
+     * @throws SessionCreationException If the creation of the session handle fails
+     * @throws SessionUpdateException If the updating of the session information fails
+     */
+    protected void publishSession() throws SessionCreationException, SessionUpdateException {
+        // Get the token for authentication
+        String token;
+        try {
+            token = getAuthManager().getXboxLiveXstsToken().getUpToDate().getAuthorizationHeader();
+        } catch (Exception e) {
+            throw new SessionCreationException("Failed to get authorization headers: " + e.getMessage());
         }
 
         // Push the session information to the session directory

@@ -37,6 +37,12 @@ public class Constants {
 
     public static final Duration WEBSOCKET_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
 
+    // The session template allows 30 members, rotate before that to leave room for joins in progress
+    public static final int ROTATE_MEMBER_COUNT = 28;
+
+    // How long to keep the old session open after rotating, so players that are mid-join can finish connecting
+    public static final Duration ROTATE_GRACE_PERIOD = Duration.ofSeconds(30);
+
     /**
      * Gathered from scraped web requests, seems to use the below enum
      * https://github.com/LiteLDev/LeviLamina/blob/main/src/mc/network/ConnectionType.h
@@ -53,5 +59,5 @@ public class Constants {
     /**
      * Config version for upgrade purposes
      */
-    public static final int CONFIG_VERSION = 5;
+    public static final int CONFIG_VERSION = 6;
 }
