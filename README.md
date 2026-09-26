@@ -7,7 +7,7 @@ A simple tool that broadcasts an existing [Geyser](https://github.com/GeyserMC/G
 
 This shows up to the authenticated accounts friends in-game as a joinable session.
 
-![Example screenshot](https://user-images.githubusercontent.com/5401186/159083033-b965bfba-de17-4708-8979-1f33bfd5fa28.png)
+![Example screenshot](https://github.com/user-attachments/assets/aa82e305-a7ec-4d6f-8537-3d02b272957c)
 
 # DISCLAIMER
 You use this project at your own risk, the contributors are not responsible for any damage or loss caused by the software. We suggest you use an alt account for running the tool in case the account is banned as we emulate some features of a client which may or may not be against TOS.
