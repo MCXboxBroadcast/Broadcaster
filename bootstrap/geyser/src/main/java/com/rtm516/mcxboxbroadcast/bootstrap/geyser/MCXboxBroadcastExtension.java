@@ -30,6 +30,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -45,13 +46,10 @@ public class MCXboxBroadcastExtension implements Extension {
             .source(CommandSource.class)
             .name("restart")
             .description("Restart the connection to Xbox Live.")
+            .permission("mcxboxbroadcast.restart")
             .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
                 restart();
+                source.sendMessage("Restart initiated.");
             })
             .build());
 
@@ -59,15 +57,11 @@ public class MCXboxBroadcastExtension implements Extension {
             .source(CommandSource.class)
             .name("dumpsession")
             .description("Dump the current session to json files.")
+            .permission("mcxboxbroadcast.dumpsession")
             .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
+                source.sendMessage("Dumping session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
 
-                logger.info("Dumping session responses to 'lastSessionResponse.json' and 'currentSessionResponse.json'");
-
-                sessionManager.dumpSession();
+                formatRepsonse(source, sessionManager.dumpSession());
             })
             .build());
 
@@ -75,15 +69,11 @@ public class MCXboxBroadcastExtension implements Extension {
             .source(CommandSource.class)
             .name("accounts")
             .description("Manage sub-accounts.")
+            .permission("mcxboxbroadcast.accounts")
             .executor((source, command, args) -> {
-                if (!source.isConsole()) {
-                    source.sendMessage("This command can only be ran from the console.");
-                    return;
-                }
-
                 if (args.length < 2) {
                     if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
-                        sessionManager.listSessions();
+                        formatRepsonse(source, sessionManager.listSessions());
                         return;
                     }
 
@@ -95,10 +85,10 @@ public class MCXboxBroadcastExtension implements Extension {
 
                 switch (args[0].toLowerCase()) {
                     case "add":
-                        sessionManager.addSubSession(args[1]);
+                        formatRepsonse(source, sessionManager.addSubSession(args[1]));
                         break;
                     case "remove":
-                        sessionManager.removeSubSession(args[1]);
+                        formatRepsonse(source, sessionManager.removeSubSession(args[1]));
                         break;
                     default:
                         source.sendMessage("Unknown accounts command: " + args[0]);
@@ -266,6 +256,12 @@ public class MCXboxBroadcastExtension implements Extension {
             sessionManager.updateSession(sessionInfo);
         } catch (SessionUpdateException e) {
             sessionManager.logger().error("Failed to update session information!", e);
+        }
+    }
+
+    private static void formatRepsonse(CommandSource source, List<String> messages) {
+        for (String message : messages) {
+            source.sendMessage(message);
         }
     }
 }
