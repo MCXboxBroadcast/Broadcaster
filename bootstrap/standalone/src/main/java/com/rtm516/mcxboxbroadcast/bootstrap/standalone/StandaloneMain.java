@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class StandaloneMain {
+    private static final String[] KNOWN_GAME_MODES = {"Survival", "Creative", "Adventure"};
+
     private static CoreConfig config;
     private static StandaloneLoggerImpl logger;
     private static SessionInfo sessionInfo;
@@ -123,6 +125,7 @@ public class StandaloneMain {
                 sessionInfo.setWorldName(pong.motd());
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
+                sessionInfo.setGameMode(normalizeGameMode(pong.gameType()));
 
                 // Fallback to the gamertag if the host name is empty
                 if (sessionInfo.getHostName().isEmpty()) {
@@ -136,6 +139,7 @@ public class StandaloneMain {
                     sessionInfo.setWorldName(config.session().sessionInfo().worldName());
                     sessionInfo.setPlayers(config.session().sessionInfo().players());
                     sessionInfo.setMaxPlayers(config.session().sessionInfo().maxPlayers());
+                    sessionInfo.setGameMode(config.session().sessionInfo().gameMode());
 
                     // Fallback to the gamertag if the host name is empty
                     if (sessionInfo.getHostName().isEmpty()) {
@@ -146,5 +150,18 @@ public class StandaloneMain {
                 }
             }
         }
+    }
+
+    /**
+     * Map the game mode reported by the server pong to a title-cased known value,
+     * falling back to the config value if the pong reports anything unexpected
+     */
+    private static String normalizeGameMode(String gameMode) {
+        for (String knownMode : KNOWN_GAME_MODES) {
+            if (knownMode.equalsIgnoreCase(gameMode)) {
+                return knownMode;
+            }
+        }
+        return config.session().sessionInfo().gameMode();
     }
 }

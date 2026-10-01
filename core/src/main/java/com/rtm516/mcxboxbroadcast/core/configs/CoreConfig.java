@@ -110,6 +110,10 @@ public interface CoreConfig {
             @DefaultString("GeyserMC Demo & Test Server")
             String worldName();
 
+            @Comment("The game mode to broadcast (Survival, Creative, Adventure). Overridden by the server query when enabled.")
+            @DefaultString("Survival")
+            String gameMode();
+
             @Comment("The current number of players")
             @DefaultNumeric(0)
             int players();
