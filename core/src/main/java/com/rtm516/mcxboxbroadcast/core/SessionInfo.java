@@ -14,6 +14,7 @@ public class SessionInfo {
     private int maxPlayers;
     private String ip;
     private int port;
+    private CoreConfig.SessionConfig.SessionInfo.GameMode gameMode = CoreConfig.SessionConfig.SessionInfo.GameMode.Survival;
 
     public SessionInfo() {
     }
@@ -25,6 +26,7 @@ public class SessionInfo {
         this.maxPlayers = config.maxPlayers();
         this.ip = config.ip();
         this.port = config.port();
+        this.gameMode = config.gameMode();
     }
 
     public SessionInfo(String hostName, String worldName, int players, int maxPlayers, String ip, int port) {
@@ -100,8 +102,18 @@ public class SessionInfo {
         this.port = port;
     }
 
+    public CoreConfig.SessionConfig.SessionInfo.GameMode getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(CoreConfig.SessionConfig.SessionInfo.GameMode gameMode) {
+        this.gameMode = gameMode;
+    }
+
     public SessionInfo copy() {
-        return new SessionInfo(hostName, worldName, players, maxPlayers, ip, port);
+        SessionInfo copy = new SessionInfo(hostName, worldName, players, maxPlayers, ip, port);
+        copy.setGameMode(gameMode);
+        return copy;
     }
 
     private static String removeColorCodes(String string) {

@@ -110,6 +110,12 @@ public interface CoreConfig {
             @DefaultString("GeyserMC Demo & Test Server")
             String worldName();
 
+            @Comment("The game mode to broadcast (Survival, Creative, Adventure)")
+            default GameMode gameMode() {
+                return GameMode.Survival;
+            }
+            void gameMode(GameMode mode);
+
             @Comment("The current number of players")
             @DefaultNumeric(0)
             int players();
@@ -126,6 +132,12 @@ public interface CoreConfig {
             @DefaultNumeric(19132)
             @NumericRange(from = 1, to = 65535)
             int port();
+
+            enum GameMode {
+                Survival,
+                Creative,
+                Adventure
+            }
         }
     }
 

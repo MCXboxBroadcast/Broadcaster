@@ -33,6 +33,7 @@ public class ExpandedSessionInfo extends SessionInfo {
         setMaxPlayers(sessionInfo.getMaxPlayers());
         setIp(sessionInfo.getIp());
         setPort(sessionInfo.getPort());
+        setGameMode(sessionInfo.getGameMode());
     }
 
     public void updateSessionInfo(SessionInfo sessionInfo) {
@@ -42,6 +43,7 @@ public class ExpandedSessionInfo extends SessionInfo {
         setMaxPlayers(sessionInfo.getMaxPlayers());
         setIp(sessionInfo.getIp());
         setPort(sessionInfo.getPort());
+        setGameMode(sessionInfo.getGameMode());
     }
 
     public String getConnectionId() {

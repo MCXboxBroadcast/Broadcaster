@@ -26,7 +26,7 @@ public class CreateSessionRequest extends JoinSessionRequest {
             sessionInfo.getXuid(),
             "",
             sessionInfo.getWorldName(),
-            "Survival",
+            sessionInfo.getGameMode().toString(),
             sessionInfo.getProtocol(),
             sessionInfo.getVersion(),
             false,
