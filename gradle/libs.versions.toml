@@ -72,8 +72,3 @@ jline = [
     "jline-terminal-jna",
     "jline-reader"
 ]
-
-[plugins]
-shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
-indra-git = { id = "net.kyori.indra.git", version.ref = "indra" }
-blossom = { id = "net.kyori.blossom", version.ref = "blossom" }
