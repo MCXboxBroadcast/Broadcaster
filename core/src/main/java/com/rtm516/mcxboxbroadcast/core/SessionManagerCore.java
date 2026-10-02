@@ -12,6 +12,7 @@ import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import com.rtm516.mcxboxbroadcast.core.nethernet.BroadcasterChannelInitializer;
+import com.rtm516.mcxboxbroadcast.core.nethernet.HttpRelaySignaling;
 import org.cloudburstmc.netty.channel.nethernet.NetherNetChannelFactory;
 import org.cloudburstmc.netty.channel.nethernet.config.NetherChannelOption;
 import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
@@ -469,7 +470,8 @@ public abstract class SessionManagerCore {
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
 
-        this.signaling = new NetherNetXboxRpcSignaling(netherNetId, getMCTokenHeader());
+        this.signaling = new HttpRelaySignaling(netherNetId, getMCTokenHeader(), InetSocketAddress.createUnresolved(sessionInfo.getIp(), sessionInfo.getPort()), httpClient, storageManager.playerHistory(), logger);
+
         this.sessionInfo.setPmsgId(getAuthManager().getMinecraftSession().getCached().getParsedToken().getPayload().reqString("pmid"));
 
         this.bossGroup = new NioEventLoopGroup(1);
