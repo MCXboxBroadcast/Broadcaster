@@ -125,7 +125,7 @@ public class StandaloneMain {
                 sessionInfo.setWorldName(pong.motd());
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
-                sessionInfo.setGameMode(normalizeGameMode(pong.gameType()));
+                sessionInfo.setGameMode(CoreConfig.SessionConfig.SessionInfo.GameMode.valueOf(pong.gameType()));
 
                 // Fallback to the gamertag if the host name is empty
                 if (sessionInfo.getHostName().isEmpty()) {
@@ -150,18 +150,5 @@ public class StandaloneMain {
                 }
             }
         }
-    }
-
-    /**
-     * Map the game mode reported by the server pong to a title-cased known value,
-     * falling back to the config value if the pong reports anything unexpected
-     */
-    private static String normalizeGameMode(String gameMode) {
-        for (String knownMode : KNOWN_GAME_MODES) {
-            if (knownMode.equalsIgnoreCase(gameMode)) {
-                return knownMode;
-            }
-        }
-        return config.session().sessionInfo().gameMode();
     }
 }

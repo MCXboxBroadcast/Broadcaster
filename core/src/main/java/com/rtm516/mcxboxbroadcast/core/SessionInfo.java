@@ -14,7 +14,7 @@ public class SessionInfo {
     private int maxPlayers;
     private String ip;
     private int port;
-    private String gameMode = "Survival";
+    private CoreConfig.SessionConfig.SessionInfo.GameMode gameMode = CoreConfig.SessionConfig.SessionInfo.GameMode.Survival;
 
     public SessionInfo() {
     }
@@ -102,11 +102,11 @@ public class SessionInfo {
         this.port = port;
     }
 
-    public String getGameMode() {
+    public CoreConfig.SessionConfig.SessionInfo.GameMode getGameMode() {
         return gameMode;
     }
 
-    public void setGameMode(String gameMode) {
+    public void setGameMode(CoreConfig.SessionConfig.SessionInfo.GameMode gameMode) {
         this.gameMode = gameMode;
     }
 

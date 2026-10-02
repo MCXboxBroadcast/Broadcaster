@@ -36,6 +36,7 @@ public class ConfigLoader {
 
             .build())
         .addVersion(3, ConfigurationTransformation.empty())
+        .addVersion(4, ConfigurationTransformation.empty())
         .build();
 
     public static CoreConfig loadConfig(File configFile, String platformName) throws ConfigurateException {
