@@ -12,7 +12,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.ping.PingUtil;
 import com.rtm516.mcxboxbroadcast.core.storage.FileStorageManager;
-import org.cloudburstmc.protocol.bedrock.BedrockPong;
+import org.cloudburstmc.netty.channel.nethernet.signaling.PongData;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -22,8 +22,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class StandaloneMain {
-    private static final String[] KNOWN_GAME_MODES = {"Survival", "Creative", "Adventure"};
-
     private static CoreConfig config;
     private static StandaloneLoggerImpl logger;
     private static SessionInfo sessionInfo;
@@ -116,14 +114,19 @@ public class StandaloneMain {
         if (config.session().queryServer()) {
             try {
                 InetSocketAddress addressToPing = new InetSocketAddress(sessionInfo.getIp(), sessionInfo.getPort());
-                BedrockPong pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
+                PongData pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
                 // Update the session information
-                sessionInfo.setHostName(pong.subMotd());
-                sessionInfo.setWorldName(pong.motd());
+                sessionInfo.setHostName(pong.levelName());
+                sessionInfo.setWorldName(pong.serverName());
                 sessionInfo.setPlayers(pong.playerCount());
-                sessionInfo.setMaxPlayers(pong.maximumPlayerCount());
-                sessionInfo.setGameMode(CoreConfig.SessionConfig.SessionInfo.GameMode.valueOf(pong.gameType()));
+                sessionInfo.setMaxPlayers(pong.maxPlayerCount());
+
+                // The game type ids match the order of the game modes
+                CoreConfig.SessionConfig.SessionInfo.GameMode[] gameModes = CoreConfig.SessionConfig.SessionInfo.GameMode.values();
+                if (pong.gameType() >= 0 && pong.gameType() < gameModes.length) {
+                    sessionInfo.setGameMode(gameModes[pong.gameType()]);
+                }
 
                 // Fallback to the gamertag if the host name is empty
                 if (sessionInfo.getHostName().isEmpty()) {

@@ -7,7 +7,7 @@ dependencies {
     api(libs.java.websocket)
     api(libs.methanol)
     api(libs.minecraftauth)
-    api(libs.bundles.protocol)
+    api(libs.protocol.codec)
 
     api(libs.nethernet.transport) {
         // Only used for server signing keys, which we don't need
