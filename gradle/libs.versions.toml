@@ -2,7 +2,6 @@
 protocol-connection = "3.0.0.Beta13-20260828.182244-20"
 protocol-common = "3.0.0.Beta13-20260828.182244-20"
 protocol-codec = "3.0.0.Beta13-20260828.182244-20"
-libdatachannel = "0.24.5.0-20260921.140330-12"
 network = "2.0.0.CR4-20260925.222343-7"
 geyser ="2.9.3-SNAPSHOT"
 java-websocket = "1.5.3"
@@ -58,7 +57,6 @@ methanol = { group = "com.github.mizosoft.methanol", name = "methanol", version.
 
 minecraftauth = { group = "net.raphimc", name = "MinecraftAuth", version.ref = "minecraftauth" }
 
-libdatachannel = { group = "dev.opencollab", name = "libdatachannel-java-arch-detect", version.ref = "libdatachannel" }
 nethernet-transport = { group = "org.cloudburstmc.netty", name = "netty-transport-nethernet", version.ref = "network" }
 
 sqlite = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite" }

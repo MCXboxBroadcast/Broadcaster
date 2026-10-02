@@ -52,7 +52,7 @@ public class Constants {
     public static final int MAX_FRIENDS = 1000;
 
     /**
-     * Used for the micro nethernet server that transfers the client to the real server
+     * The game version and protocol we advertise in the session
      */
     public static final BedrockCodec BEDROCK_CODEC = Bedrock_v2192.CODEC.toBuilder().protocolVersion(2193).build();
 

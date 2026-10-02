@@ -29,7 +29,7 @@ tasks.withType<ShadowJar> {
         duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
     
-    // Suppress illegal access warnings for webrtc natives
+    // Suppress illegal access warnings for natives
     manifest {
         attributes["Enable-Native-Access"] = "ALL-UNNAMED"
     }

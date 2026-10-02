@@ -440,7 +440,6 @@ public class SessionManager extends SessionManagerCore {
      * @param sessionConfig The session config to apply
      */
     public void setSessionConfig(CoreConfig.SessionConfig sessionConfig) {
-        setNetherNetPortRange(sessionConfig.icePortRange().min(), sessionConfig.icePortRange().max());
         this.hideOldSessions = sessionConfig.hideOldSessions();
     }
 

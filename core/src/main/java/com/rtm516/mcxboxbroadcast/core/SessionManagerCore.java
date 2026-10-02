@@ -11,17 +11,7 @@ import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
-import com.rtm516.mcxboxbroadcast.core.nethernet.BroadcasterChannelInitializer;
 import com.rtm516.mcxboxbroadcast.core.nethernet.HttpRelaySignaling;
-import org.cloudburstmc.netty.channel.nethernet.NetherNetChannelFactory;
-import org.cloudburstmc.netty.channel.nethernet.config.NetherChannelOption;
-import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
-import tel.schich.libdatachannel.LibDataChannelArchDetect;
-import tel.schich.libdatachannel.PeerConnectionConfiguration;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 import net.raphimc.minecraftauth.bedrock.BedrockAuthManager;
 
 import java.io.File;
@@ -56,12 +46,7 @@ public abstract class SessionManagerCore {
 
     protected boolean initialized = false;
 
-    private Channel netherNetChannel;
-    private EventLoopGroup bossGroup;
-    private EventLoopGroup workerGroup;
-    private NetherNetXboxRpcSignaling signaling;
-
-    private PeerConnectionConfiguration netherNetPeerConnectionConfig;
+    private HttpRelaySignaling signaling;
 
     /**
      * Create an instance of SessionManager
@@ -239,8 +224,8 @@ public abstract class SessionManagerCore {
 
             setupNetherNet();
 
-            if (this.netherNetChannel == null || !this.netherNetChannel.isOpen()) {
-                throw new SessionCreationException("Unable to start NetherNet channel");
+            if (this.signaling == null || !this.signaling.isActive()) {
+                throw new SessionCreationException("Unable to start NetherNet signaling");
             }
         }
 
@@ -380,14 +365,13 @@ public abstract class SessionManagerCore {
      */
     protected void checkConnection() {
         boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
-        boolean rtcIsOpen = this.netherNetChannel != null && this.netherNetChannel.isOpen();
         boolean signalingIsOpen = this.signaling != null && this.signaling.isActive();
 
         // Check if the connection is Lost
-        if (!rtaIsOpen || !rtcIsOpen || !signalingIsOpen) {
+        if (!rtaIsOpen || !signalingIsOpen) {
             try {
                 logger.warn("Connection to websocket lost, re-creating session...");
-                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + ", RTC Open: " + rtcIsOpen + ", Signaling: " + signalingIsOpen);
+                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + ", Signaling: " + signalingIsOpen);
 
                 createSession();
                 logger.info("WebSocket session reconnected");
@@ -431,42 +415,8 @@ public abstract class SessionManagerCore {
         rtaWebsocket.connect();
     }
 
-    /**
-     * Restrict the local UDP port range used for WebRTC (NetherNet) ICE candidates.
-     * Passing 0 for both min and max keeps the transport default (the OS ephemeral
-     * range).
-     *
-     * @param min The lowest UDP port to use, or 0 for the OS default
-     * @param max The highest UDP port to use, or 0 for the OS default
-     */
-    public void setNetherNetPortRange(int min, int max) {
-        if (min <= 0 && max <= 0) {
-            this.netherNetPeerConnectionConfig = null;
-            return;
-        }
-
-        this.netherNetPeerConnectionConfig = PeerConnectionConfiguration.DEFAULT
-            .withPortRangeBegin(min)
-            .withPortRangeEnd(max);
-    }
-
-    /**
-     * @return The peer connection config to use for NetherNet, or null to use
-     *         the transport default
-     */
-    protected PeerConnectionConfiguration netherNetPeerConnectionConfig() {
-        return netherNetPeerConnectionConfig;
-    }
-
     protected void setupNetherNet() {
         shutdownNetherNet();
-
-        try {
-            LibDataChannelArchDetect.initialize();
-        } catch (LinkageError e) {
-            logger.error("Failed to load the libdatachannel native library", e);
-            return;
-        }
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
 
@@ -474,25 +424,12 @@ public abstract class SessionManagerCore {
 
         this.sessionInfo.setPmsgId(getAuthManager().getMinecraftSession().getCached().getParsedToken().getPayload().reqString("pmid"));
 
-        this.bossGroup = new NioEventLoopGroup(1);
-        this.workerGroup = new NioEventLoopGroup();
-
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-                .channelFactory(NetherNetChannelFactory.server(signaling))
-                .childHandler(new BroadcasterChannelInitializer(sessionInfo, this, logger));
+            this.signaling.connect(null).get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
 
-            PeerConnectionConfiguration peerConnectionConfig = netherNetPeerConnectionConfig();
-            if (peerConnectionConfig != null) {
-                b.option(NetherChannelOption.NETHER_PEER_CONNECTION_CONFIG, peerConnectionConfig);
-            }
-
-            this.netherNetChannel = b.bind(new InetSocketAddress(0)).sync().channel();
-
-            logger.info("NetherNet Broadcaster started on ID: " + netherNetId + (peerConnectionConfig != null ? " (ICE ports " + peerConnectionConfig.portRangeBegin() + "-" + peerConnectionConfig.portRangeEnd() + ")" : ""));
+            logger.info("NetherNet signaling started on ID: " + netherNetId);
         } catch (Exception e) {
-            logger.error("Failed to start NetherNet", e);
+            logger.error("Failed to start NetherNet signaling", e);
         }
     }
 
@@ -510,21 +447,9 @@ public abstract class SessionManagerCore {
     }
 
     private void shutdownNetherNet() {
-        if (netherNetChannel != null) {
-            netherNetChannel.close();
-            netherNetChannel = null;
-        }
         if (signaling != null) {
             signaling.close();
             signaling = null;
-        }
-        if (bossGroup != null) {
-            bossGroup.shutdownGracefully();
-            bossGroup = null;
-        }
-        if (workerGroup != null) {
-            workerGroup.shutdownGracefully();
-            workerGroup = null;
         }
     }
 

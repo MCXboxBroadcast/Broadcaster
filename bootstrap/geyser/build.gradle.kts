@@ -7,7 +7,6 @@ relocate("org.yaml.snakeyaml")
 relocate("org.spongepowered.configurate")
 relocate("com.google.gson")
 relocate("net.raphimc.minecraftauth")
-relocate("org.bouncycastle")
 relocate("net.lenni0451.commons.httpclient")
 relocate("net.lenni0451.commons.gson")
 

@@ -86,27 +86,6 @@ public interface CoreConfig {
         @DefaultBoolean(true)
         boolean hideOldSessions();
 
-        @Comment("""
-            Restrict the local UDP port range for WebRTC (NetherNet) ICE candidates,
-            so only a small range needs opening behind a firewall or in Docker with
-            host networking. Each in-progress join uses one port (freed once the player
-            is transferred), so this caps concurrent joins, not total players.
-            Leave both at 0 for the OS ephemeral range (default).""")
-        IcePortRange icePortRange();
-
-        @ConfigSerializable
-        interface IcePortRange {
-            @Comment("Lowest UDP port to use, or 0 for the OS default")
-            @DefaultNumeric(0)
-            @NumericRange(from = 0, to = 65535)
-            int min();
-
-            @Comment("Highest UDP port to use, or 0 for the OS default")
-            @DefaultNumeric(0)
-            @NumericRange(from = 0, to = 65535)
-            int max();
-        }
-
         @ConfigSerializable
         interface SessionInfo {
             @Comment("The host name to broadcast")

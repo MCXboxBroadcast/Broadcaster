@@ -8,7 +8,7 @@ tasks {
         archiveClassifier.set("")
         archiveVersion.set("")
 
-        // libdatachannel limits us to glibc Linux x86_64/aarch64, Windows x86_64/aarch64 and macOS x86_64/arm64
+        // We only ship for glibc Linux x86_64/aarch64, Windows x86_64/aarch64 and macOS x86_64/arm64
 
         // Strip sqlite-jdbc natives for every other platform
         listOf(
@@ -24,12 +24,6 @@ tasks {
             "linux-s390x", "linux-x86", "openbsd-x86", "openbsd-x86-64", "sunos-sparc",
             "sunos-sparcv9", "sunos-x86", "sunos-x86-64", "win32-x86"
         ).forEach { exclude("com/sun/jna/$it/**") }
-
-        // Strip BouncyCastle post-quantum engines, keeping pqc/asn1 and pqc/jcajce which its provider needs
-        listOf("crypto", "legacy").forEach {
-            exclude("org/bouncycastle/pqc/$it/**")
-            exclude("META-INF/versions/*/org/bouncycastle/pqc/$it/**")
-        }
     }
 
     build {

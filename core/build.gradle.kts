@@ -9,8 +9,10 @@ dependencies {
     api(libs.minecraftauth)
     api(libs.bundles.protocol)
 
-    api(libs.nethernet.transport)
-    api(libs.libdatachannel)
+    api(libs.nethernet.transport) {
+        // Only used for server signing keys, which we don't need
+        exclude(group = "org.bouncycastle")
+    }
 
     api(libs.sqlite)
 
