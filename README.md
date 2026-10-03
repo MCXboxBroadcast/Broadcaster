@@ -40,7 +40,7 @@ docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/mcxboxbroadcast/s
    - `To sign in, use a web browser to open the page https://www.microsoft.com/link and enter the code XXXXXXXX to authenticate.`
 5. Follow the link and enter the code
 6. Login to the account you want to use
-7. Follow the account on Xbox LIVE
+7. Add the account as a friend on Xbox LIVE
 8. Check the friends tab ingame and you should see the server listed
 
 ### Standalone
@@ -50,7 +50,7 @@ docker run --rm -it -v /path/to/config:/opt/app/config ghcr.io/mcxboxbroadcast/s
     - `To sign in, use a web browser to open the page https://www.microsoft.com/link and enter the code XXXXXXXX to authenticate.`
 4. Follow the link and enter the code
 5. Login to the account you want to use
-6. Follow the account on Xbox LIVE
+6. Add the account as a friend on Xbox LIVE
 7. Edit the `config.yml` to have the correct ip and port for the target server
 8. Restart the tool
 9. Check the friends tab ingame and you should see the server listed
@@ -87,6 +87,6 @@ For the extension version prefix with `/mcxboxbroadcast`
 | `exit` (Standalone Only) | Exits the program |
 | `restart` | Restarts the tool |
 | `dumpsession` | Dumps the current session data to files for debugging |
-| `accounts list` | Lists the accounts that are currently in use and their followers count |
+| `accounts list` | Lists the accounts that are currently in use and their friend count |
 | `accounts add <sub-session-id>` | Adds an account to the list of accounts to use |
 | `accounts remove <sub-session-id>` | Removes an account from the list of accounts to use |

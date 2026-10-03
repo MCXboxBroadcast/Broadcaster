@@ -28,10 +28,10 @@ public class Constants {
 
     public static final String PEOPLE = "https://social.xboxlive.com/users/me/people/xuid(%s)";
     public static final String USER_PRESENCE = "https://userpresence.xboxlive.com/users/xuid(%s)/devices/current/titles/current";
-    public static final URI FOLLOWERS = URI.create("https://peoplehub.xboxlive.com/users/me/people/followers");
-    public static final URI SOCIAL = URI.create("https://peoplehub.xboxlive.com/users/me/people/social");
+    public static final URI FRIENDS = URI.create("https://peoplehub.xboxlive.com/users/me/people/friends");
+    public static final URI FRIEND_REQUESTS = URI.create("https://peoplehub.xboxlive.com/users/me/people/friendrequests(received)");
     public static final URI SOCIAL_SUMMARY = URI.create("https://social.xboxlive.com/users/me/summary");
-    public static final String FOLLOWER = "https://social.xboxlive.com/users/me/people/follower/xuid(%s)";
+    public static final String FRIEND = "https://social.xboxlive.com/users/me/people/friends/v2/xuid(%s)";
 
     public static final String GALLERY = "https://persona.franchise.minecraft-services.net/api/v1.0/gallery";
 
@@ -43,10 +43,7 @@ public class Constants {
      */
     public static final int ConnectionTypeJsonRpc = 7;
 
-    /**
-     * Used to be 1000, but the limit was increased in Aug 2024
-     */
-    public static final int MAX_FRIENDS = 2000;
+    public static final int MAX_FRIENDS = 1000;
 
     /**
      * Used for the micro nethernet server that transfers the client to the real server
@@ -56,5 +53,5 @@ public class Constants {
     /**
      * Config version for upgrade purposes
      */
-    public static final int CONFIG_VERSION = 4;
+    public static final int CONFIG_VERSION = 5;
 }

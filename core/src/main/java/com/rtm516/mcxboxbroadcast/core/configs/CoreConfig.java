@@ -13,7 +13,7 @@ public interface CoreConfig {
     @Comment("Core session settings")
     SessionConfig session();
 
-    @Comment("Friend/follower list sync settings")
+    @Comment("Friend list sync settings")
     FriendSyncConfig friendSync();
 
     @Comment("Notification settings (e.g., Slack/Discord webhook)")
@@ -150,13 +150,9 @@ public interface CoreConfig {
         @NumericRange(from = 20, to = Integer.MAX_VALUE)
         int updateInterval();
 
-        @Comment("Should we automatically follow people that follow us")
+        @Comment("Should we automatically accept friend requests")
         @DefaultBoolean(true)
-        boolean autoFollow();
-
-        @Comment("Should we automatically unfollow people that no longer follow us")
-        @DefaultBoolean(true)
-        boolean autoUnfollow();
+        boolean autoFriend();
 
         @Comment("Should we automatically send an invite when a friend is added")
         @DefaultBoolean(true)

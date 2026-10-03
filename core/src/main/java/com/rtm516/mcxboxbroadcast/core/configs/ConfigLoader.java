@@ -13,6 +13,7 @@ import java.io.File;
 import java.util.Arrays;
 
 import static org.spongepowered.configurate.NodePath.path;
+import static org.spongepowered.configurate.transformation.TransformAction.remove;
 import static org.spongepowered.configurate.transformation.TransformAction.rename;
 
 public class ConfigLoader {
@@ -37,6 +38,10 @@ public class ConfigLoader {
             .build())
         .addVersion(3, ConfigurationTransformation.empty())
         .addVersion(4, ConfigurationTransformation.empty())
+        .addVersion(5, ConfigurationTransformation.builder()
+            .addAction(path("friend-sync", "auto-follow"), rename("auto-friend"))
+            .addAction(path("friend-sync", "auto-unfollow"), remove())
+            .build())
         .build();
 
     public static CoreConfig loadConfig(File configFile, String platformName) throws ConfigurateException {

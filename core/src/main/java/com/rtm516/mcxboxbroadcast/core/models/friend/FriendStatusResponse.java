@@ -7,10 +7,9 @@ public record FriendStatusResponse(
     Instant addedDateTimeUtc,
     boolean isFavorite,
     Object[] socialNetworks,
-    boolean isFollowedByCaller,
-    boolean isFollowingCaller,
     boolean isIdentityShared,
-    boolean isSquadMateWith,
-    boolean isUnfollowingFeed
+    boolean isFriend,
+    boolean friendRequestSent,
+    boolean friendRequestReceived
 ) {
 }

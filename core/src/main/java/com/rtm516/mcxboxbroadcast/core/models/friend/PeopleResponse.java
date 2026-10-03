@@ -1,13 +1,14 @@
-package com.rtm516.mcxboxbroadcast.core.models.session;
+package com.rtm516.mcxboxbroadcast.core.models.friend;
 
 import java.util.Date;
 import java.util.List;
 
-public class FollowerResponse {
+public class PeopleResponse {
     public List<Person> people;
     public Object recommendationSummary;
     public Object friendFinderState;
     public Object accountLinkDetails;
+    public Object friendRequestSummary;
 
     public static class LinkedAccount {
         public String networkName;
@@ -20,8 +21,10 @@ public class FollowerResponse {
     public static class Person {
         public String xuid;
         public boolean isFavorite;
-        public boolean isFollowingCaller;
-        public boolean isFollowedByCaller;
+        public boolean isFriend;
+        public Date friendedDateTimeUtc;
+        public boolean isFriendRequestReceived;
+        public boolean isFriendRequestSent;
         public boolean isIdentityShared;
         public Date addedDateTimeUtc;
         public String displayName;
@@ -48,7 +51,6 @@ public class FollowerResponse {
         public Object titleHistory;
         public Object multiplayerSummary;
         public Object recentPlayer;
-        public Object follower;
         public Object preferredColor;
         public Object presenceDetails;
         public Object titlePresence;
@@ -63,33 +65,5 @@ public class FollowerResponse {
         public String colorTheme;
         public String preferredFlag;
         public List<String> preferredPlatforms;
-
-        /**
-         * Merge some fields from another Person object into this one.
-         *
-         * addedDateTimeUtc, follower, isFollowedByCaller, isFollowingCaller
-         *
-         * @param person The Person object to merge into this one
-         * @return This Person object
-         */
-        public Person merge(Person person) {
-            if (person.addedDateTimeUtc != null) {
-                this.addedDateTimeUtc = person.addedDateTimeUtc;
-            }
-
-            if (person.follower != null) {
-                this.follower = person.follower;
-            }
-
-            if (person.isFollowedByCaller) {
-                this.isFollowedByCaller = person.isFollowedByCaller;
-            }
-
-            if (person.isFollowingCaller) {
-                this.isFollowingCaller = person.isFollowingCaller;
-            }
-
-            return this;
-        }
     }
 }

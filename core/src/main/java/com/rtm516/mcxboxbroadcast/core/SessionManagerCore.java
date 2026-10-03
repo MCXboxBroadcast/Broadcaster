@@ -169,12 +169,7 @@ public abstract class SessionManagerCore {
             return;
         }
 
-        int friendCount = -1;
-        try {
-            friendCount = friendManager.get().size();
-        } catch (Exception ignored) {}
-
-        logger.info("Successfully authenticated as " + getGamertag() + " (" + getXuid() + ") with " + friendCount + "/" + Constants.MAX_FRIENDS + " friends");
+        logger.info("Successfully authenticated as " + getGamertag() + " (" + getXuid() + ") with " + socialSummary().targetFriendCount() + "/" + Constants.MAX_FRIENDS + " friends");
 
         if (handleFriendship()) {
             logger.info("Waiting for friendship to be processed...");
@@ -557,13 +552,14 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Get the current follower count for the current user
-     * @return The current follower count
+     * Get the social summary for the current user
+     * @return The current social summary
      */
     public SocialSummaryResponse socialSummary() {
         HttpRequest socialSummaryRequest = HttpRequest.newBuilder()
             .uri(Constants.SOCIAL_SUMMARY)
             .header("Authorization", getTokenHeader())
+            .header("x-xbl-contract-version", "3")
             .GET()
             .build();
 
@@ -573,7 +569,7 @@ public abstract class SessionManagerCore {
             logger.error("Unable to get current friend count", e);
         }
 
-        return new SocialSummaryResponse(-1, -1, false, false, false, false, "", -1, -1, "");
+        return new SocialSummaryResponse(-1, -1, -1, false, false, false, false, "", -1, false, -1, -1, -1, "");
     }
 
     /**
