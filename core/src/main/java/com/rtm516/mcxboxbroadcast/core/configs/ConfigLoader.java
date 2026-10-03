@@ -42,7 +42,9 @@ public class ConfigLoader {
             .addAction(path("friend-sync", "auto-follow"), rename("auto-friend"))
             .addAction(path("friend-sync", "auto-unfollow"), remove())
             .build())
-        .addVersion(6, ConfigurationTransformation.empty())
+        .addVersion(6, ConfigurationTransformation.builder()
+            .addAction(path("ice-port-range"), remove())
+            .build())
         .build();
 
     public static CoreConfig loadConfig(File configFile, String platformName) throws ConfigurateException {
