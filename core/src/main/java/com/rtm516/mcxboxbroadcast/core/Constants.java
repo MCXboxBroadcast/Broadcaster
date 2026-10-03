@@ -3,7 +3,7 @@ package com.rtm516.mcxboxbroadcast.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v2192.Bedrock_v2192;
+import org.cloudburstmc.protocol.bedrock.codec.v2193.Bedrock_v2193;
 
 import java.net.URI;
 import java.time.Duration;
@@ -54,7 +54,7 @@ public class Constants {
     /**
      * The game version and protocol we advertise in the session
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v2192.CODEC.toBuilder().protocolVersion(2193).build();
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v2193.CODEC;
 
     /**
      * Config version for upgrade purposes

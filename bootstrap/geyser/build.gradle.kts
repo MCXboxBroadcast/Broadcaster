@@ -17,6 +17,8 @@ configurations.all {
     }
 }
 
+java.sourceCompatibility = JavaVersion.VERSION_21
+
 dependencies {
     api(project(":core"))
     compileOnly(libs.bundles.geyser)

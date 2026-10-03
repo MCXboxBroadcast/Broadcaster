@@ -1,7 +1,7 @@
 [versions]
-protocol-codec = "3.0.0.Beta13-20260828.182244-20"
+protocol-codec = "3.0.0.Beta13-20260917.001841-27"
 network = "2.0.0.CR4-20260925.222343-7"
-geyser ="2.9.3-SNAPSHOT"
+geyser ="2.11.3-SNAPSHOT"
 java-websocket = "1.5.3"
 log4j = "2.20.0"
 jline = "3.23.0"
@@ -13,10 +13,10 @@ sqlite = "3.50.2.0"
 configurate = "4.2.0-GeyserMC-20251111.004649-11"
 configurate-core = "4.2.0-GeyserMC-20251111.004649-12"
 
-shadow = "9.3.0"
-indra = "3.1.3"
-blossom = "2.1.0"
-minotaur = "2.8.10"
+shadow = "9.4.1"
+indra = "4.0.0"
+blossom = "2.2.0"
+minotaur = "2.9.0"
 
 [libraries]
 protocol-codec = { group = "org.cloudburstmc.protocol", name = "bedrock-codec", version.ref = "protocol-codec" }
