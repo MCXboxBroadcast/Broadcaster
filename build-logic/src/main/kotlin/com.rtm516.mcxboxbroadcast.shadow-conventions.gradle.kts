@@ -8,18 +8,18 @@ tasks {
         archiveClassifier.set("")
         archiveVersion.set("")
 
-        // We only ship for glibc Linux x86_64/aarch64, Windows x86_64/aarch64 and macOS x86_64/arm64
+        // We only ship for glibc Linux x86_64/aarch64, FreeBSD x86_64, Windows x86_64/aarch64 and macOS x86_64/arm64
 
         // Strip sqlite-jdbc natives for every other platform
         listOf(
-            "FreeBSD", "Linux-Android", "Linux-Musl",
+            "FreeBSD/aarch64", "FreeBSD/x86", "Linux-Android", "Linux-Musl",
             "Linux/arm", "Linux/armv6", "Linux/armv7", "Linux/ppc64", "Linux/riscv64", "Linux/x86",
             "Windows/armv7", "Windows/x86"
         ).forEach { exclude("org/sqlite/native/$it/**") }
 
         // Strip JNA natives for every other platform
         listOf(
-            "aix-ppc", "aix-ppc64", "freebsd-x86", "freebsd-x86-64", "linux-arm", "linux-armel",
+            "aix-ppc", "aix-ppc64", "freebsd-x86", "linux-arm", "linux-armel",
             "linux-loongarch64", "linux-mips64el", "linux-ppc", "linux-ppc64le", "linux-riscv64",
             "linux-s390x", "linux-x86", "openbsd-x86", "openbsd-x86-64", "sunos-sparc",
             "sunos-sparcv9", "sunos-x86", "sunos-x86-64", "win32-x86"
