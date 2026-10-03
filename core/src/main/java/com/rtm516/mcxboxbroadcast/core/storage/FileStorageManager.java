@@ -9,8 +9,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Stream;
 
 public class FileStorageManager implements StorageManager {
@@ -19,6 +17,10 @@ public class FileStorageManager implements StorageManager {
     private final PlayerHistoryStorage playerHistoryStorage;
 
     public FileStorageManager(String cacheFolder, String screenshotPath) {
+        this(cacheFolder, screenshotPath, null);
+    }
+
+    private FileStorageManager(String cacheFolder, String screenshotPath, PlayerHistoryStorage playerHistoryStorage) {
         this.cacheFolder = cacheFolder;
         this.screenshotPath = screenshotPath;
 
@@ -28,7 +30,7 @@ public class FileStorageManager implements StorageManager {
             throw new RuntimeException("Failed to create cache folder", e);
         }
 
-        this.playerHistoryStorage = new SqlitePlayerHistoryStorage(Paths.get(cacheFolder, "player_history.db"));
+        this.playerHistoryStorage = playerHistoryStorage != null ? playerHistoryStorage : new SqlitePlayerHistoryStorage(Paths.get(cacheFolder, "player_history.db"));
     }
 
     private String read(String file) throws IOException {
@@ -93,7 +95,7 @@ public class FileStorageManager implements StorageManager {
 
     @Override
     public StorageManager subSession(String id) {
-        return new FileStorageManager(Paths.get(cacheFolder, id).toString(), screenshotPath);
+        return new FileStorageManager(Paths.get(cacheFolder, id).toString(), screenshotPath, playerHistoryStorage);
     }
 
     @Override
@@ -118,15 +120,10 @@ public class FileStorageManager implements StorageManager {
 
     public class SqlitePlayerHistoryStorage implements PlayerHistoryStorage {
         private Connection connection;
-        private boolean firstRun = false;
 
         public SqlitePlayerHistoryStorage(Path dbFile) {
             try {
                 Class.forName("org.sqlite.JDBC");
-
-                if (!Files.exists(dbFile)) {
-                    firstRun = true;
-                }
 
                 connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
 
@@ -136,11 +133,6 @@ public class FileStorageManager implements StorageManager {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to setup player history database", e);
             }
-        }
-
-        @Override
-        public boolean isFirstRun() {
-            return firstRun;
         }
 
         @Override
@@ -173,22 +165,6 @@ public class FileStorageManager implements StorageManager {
                 statement.executeUpdate("DELETE FROM players WHERE xuid = '" + xuid + "';");
             } catch (Exception e) {
                 throw new IOException("Failed to remove player history for xuid: " + xuid, e);
-            }
-        }
-
-        @Override
-        public Map<String, Instant> all() throws IOException {
-            try (Statement statement = connection.createStatement()) {
-                var resultSet = statement.executeQuery("SELECT xuid, lastSeen FROM players;");
-                Map<String, Instant> playerHistory = new HashMap<>();
-                while (resultSet.next()) {
-                    String xuid = resultSet.getString("xuid");
-                    long lastSeenEpoch = resultSet.getLong("lastSeen");
-                    playerHistory.put(xuid, Instant.ofEpochSecond(lastSeenEpoch));
-                }
-                return playerHistory;
-            } catch (Exception e) {
-                throw new IOException("Failed to retrieve all player history", e);
             }
         }
     }

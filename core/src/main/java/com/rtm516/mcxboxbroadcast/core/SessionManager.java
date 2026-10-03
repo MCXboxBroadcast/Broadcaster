@@ -4,6 +4,8 @@ import com.google.gson.JsonParseException;
 import com.rtm516.mcxboxbroadcast.core.configs.CoreConfig;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
+import com.rtm516.mcxboxbroadcast.core.exceptions.XboxFriendsException;
+import com.rtm516.mcxboxbroadcast.core.models.friend.PeopleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateSessionResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionSystemProperties;
@@ -17,6 +19,7 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -117,6 +120,10 @@ public class SessionManager extends SessionManagerCore {
         // Create the sub-sessions in parallel
         for (String subSession : savedSubSessions()) {
             startSubSession(subSession, false);
+        }
+
+        if (friendSyncConfig.expiry().enabled()) {
+            scheduledThreadPool.scheduleWithFixedDelay(this::expireFriends, 10, friendSyncConfig.expiry().check(), TimeUnit.SECONDS);
         }
 
         return this.initialized;
@@ -234,6 +241,69 @@ public class SessionManager extends SessionManagerCore {
     protected boolean handleFriendship() {
         // Don't do anything as we are the main session
         return false;
+    }
+
+    /**
+     * Remove friends that haven't joined in a while from all accounts
+     * Joins are only seen by the primary session, so it handles expiry for the sub-sessions too
+     */
+    private void expireFriends() {
+        // Wait until every sub-session has logged in, otherwise we can't tell which friends are our own accounts
+        if (!pendingSubSessions.isEmpty()) {
+            return;
+        }
+
+        List<SessionManagerCore> accounts = new ArrayList<>();
+        accounts.add(this);
+        accounts.addAll(subSessionManagers.values());
+
+        // Our own accounts never join, so don't expire them
+        Set<String> ownXuids = new HashSet<>();
+        for (SessionManagerCore account : accounts) {
+            ownXuids.add(account.getXuid());
+        }
+
+        StorageManager.PlayerHistoryStorage playerHistory = storageManager().playerHistory();
+        Instant expiry = Instant.now().minusSeconds(TimeUnit.DAYS.toSeconds(friendSyncConfig.expiry().days()));
+
+        // Find the expired players before removing any, as removing a friend clears their history
+        // If any account fails we skip removing anyone, so they are removed from all accounts together on the next check
+        Map<SessionManagerCore, List<PeopleResponse.Person>> friends = new HashMap<>();
+        Set<String> expired = new HashSet<>();
+        try {
+            for (SessionManagerCore account : accounts) {
+                List<PeopleResponse.Person> accountFriends = account.friendManager().get();
+                friends.put(account, accountFriends);
+
+                for (PeopleResponse.Person friend : accountFriends) {
+                    // Ignore accounts managed by us and already flagged as expired accounts
+                    if (ownXuids.contains(friend.xuid) || expired.contains(friend.xuid)) {
+                        continue;
+                    }
+
+                    // Start tracking new friends and check if existing friends have expired
+                    Instant lastSeen = playerHistory.lastSeen(friend.xuid);
+                    if (lastSeen == null) {
+                        playerHistory.lastSeen(friend.xuid, Instant.now());
+                    } else if (lastSeen.isBefore(expiry)) {
+                        expired.add(friend.xuid);
+                    }
+                }
+            }
+        } catch (XboxFriendsException | IOException e) {
+            logger.error("Failed to check friends for expiry", e);
+            return;
+        }
+
+        // Remove them from every account they are friends with
+        friends.forEach((account, accountFriends) -> {
+            for (PeopleResponse.Person friend : accountFriends) {
+                if (expired.contains(friend.xuid)) {
+                    account.logger.info("Removing player " + friend.gamertag + " (" + friend.xuid + ") from friends due to inactivity");
+                    account.friendManager().remove(friend.xuid, friend.gamertag);
+                }
+            }
+        });
     }
 
     /**

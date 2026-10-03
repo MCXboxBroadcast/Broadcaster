@@ -9,7 +9,6 @@ import com.rtm516.mcxboxbroadcast.core.models.friend.FriendStatusResponse;
 import com.rtm516.mcxboxbroadcast.core.models.friend.PeopleResponse;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
-import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,11 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class FriendManager {
     private final HttpClient httpClient;
@@ -181,65 +178,6 @@ public class FriendManager {
 
         // Accept any pending friend requests if enabled incase we got any while offline
         acceptPendingFriendRequests();
-
-        if (!friendSyncConfig.expiry().enabled()) return;
-
-        StorageManager.PlayerHistoryStorage playerHistory = sessionManager.storageManager().playerHistory();
-        if (playerHistory.isFirstRun()) {
-            logger.info("Player history is being initialized for the first time, this may take a few seconds");
-            try {
-                for (PeopleResponse.Person friend : get()) {
-                    playerHistory.lastSeen(friend.xuid, Instant.now());
-                }
-            } catch (Exception e) {
-                logger.error("Failed to initialize player history", e);
-            }
-        } else {
-            try {
-                Set<String> friendXuids = lastFriendCache().stream().map(person -> person.xuid).collect(Collectors.toUnmodifiableSet());
-                Set<String> historyXuids = playerHistory.all().keySet();
-
-                // Remove any players from history that are no longer friends
-                for (String xuid : historyXuids) {
-                    if (!friendXuids.contains(xuid)) {
-                        playerHistory.clear(xuid);
-                    }
-                }
-
-                // Add any friends that are missing from history
-                for (String xuid : friendXuids) {
-                    if (!historyXuids.contains(xuid)) {
-                        playerHistory.lastSeen(xuid, Instant.now());
-                    }
-                }
-            } catch (Exception e) {
-                logger.error("Failed to clean up player history", e);
-            }
-        }
-
-        sessionManager.scheduledThread().scheduleWithFixedDelay(() -> {
-            try {
-                for (Map.Entry<String, Instant> entry : playerHistory.all().entrySet()) {
-                    String xuid = entry.getKey();
-                    Instant lastSeen = entry.getValue();
-
-                    if (lastSeen.isBefore(Instant.now().minusSeconds(TimeUnit.DAYS.toSeconds(friendSyncConfig.expiry().days())))) {
-                        try {
-                            logger.info("Removing player " + xuid + " from friends due to inactivity");
-                            remove(xuid, null);
-                        } catch (Exception e) {
-                            if (e.getMessage().startsWith("429: ")) {
-                                logger.warn("Rate limited while trying to remove player " + xuid + " from friends for inactivity, will try again later");
-                                return;
-                            }
-                            logger.error("Failed to remove player " + xuid + " from friends for inactivity", e);
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                logger.error("Failed to clean up friends list", e);
-            }
-        }, 10, friendSyncConfig.expiry().check(), TimeUnit.SECONDS);
     }
 
     /**
@@ -319,6 +257,13 @@ public class FriendManager {
                             // Let the user know we added a friend
                             logger.info("Added " + entry.getValue() + " (" + entry.getKey() + ") as a friend");
                             sendInvite(entry.getKey());
+
+                            // Reset their last seen time so expiry counts from when they were added
+                            try {
+                                sessionManager.storageManager().playerHistory().lastSeen(entry.getKey(), Instant.now());
+                            } catch (IOException e) {
+                                logger.error("Failed to update player history for " + entry.getValue() + " (" + entry.getKey() + ")", e);
+                            }
 
                             // Add the user to the cache
                             if (lastFriendCache.stream().noneMatch(p -> p.xuid.equals(entry.getKey()))) {
