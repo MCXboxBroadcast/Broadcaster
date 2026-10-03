@@ -2,7 +2,6 @@ package com.rtm516.mcxboxbroadcast.core.ping;
 
 import com.google.gson.JsonObject;
 import com.rtm516.mcxboxbroadcast.core.Constants;
-import org.cloudburstmc.netty.channel.nethernet.signaling.HttpSignalingSettings;
 import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetHTTPClientSignaling;
 import org.cloudburstmc.netty.channel.nethernet.signaling.PongData;
 
@@ -12,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class PingUtil {
@@ -26,7 +26,7 @@ public class PingUtil {
      * @return The server status
      */
     public static CompletableFuture<PongData> ping(InetSocketAddress server, long timeout, TimeUnit timeUnit) {
-        CompletableFuture<PongData> ping = NetherNetHTTPClientSignaling.probe(server, HttpSignalingSettings.DEFAULT)
+        CompletableFuture<PongData> ping = NetherNetHTTPClientSignaling.probe(server, Constants.HTTP_SIGNALING, Long.toUnsignedString(ThreadLocalRandom.current().nextLong()))
             .orTimeout(timeout, timeUnit)
             .thenApply(NetherNetHTTPClientSignaling.Probe::motd);
 

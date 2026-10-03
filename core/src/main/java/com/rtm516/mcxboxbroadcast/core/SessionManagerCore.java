@@ -420,7 +420,7 @@ public abstract class SessionManagerCore {
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
 
-        this.signaling = new HttpRelaySignaling(netherNetId, getMCTokenHeader(), InetSocketAddress.createUnresolved(sessionInfo.getIp(), sessionInfo.getPort()), httpClient, storageManager.playerHistory(), logger);
+        this.signaling = new HttpRelaySignaling(netherNetId, getMCTokenHeader(), InetSocketAddress.createUnresolved(sessionInfo.getIp(), sessionInfo.getPort()), storageManager.playerHistory(), logger);
 
         this.sessionInfo.setPmsgId(getAuthManager().getMinecraftSession().getCached().getParsedToken().getPayload().reqString("pmid"));
 

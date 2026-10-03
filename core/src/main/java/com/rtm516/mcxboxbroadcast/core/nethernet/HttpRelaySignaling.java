@@ -1,20 +1,16 @@
 package com.rtm516.mcxboxbroadcast.core.nethernet;
 
+import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
 import io.netty.util.concurrent.ScheduledFuture;
 import org.cloudburstmc.netty.channel.nethernet.NetherNetConstants;
-import org.cloudburstmc.netty.channel.nethernet.signaling.HttpSignalingSettings;
 import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetHTTPClientSignaling;
 import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetXboxRpcSignaling;
 import org.cloudburstmc.netty.util.nethernet.IdentityUtils;
 import org.jose4j.jwt.JwtClaims;
 
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,8 +34,16 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
      */
     private static final long GATHER_MAX_MS = 3000;
 
+    /**
+     * Connect error codes, mapped from the client's disconnect handling
+     * The client shows these as InitialConnection-XX
+     *
+     * @see <a href="https://mojang.github.io/bedrock-protocol-docs/latest/types/disconnect-fail-reason/">DisconnectFailReason</a>
+     */
+    private static final int ERROR_SERVER_NOT_FOUND = 1; // InitialConnection-81 (NetherNetSessionNotFound)
+    private static final int ERROR_CONNECT_REQUEST = 6; // InitialConnection-84 (NetherNetConnectRequest)
+
     private final InetSocketAddress target;
-    private final HttpClient httpClient;
     private final StorageManager.PlayerHistoryStorage playerHistory;
     private final Logger logger;
 
@@ -49,14 +53,12 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
      * @param localNetworkId The local Network ID to use
      * @param xboxToken The Minecraft Bedrock Session authorization header ('MCToken ***')
      * @param target The server to relay offers to
-     * @param httpClient The HTTP client to send the offers with
      * @param playerHistory The player history to record joins in
      * @param logger The logger to use
      */
-    public HttpRelaySignaling(long localNetworkId, String xboxToken, InetSocketAddress target, HttpClient httpClient, StorageManager.PlayerHistoryStorage playerHistory, Logger logger) {
+    public HttpRelaySignaling(long localNetworkId, String xboxToken, InetSocketAddress target, StorageManager.PlayerHistoryStorage playerHistory, Logger logger) {
         super(localNetworkId, xboxToken);
         this.target = target;
-        this.httpClient = httpClient;
         this.playerHistory = playerHistory;
         this.logger = logger;
     }
@@ -111,45 +113,47 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
 
         logger.debug("Relaying offer from " + offer.sender + " with " + offer.candidates.size() + " trickled candidates to " + target);
 
-        // Check the server supports NetherNet and whether it uses HTTPS
-        NetherNetHTTPClientSignaling.probe(target, HttpSignalingSettings.DEFAULT)
-            .thenCompose(probe -> {
-                logger.debug("Server " + target + " supports NetherNet over " + probe.scheme() + " (" + probe.motd() + ")");
+        // Use the connection ID as the network ID
+        NetherNetHTTPClientSignaling http = new NetherNetHTTPClientSignaling(Constants.HTTP_SIGNALING, offer.connectionId);
 
-                // Send the offer, the answer is the response body
-                URI join = URI.create(baseUrl(target, probe.scheme()) + "/v1/join/" + offer.connectionId);
-                HttpRequest request = HttpRequest.newBuilder(join)
-                    .header("Content-Type", "application/sdp")
-                    .header("Accept", "application/sdp")
-                    .POST(HttpRequest.BodyPublishers.ofString(offer.completeSdp()))
-                    .build();
-                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-            })
-            .whenComplete((response, error) -> {
-                if (error != null) {
-                    Throwable cause = error.getCause() != null ? error.getCause() : error;
-                    logger.error("Failed to relay offer from " + offer.sender + " to " + target + ": " + cause.getMessage());
-                    sendError(offer);
-                    return;
-                }
+        // The answer is already a connect response
+        http.setSignalHandler(offer.connectionId, signal -> {
+            http.close();
 
-                String answer = response.body();
-                if (response.statusCode() / 100 != 2 || answer == null || !answer.startsWith("v=")) {
-                    logger.error("Server " + target + " refused offer from " + offer.sender + ": HTTP " + response.statusCode() + " " + answer);
-                    sendError(offer);
-                    return;
-                }
+            logger.debug("Relaying answer from " + target + " to " + offer.sender);
+            try {
+                sendSignal(offer.sender, signal);
+            } catch (IllegalStateException e) {
+                logger.error("Failed to send answer to " + offer.sender, e);
+                return;
+            }
 
-                logger.debug("Relaying answer from " + target + " to " + offer.sender);
-                try {
-                    sendSignal(offer.sender, NetherNetConstants.buildSignalConnectResponse(offer.connectionId, answer));
-                } catch (IllegalStateException e) {
-                    logger.error("Failed to send answer to " + offer.sender, e);
-                    return;
-                }
+            recordJoin(offer);
+        });
+        http.setFailureHandler(reason -> {
+            http.close();
+            relayFailed(offer, ERROR_CONNECT_REQUEST, reason);
+        });
 
-                recordJoin(offer);
-            });
+        http.connect(target).whenComplete((iceServers, error) -> {
+            if (error != null) {
+                http.close();
+                relayFailed(offer, ERROR_SERVER_NOT_FOUND, (error.getCause() != null ? error.getCause() : error).getMessage());
+                return;
+            }
+
+            http.sendDescription(offer.sender, offer.completeSdp());
+        });
+    }
+
+    private void relayFailed(PendingOffer offer, int errorCode, String reason) {
+        logger.error("Failed to relay offer from " + offer.sender + " to " + target + ": " + reason);
+        
+        try {
+            sendSignal(offer.sender, NetherNetConstants.RTC_NEGOTIATION_CONNECT_ERROR + " " + offer.connectionId + " " + errorCode);
+        } catch (IllegalStateException e) {
+            logger.debug("Failed to send connect error to " + offer.sender + ": " + e.getMessage());
+        }
     }
 
     /**
@@ -169,20 +173,6 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
         } catch (Exception e) {
             logger.debug("Unable to record last seen for " + offer.sender + ": " + e.getMessage());
         }
-    }
-
-    private void sendError(PendingOffer offer) {
-        try {
-            // 1 is ERROR_FAILED in the NetherNet error codes
-            sendSignal(offer.sender, NetherNetConstants.RTC_NEGOTIATION_CONNECT_ERROR + " " + offer.connectionId + " 1");
-        } catch (IllegalStateException e) {
-            logger.debug("Failed to send connect error to " + offer.sender + ": " + e.getMessage());
-        }
-    }
-
-    private static String baseUrl(InetSocketAddress address, HttpSignalingSettings.Scheme scheme) {
-        String host = address.getHostString();
-        return (scheme == HttpSignalingSettings.Scheme.HTTPS ? "https://" : "http://") + (host.indexOf(':') >= 0 ? "[" + host + "]" : host) + ":" + address.getPort();
     }
 
     @Override
