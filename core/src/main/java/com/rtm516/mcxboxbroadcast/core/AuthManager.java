@@ -102,6 +102,13 @@ public class AuthManager {
                 return;
             }
 
+            // The login was cancelled, such as by removing the sub-session
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+                logger.info("Login cancelled");
+                return;
+            }
+
             if (e.getMessage() != null && e.getMessage().contains("invalid_grant")) {
                 if (isReauth) {
                     // Already cleared cache and re-ran device code, still invalid_grant

@@ -21,15 +21,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 /**
  * Simple manager to authenticate and create sessions on Xbox
@@ -38,7 +43,9 @@ public class SessionManager extends SessionManagerCore {
     private static final SecureRandom NONCE_RANDOM = new SecureRandom();
 
     private final ScheduledExecutorService scheduledThreadPool;
+    private final ExecutorService loginExecutor;
     private final Map<String, SubSessionManager> subSessionManagers;
+    private final Map<String, PendingLogin> pendingSubSessions;
 
     private CoreConfig.FriendSyncConfig friendSyncConfig;
     private Runnable restartCallback;
@@ -58,7 +65,10 @@ public class SessionManager extends SessionManagerCore {
     public SessionManager(StorageManager storageManager, NotificationManager notificationManager, Logger logger) {
         super(storageManager, notificationManager, logger.prefixed("Primary Session"));
         this.scheduledThreadPool = Executors.newScheduledThreadPool(5, new NamedThreadFactory("MCXboxBroadcast Thread"));
+        // Logins block so we have a separate executor for them
+        this.loginExecutor = Executors.newCachedThreadPool(new NamedThreadFactory("MCXboxBroadcast Login"));
         this.subSessionManagers = new ConcurrentHashMap<>();
+        this.pendingSubSessions = new ConcurrentHashMap<>();
         this.nonces = new ConcurrentHashMap<>();
     }
 
@@ -104,33 +114,120 @@ public class SessionManager extends SessionManagerCore {
         this.friendSyncConfig = friendSyncConfig;
         friendManager().init(this.friendSyncConfig);
 
-        // Load sub-sessions from cache
-        List<String> subSessions = new ArrayList<>();
+        // Create the sub-sessions in parallel
+        for (String subSession : savedSubSessions()) {
+            startSubSession(subSession, false);
+        }
+
+        return this.initialized;
+    }
+
+    /**
+     * A sub-session that is still logging in
+     *
+     * @param login The running login task
+     * @param isNew If the sub-session was just added, so isn't saved yet
+     */
+    private record PendingLogin(Future<?> login, boolean isNew) { }
+
+    /**
+     * Log in and create a sub-session on the login executor
+     * New sub-sessions are only saved once logged in, and are deleted if the login doesn't finish
+     *
+     * @param id The ID of the sub-session to create
+     * @param isNew If the sub-session was just added, so isn't saved yet
+     */
+    private void startSubSession(String id, boolean isNew) {
+        FutureTask<Void> login = new FutureTask<>(() -> {
+            SubSessionManager subSessionManager;
+            try {
+                subSessionManager = new SubSessionManager(id, this, storageManager().subSession(id), notificationManager(), logger);
+                subSessionManager.init();
+                subSessionManager.friendManager().init(this.friendSyncConfig);
+            } catch (Exception e) {
+                // Cancelled by removing the sub-session or shutting down, which handle the cleanup
+                if (pendingSubSessions.remove(id) == null) {
+                    return;
+                }
+
+                if (isNew) {
+                    logger.warn("Sub-session " + id + " didn't finish logging in, removing it");
+                    deleteSubSessionCache(id);
+                } else {
+                    logger.error("Failed to create sub-session " + id, e);
+                    // TODO Retry creation after 30s or so
+                }
+                return;
+            }
+
+            synchronized (pendingSubSessions) {
+                // The sub-session was removed while we were finishing the login
+                if (pendingSubSessions.remove(id) == null) {
+                    subSessionManager.shutdown();
+                    return;
+                }
+
+                subSessionManagers.put(id, subSessionManager);
+
+                if (isNew) {
+                    updateSavedSubSessions(ids -> ids.add(id));
+                }
+            }
+        }, null);
+
+        pendingSubSessions.put(id, new PendingLogin(login, isNew));
+        loginExecutor.execute(login);
+    }
+
+    /**
+     * Delete the cache for a sub-session
+     *
+     * @param id The ID of the sub-session
+     */
+    private void deleteSubSessionCache(String id) {
+        try {
+            storageManager().subSession(id).cleanup();
+        } catch (IOException | RuntimeException e) {
+            coreLogger.error("Failed to delete sub-session cache file", e);
+        }
+    }
+
+    /**
+     * Load the list of saved sub-session IDs from storage
+     *
+     * @return The saved sub-session IDs
+     */
+    private Set<String> savedSubSessions() {
+        Set<String> ids = new LinkedHashSet<>();
         try {
             String subSessionsJson = storageManager().subSessions();
             if (!subSessionsJson.isBlank()) {
-                subSessions = Arrays.asList(Constants.GSON.fromJson(subSessionsJson, String[].class));
+                ids.addAll(Arrays.asList(Constants.GSON.fromJson(subSessionsJson, String[].class)));
             }
-        } catch (IOException ignored) { }
+        } catch (JsonParseException | IOException e) {
+            coreLogger.error("Failed to load sub-session list", e);
+        }
+        return ids;
+    }
 
-        // Create the sub-sessions in a new thread so we don't block the main thread
-        List<String> finalSubSessions = subSessions;
-        scheduledThreadPool.execute(() -> {
-            // Create the sub-session manager for each sub-session
-            for (String subSession : finalSubSessions) {
-                try {
-                    SubSessionManager subSessionManager = new SubSessionManager(subSession, this, storageManager().subSession(subSession), notificationManager(), logger);
-                    subSessionManager.init();
-                    subSessionManager.friendManager().init(this.friendSyncConfig);
-                    subSessionManagers.put(subSession, subSessionManager);
-                } catch (SessionCreationException | SessionUpdateException e) {
-                    logger.error("Failed to create sub-session " + subSession, e);
-                    // TODO Retry creation after 30s or so
-                }
-            }
-        });
+    /**
+     * Modify and save the list of saved sub-session IDs
+     *
+     * @param update The change to make to the list
+     * @return If the update changed the list
+     */
+    private synchronized boolean updateSavedSubSessions(Predicate<Set<String>> update) {
+        Set<String> ids = savedSubSessions();
+        if (!update.test(ids)) {
+            return false;
+        }
 
-        return this.initialized;
+        try {
+            storageManager().subSessions(Constants.GSON.toJson(ids));
+        } catch (JsonParseException | IOException e) {
+            coreLogger.error("Failed to update sub-session list", e);
+        }
+        return true;
     }
 
     @Override
@@ -314,37 +411,54 @@ public class SessionManager extends SessionManagerCore {
         // Shutdown self
         super.shutdown();
         scheduledThreadPool.shutdownNow();
+
+        // Cancel pending logins, clearing them first so cancelling isn't logged as a failure
+        Map<String, PendingLogin> pendingLogins = new HashMap<>(pendingSubSessions);
+        pendingSubSessions.clear();
+        loginExecutor.shutdownNow();
+
+        // New sub-sessions that didn't finish logging in were never saved, so remove their cache
+        pendingLogins.forEach((id, pendingLogin) -> {
+            if (pendingLogin.isNew()) {
+                logger.warn("Sub-session " + id + " didn't finish logging in, removing it");
+                deleteSubSessionCache(id);
+            }
+        });
     }
 
     /**
      * Dump the current and last session responses to json files
      */
     public void dumpSession() {
-        try {
-            storageManager().lastSessionResponse(lastSessionResponse);
-        } catch (IOException e) {
-            logger.error("Error dumping last session: " + e.getMessage());
-        }
+        // Run off the calling thread as this makes web requests
+        scheduledThreadPool.execute(() -> {
+            try {
+                storageManager().lastSessionResponse(lastSessionResponse);
+            } catch (IOException e) {
+                logger.error("Error dumping last session: " + e.getMessage());
+            }
 
-        HttpRequest createSessionRequest = HttpRequest.newBuilder()
-                .uri(URI.create(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId())))
-                .header("Content-Type", "application/json")
-                .header("Authorization", getTokenHeader())
-                .header("x-xbl-contract-version", "107")
-                .GET()
-                .build();
+            HttpRequest createSessionRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId())))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", getTokenHeader())
+                    .header("x-xbl-contract-version", "107")
+                    .GET()
+                    .build();
 
-        try {
-            HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
+            try {
+                HttpResponse<String> createSessionResponse = httpClient.send(createSessionRequest, HttpResponse.BodyHandlers.ofString());
 
-            storageManager().currentSessionResponse(createSessionResponse.body());
-        } catch (IOException | InterruptedException e) {
-            logger.error("Error dumping current session: " + e.getMessage());
-        }
+                storageManager().currentSessionResponse(createSessionResponse.body());
+            } catch (IOException | InterruptedException e) {
+                logger.error("Error dumping current session: " + e.getMessage());
+            }
+        });
     }
 
     /**
      * Create a sub-session for the given ID
+     * The login happens in the background so this doesn't block the calling thread
      *
      * @param id The ID of the sub-session to create
      */
@@ -355,83 +469,82 @@ public class SessionManager extends SessionManagerCore {
             return;
         }
 
-        // Create the sub-session manager
-        try {
-            SubSessionManager subSessionManager = new SubSessionManager(id, this, storageManager().subSession(id), notificationManager(), logger);
-            subSessionManager.init();
-            subSessionManager.friendManager().init(friendSyncConfig);
-            subSessionManagers.put(id, subSessionManager);
-        } catch (SessionCreationException | SessionUpdateException e) {
-            coreLogger.error("Failed to create sub-session", e);
+        if (pendingSubSessions.containsKey(id)) {
+            coreLogger.error("Sub-session with that ID is already being created");
             return;
         }
 
-        // Update the list of sub-sessions
-        try {
-            storageManager().subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
-        } catch (JsonParseException | IOException e) {
-            coreLogger.error("Failed to update sub-session list", e);
-        }
+        coreLogger.info("Starting login for sub-session " + id + "...");
+        startSubSession(id, true);
     }
 
     /**
      * Remove a sub-session for the given ID
+     * This also cancels the login if the sub-session hasn't finished logging in
      *
      * @param id The ID of the sub-session to remove
      */
     public void removeSubSession(String id) {
-        // Make sure we have that ID
-        if (!subSessionManagers.containsKey(id)) {
-            coreLogger.error("Sub-session does not exist with that ID");
-            return;
+        PendingLogin pendingLogin;
+        SubSessionManager subSessionManager;
+        synchronized (pendingSubSessions) {
+            pendingLogin = pendingSubSessions.remove(id);
+            subSessionManager = subSessionManagers.remove(id);
         }
 
-        // Remove the sub-session manager
-        subSessionManagers.get(id).shutdown();
-        subSessionManagers.remove(id);
-
-        // Delete the sub-session cache file
-        try {
-            storageManager().subSession(id).cleanup();
-        } catch (IOException e) {
-            coreLogger.error("Failed to delete sub-session cache file", e);
+        // Stop the login so it doesn't keep waiting for the user to sign in
+        if (pendingLogin != null) {
+            pendingLogin.login().cancel(true);
         }
 
-        // Update the list of sub-sessions
-        try {
-            storageManager().subSessions(Constants.GSON.toJson(subSessionManagers.keySet()));
-        } catch (JsonParseException | IOException e) {
-            coreLogger.error("Failed to update sub-session list", e);
-        }
+        // Run off the calling thread as shutting down closes connections
+        scheduledThreadPool.execute(() -> {
+            if (subSessionManager != null) {
+                subSessionManager.shutdown();
+            }
 
-        coreLogger.info("Removed sub-session with ID " + id);
+            // Also check the saved list, as a sub-session that failed to log in won't be loaded
+            boolean wasSaved = updateSavedSubSessions(ids -> ids.remove(id));
+            if (pendingLogin == null && subSessionManager == null && !wasSaved) {
+                coreLogger.error("Sub-session does not exist with that ID");
+                return;
+            }
+
+            deleteSubSessionCache(id);
+
+            coreLogger.info("Removed sub-session with ID " + id);
+        });
     }
 
     /**
      * List all sessions and their information
      */
     public void listSessions() {
-        List<String> messages = new ArrayList<>();
         coreLogger.info("Loading status of sessions...");
 
-        messages.add("Primary Session:");
-        messages.add(" - Gamertag: " + getGamertag());
-        messages.add("   Friends: " + socialSummary().targetFriendCount() + "/" + Constants.MAX_FRIENDS);
+        // Run off the calling thread as this makes web requests
+        scheduledThreadPool.execute(() -> {
+            List<String> messages = new ArrayList<>();
 
-        if (!subSessionManagers.isEmpty()) {
-            messages.add("Sub-sessions: (" + subSessionManagers.size() + ")");
-            for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
-                messages.add(" - ID: " + subSession.getKey());
-                messages.add("   Gamertag: " + subSession.getValue().getGamertag());
-                messages.add("   Friends: " + subSession.getValue().socialSummary().targetFriendCount() + "/" + Constants.MAX_FRIENDS);
+            messages.add("Primary Session:");
+            messages.add(" - Gamertag: " + getGamertag());
+            messages.add("   Friends: " + socialSummary().targetFriendCount() + "/" + Constants.MAX_FRIENDS);
+
+            if (!subSessionManagers.isEmpty()) {
+                messages.add("Sub-sessions: (" + subSessionManagers.size() + ")");
+                for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
+                    messages.add(" - ID: " + subSession.getKey());
+                    messages.add("   Gamertag: " + subSession.getValue().getGamertag());
+                    messages.add("   Friends: " + subSession.getValue().socialSummary().targetFriendCount() + "/" + Constants.MAX_FRIENDS);
+                }
+            } else {
+                messages.add("No sub-sessions");
             }
-        } else {
-            messages.add("No sub-sessions");
-        }
 
-        for (String message : messages) {
-            coreLogger.info(message);
-        }
+            for (String message : messages) {
+                coreLogger.info(message);
+            }
+        });
     }
 
     /**
