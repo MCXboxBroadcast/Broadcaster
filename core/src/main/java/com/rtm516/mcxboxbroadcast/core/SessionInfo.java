@@ -24,8 +24,6 @@ public class SessionInfo {
         this.worldName = config.worldName();
         this.players = config.players();
         this.maxPlayers = config.maxPlayers();
-        this.ip = config.ip();
-        this.port = config.port();
         this.gameMode = config.gameMode();
     }
 

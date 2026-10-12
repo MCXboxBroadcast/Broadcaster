@@ -54,6 +54,12 @@ public class StandaloneMain {
 
         sessionInfo = new SessionInfo(config.session().sessionInfo());
 
+        // Get the server to relay joins to
+        String ip = config.session().remoteAddress();
+        String port = config.session().remotePort();
+        sessionInfo.setIp(ip.equals("auto") ? "127.0.0.1" : ip);
+        sessionInfo.setPort(port.equals("auto") ? 19132 : Integer.parseInt(port));
+
         // Fallback to the gamertag if the host name is empty
         if (sessionInfo.getHostName().isEmpty()) {
             sessionInfo.setHostName(sessionManager.getGamertag());

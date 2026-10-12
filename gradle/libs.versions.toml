@@ -1,6 +1,6 @@
 [versions]
 protocol-codec = "3.0.0.Beta13-20260917.001841-27"
-network = "2.0.0.CR4-20261003.222345-14"
+network = "2.0.0.CR5-20261010.095725-3"
 geyser ="2.11.3-SNAPSHOT"
 java-websocket = "1.5.3"
 log4j = "2.20.0"

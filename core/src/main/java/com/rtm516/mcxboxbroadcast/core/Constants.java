@@ -2,6 +2,7 @@ package com.rtm516.mcxboxbroadcast.core;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.cloudburstmc.netty.channel.nethernet.signaling.ClientInfo;
 import org.cloudburstmc.netty.channel.nethernet.signaling.HttpSignalingSettings;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.v2193.Bedrock_v2193;
@@ -61,10 +62,10 @@ public class Constants {
      * How we query servers over NetherNet HTTP signaling
      */
     public static final HttpSignalingSettings HTTP_SIGNALING = HttpSignalingSettings.DEFAULT
-        .withClientInfo(BEDROCK_CODEC.getMinecraftVersion(), BEDROCK_CODEC.getProtocolVersion(), -1);
+        .withClientInfo(new ClientInfo(BEDROCK_CODEC.getMinecraftVersion(), BEDROCK_CODEC.getProtocolVersion(), -1));
 
     /**
      * Config version for upgrade purposes
      */
-    public static final int CONFIG_VERSION = 6;
+    public static final int CONFIG_VERSION = 7;
 }

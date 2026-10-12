@@ -24,11 +24,6 @@ import org.geysermc.geyser.api.extension.Extension;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.concurrent.TimeUnit;
 
 public class MCXboxBroadcastExtension implements Extension {
@@ -161,29 +156,18 @@ public class MCXboxBroadcastExtension implements Extension {
 
         // Pull onto another thread so we don't hang the main thread
         sessionManager.scheduledThread().execute(() -> {
-            // Get the ip to broadcast
+            // Get the server address to relay joins to
             String ip = config.session().remoteAddress();
             if (ip.equals("auto")) {
                 ip = this.geyserApi().bedrockListener().address();
 
-                try {
-                    InetAddress address = InetAddress.getByName(ip);
-
-                    // Get the public IP if the config ip is a non-public address
-                    if (address.isSiteLocalAddress() || address.isAnyLocalAddress() || address.isLoopbackAddress()) {
-                        HttpRequest ipRequest = HttpRequest.newBuilder()
-                            .uri(URI.create("https://ipv4.icanhazip.com"))
-                            .GET()
-                            .build();
-
-                        ip = HttpClient.newHttpClient().send(ipRequest, HttpResponse.BodyHandlers.ofString()).body().trim();
-                    }
-                } catch (IOException | InterruptedException e) {
-                    // Silently ignore
+                // We can't connect to a wildcard address, so use the local one
+                if (ip.isEmpty() || ip.equals("0.0.0.0") || ip.equals("::")) {
+                    ip = "127.0.0.1";
                 }
             }
 
-            // Get the port to broadcast
+            // Get the server port to relay joins to
             int port = this.geyserApi().bedrockListener().port();
             if (!config.session().remotePort().equals("auto")) {
                 port = Integer.parseInt(config.session().remotePort());

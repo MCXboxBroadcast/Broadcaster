@@ -38,16 +38,14 @@ public interface CoreConfig {
     @ConfigSerializable
     interface SessionConfig {
         @Comment("""
-            The IP address to broadcast, you likely want to change this to
-            your servers public IP""")
-        @ExcludePlatform(platforms = {"Standalone"})
+            The address of the server to relay joins to
+            auto uses the address Geyser is bound to, or 127.0.0.1 for standalone""")
         @DefaultString("auto")
         String remoteAddress();
 
         @Comment("""
-            The port to broadcast, this should be left as auto unless your
-            manipulating the port using network rules or reverse proxies""")
-        @ExcludePlatform(platforms = {"Standalone"})
+            The port of the server to relay joins to
+            auto uses Geyser's Bedrock port, or 19132 for standalone""")
         @DefaultString("auto")
         String remotePort();
 
@@ -109,15 +107,6 @@ public interface CoreConfig {
             @Comment("The maximum number of players")
             @DefaultNumeric(20)
             int maxPlayers();
-
-            @Comment("The IP address of the server")
-            @DefaultString("test.geysermc.org")
-            String ip();
-
-            @Comment("The port of the server")
-            @DefaultNumeric(19132)
-            @NumericRange(from = 1, to = 65535)
-            int port();
 
             enum GameMode {
                 Survival,
