@@ -181,7 +181,7 @@ public interface CoreConfig {
 
     @ConfigSerializable
     interface NotificationConfig {
-        @Comment("Should we send a message to a slack webhook when the session expires or we can't add someone because of restrictions")
+        @Comment("Should we send a message to a slack webhook when the session expires or we can't add someone due to restrictions")
         @DefaultBoolean(false)
         boolean enabled();
 
