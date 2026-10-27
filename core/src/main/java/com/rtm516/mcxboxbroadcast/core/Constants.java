@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import org.cloudburstmc.netty.channel.nethernet.signaling.ClientInfo;
 import org.cloudburstmc.netty.channel.nethernet.signaling.HttpSignalingSettings;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.v2193.Bedrock_v2193;
+import org.cloudburstmc.protocol.bedrock.codec.v2225.Bedrock_v2225;
 
 import java.net.URI;
 import java.time.Duration;
@@ -56,7 +56,7 @@ public class Constants {
     /**
      * The game version and protocol we advertise in the session
      */
-    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v2193.CODEC;
+    public static final BedrockCodec BEDROCK_CODEC = Bedrock_v2225.CODEC;
 
     /**
      * How we query servers over NetherNet HTTP signaling
