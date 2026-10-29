@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +62,7 @@ public class FriendManager {
             .header("Authorization", sessionManager.getTokenHeader())
             .header("x-xbl-contract-version", "7")
             .header("accept-language", "en-GB")
+            .timeout(Duration.ofSeconds(15)) // Give a much longer than normal timeout in case the friends list is large and takes a while to return
             .GET()
             .build();
 
