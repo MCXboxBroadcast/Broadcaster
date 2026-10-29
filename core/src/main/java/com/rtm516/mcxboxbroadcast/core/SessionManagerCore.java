@@ -180,7 +180,9 @@ public abstract class SessionManagerCore {
         authManager.setOnDeviceTokenRefreshCallback(() -> {
             try {
                 logger.debug("Device token refreshed, recreating session...");
-                createSession();
+                synchronized (this) {
+                    createSession();
+                }
                 logger.debug("Session recreated after device token refresh");
             } catch (Exception e) {
                 logger.error("Failed to recreate session after device token refresh", e);
@@ -239,6 +241,14 @@ public abstract class SessionManagerCore {
         }
 
         publishSession();
+
+        onSessionCreated();
+    }
+
+    /**
+     * Called after the session has been (re)created and published
+     */
+    protected void onSessionCreated() {
     }
 
     /**
@@ -363,7 +373,7 @@ public abstract class SessionManagerCore {
      * Check the connections we depend on and if any are down re-open them and re-create the session
      * This should be called before any updates to the session otherwise they might fail
      */
-    protected void checkConnection() {
+    protected synchronized void checkConnection() {
         boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
         boolean signalingIsOpen = this.signaling != null && this.signaling.isActive();
 

@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
@@ -138,13 +139,23 @@ public class SessionManager extends SessionManagerCore {
     private record PendingLogin(Future<?> login, boolean isNew) { }
 
     /**
+     * Log in and create a sub-session using the default initial retry delay
+     *
+     * @see #startSubSession(String, boolean, long)
+     */
+    private void startSubSession(String id, boolean isNew) {
+        startSubSession(id, isNew, 30);
+    }
+
+    /**
      * Log in and create a sub-session on the login executor
      * New sub-sessions are only saved once logged in, and are deleted if the login doesn't finish
      *
      * @param id The ID of the sub-session to create
      * @param isNew If the sub-session was just added, so isn't saved yet
+     * @param retryDelaySeconds How long to wait before retrying if this saved sub-session fails to log in
      */
-    private void startSubSession(String id, boolean isNew) {
+    private void startSubSession(String id, boolean isNew, long retryDelaySeconds) {
         FutureTask<Void> login = new FutureTask<>(() -> {
             SubSessionManager subSessionManager;
             try {
@@ -161,8 +172,8 @@ public class SessionManager extends SessionManagerCore {
                     logger.warn("Sub-session " + id + " didn't finish logging in, removing it");
                     deleteSubSessionCache(id);
                 } else {
-                    logger.error("Failed to create sub-session " + id, e);
-                    // TODO Retry creation after 30s or so
+                    logger.error("Failed to create sub-session " + id + ", retrying in " + retryDelaySeconds + " seconds", e);
+                    scheduleSubSessionRetry(id, retryDelaySeconds);
                 }
                 return;
             }
@@ -184,6 +195,27 @@ public class SessionManager extends SessionManagerCore {
 
         pendingSubSessions.put(id, new PendingLogin(login, isNew));
         loginExecutor.execute(login);
+    }
+
+    /**
+     * Schedule a retry for a failed sub-session login, backing off exponentially up to a cap
+     *
+     * @param id The ID of the sub-session to retry
+     * @param retryDelaySeconds The delay before this retry attempt
+     */
+    private void scheduleSubSessionRetry(String id, long retryDelaySeconds) {
+        long nextRetryDelaySeconds = Math.min(retryDelaySeconds * 2, 120); // Cap the retry delay at 2 minutes
+        try {
+            scheduledThreadPool.schedule(() -> {
+                boolean alreadyStarted = subSessionManagers.containsKey(id) || pendingSubSessions.containsKey(id);
+                if (alreadyStarted || !savedSubSessions().contains(id)) {
+                    return;
+                }
+                startSubSession(id, false, nextRetryDelaySeconds);
+            }, retryDelaySeconds, TimeUnit.SECONDS);
+        } catch (RejectedExecutionException shuttingDown) {
+            logger.debug("Not retrying sub-session " + id + " as we are shutting down");
+        }
     }
 
     /**
@@ -235,6 +267,18 @@ public class SessionManager extends SessionManagerCore {
             coreLogger.error("Failed to update sub-session list", e);
         }
         return true;
+    }
+
+    @Override
+    protected void onSessionCreated() {
+        // Sub-session memberships are bound to our previous connection, so they have to rejoin the new one
+        for (Map.Entry<String, SubSessionManager> subSession : subSessionManagers.entrySet()) {
+            try {
+                subSession.getValue().publishSession();
+            } catch (SessionCreationException | SessionUpdateException e) {
+                logger.error("Failed to rejoin sub-session " + subSession.getKey() + " to the session", e);
+            }
+        }
     }
 
     @Override
