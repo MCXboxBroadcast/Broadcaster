@@ -3,6 +3,7 @@ package com.rtm516.mcxboxbroadcast.core.nethernet;
 import com.rtm516.mcxboxbroadcast.core.Constants;
 import com.rtm516.mcxboxbroadcast.core.Logger;
 import com.rtm516.mcxboxbroadcast.core.storage.StorageManager;
+import io.netty.util.NetUtil;
 import io.netty.util.concurrent.ScheduledFuture;
 import org.cloudburstmc.netty.channel.nethernet.NetherNetConstants;
 import org.cloudburstmc.netty.channel.nethernet.signaling.NetherNetHTTPClientSignaling;
@@ -45,6 +46,7 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
 
     private final InetSocketAddress target;
     private final StorageManager.PlayerHistoryStorage playerHistory;
+    private final boolean allowIpv6;
     private final Logger logger;
 
     private final Map<String, PendingOffer> pendingOffers = new ConcurrentHashMap<>();
@@ -54,12 +56,14 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
      * @param xboxToken The Minecraft Bedrock Session authorization header ('MCToken ***')
      * @param target The server to relay offers to
      * @param playerHistory The player history to record joins in
+     * @param allowIpv6 Whether to relay IPv6 candidates to the target server
      * @param logger The logger to use
      */
-    public HttpRelaySignaling(long localNetworkId, String xboxToken, InetSocketAddress target, StorageManager.PlayerHistoryStorage playerHistory, Logger logger) {
+    public HttpRelaySignaling(long localNetworkId, String xboxToken, InetSocketAddress target, StorageManager.PlayerHistoryStorage playerHistory, boolean allowIpv6, Logger logger) {
         super(localNetworkId, xboxToken);
         this.target = target;
         this.playerHistory = playerHistory;
+        this.allowIpv6 = allowIpv6;
         this.logger = logger;
     }
 
@@ -142,8 +146,27 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
                 return;
             }
 
-            http.sendDescription(offer.sender, offer.completeSdp());
+            String sdp = offer.completeSdp();
+            http.sendDescription(offer.sender, allowIpv6 ? sdp : withoutIpv6Candidates(sdp));
         });
+    }
+
+    /**
+     * Remove IPv6 ICE candidates from an SDP so the client only connects to the target server over IPv4
+     *
+     * @param sdp The SDP to filter
+     * @return The SDP without any IPv6 candidate lines
+     */
+    private static String withoutIpv6Candidates(String sdp) {
+        StringBuilder out = new StringBuilder();
+        for (String line : sdp.split("\r\n")) {
+            String[] fields = line.trim().split(" ");
+            if (line.startsWith("a=candidate:") && fields.length > 4 && NetUtil.isValidIpV6Address(fields[4])) {
+                continue;
+            }
+            out.append(line).append("\r\n");
+        }
+        return out.toString();
     }
 
     private void relayFailed(PendingOffer offer, int errorCode, String reason) {

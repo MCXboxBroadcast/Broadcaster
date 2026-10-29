@@ -46,6 +46,11 @@ public abstract class SessionManagerCore {
 
     protected boolean initialized = false;
 
+    /**
+     * Whether IPv6 candidates are relayed to the target server, or stripped so players connect over IPv4
+     */
+    protected boolean allowIpv6 = false;
+
     private HttpRelaySignaling signaling;
 
     /**
@@ -430,7 +435,7 @@ public abstract class SessionManagerCore {
 
         long netherNetId = this.sessionInfo.getNetherNetId().longValue();
 
-        this.signaling = new HttpRelaySignaling(netherNetId, getMCTokenHeader(), InetSocketAddress.createUnresolved(sessionInfo.getIp(), sessionInfo.getPort()), storageManager.playerHistory(), logger);
+        this.signaling = new HttpRelaySignaling(netherNetId, getMCTokenHeader(), InetSocketAddress.createUnresolved(sessionInfo.getIp(), sessionInfo.getPort()), storageManager.playerHistory(), allowIpv6, logger);
 
         this.sessionInfo.setPmsgId(getAuthManager().getMinecraftSession().getCached().getParsedToken().getPayload().reqString("pmid"));
 

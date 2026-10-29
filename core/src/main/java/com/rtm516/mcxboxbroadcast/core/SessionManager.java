@@ -668,6 +668,7 @@ public class SessionManager extends SessionManagerCore {
      */
     public void setSessionConfig(CoreConfig.SessionConfig sessionConfig) {
         this.hideOldSessions = sessionConfig.hideOldSessions();
+        this.allowIpv6 = sessionConfig.allowIpv6();
     }
 
     /**

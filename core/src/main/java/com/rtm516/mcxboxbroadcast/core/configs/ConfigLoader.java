@@ -63,6 +63,7 @@ public class ConfigLoader {
                 return null;
             })
             .build())
+        .addVersion(8, ConfigurationTransformation.empty())
         .build();
 
     public static CoreConfig loadConfig(File configFile, String platformName) throws ConfigurateException {

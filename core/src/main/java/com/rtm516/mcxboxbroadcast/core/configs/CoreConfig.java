@@ -84,6 +84,12 @@ public interface CoreConfig {
         @DefaultBoolean(true)
         boolean hideOldSessions();
 
+        @Comment("""
+            Relay IPv6 candidates to the server
+            When false, IPv6 ICE candidates are stripped from relayed offers so players connect over IPv4""")
+        @DefaultBoolean(false)
+        boolean allowIpv6();
+
         @ConfigSerializable
         interface SessionInfo {
             @Comment("The host name to broadcast")
