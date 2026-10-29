@@ -115,7 +115,7 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
         }
         offer.cancel();
 
-        logger.debug("Relaying offer from " + offer.sender + " with " + offer.candidates.size() + " trickled candidates to " + target);
+        logger.debug("Relaying offer from " + offer.sender + " with " + offer.candidates.size() + " trickled candidates to " + targetString());
 
         // Use the connection ID as the network ID
         NetherNetHTTPClientSignaling http = new NetherNetHTTPClientSignaling(Constants.HTTP_SIGNALING, offer.connectionId);
@@ -124,7 +124,7 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
         http.setSignalHandler(offer.connectionId, signal -> {
             http.close();
 
-            logger.debug("Relaying answer from " + target + " to " + offer.sender);
+            logger.debug("Relaying answer from " + targetString() + " to " + offer.sender);
             try {
                 sendSignal(offer.sender, signal);
             } catch (IllegalStateException e) {
@@ -170,7 +170,7 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
     }
 
     private void relayFailed(PendingOffer offer, int errorCode, String reason) {
-        logger.error("Failed to relay offer from " + offer.sender + " to " + target + ": " + reason);
+        logger.error("Failed to relay offer from " + offer.sender + " to " + targetString() + ": " + reason);
         
         try {
             sendSignal(offer.sender, NetherNetConstants.RTC_NEGOTIATION_CONNECT_ERROR + " " + offer.connectionId + " " + errorCode);
@@ -203,6 +203,10 @@ public class HttpRelaySignaling extends NetherNetXboxRpcSignaling {
         pendingOffers.values().forEach(PendingOffer::cancel);
         pendingOffers.clear();
         super.close();
+    }
+
+    private String targetString() {
+        return target.getHostString() + ":" + target.getPort();
     }
 
     private class PendingOffer {
