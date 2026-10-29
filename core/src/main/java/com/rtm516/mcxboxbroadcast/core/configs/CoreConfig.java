@@ -61,13 +61,6 @@ public interface CoreConfig {
         @DefaultBoolean(true)
         boolean queryServer();
 
-        @Comment("""
-            This uses checker.geysermc.org for querying if the native ping fails
-            This can be useful in the case of docker networks or routing problems causing the native ping to fail""")
-        @ExcludePlatform(platforms = {"Extension"})
-        @DefaultBoolean(false)
-        boolean webQueryFallback();
-
         @Comment("Fallback to config values if all other server query methods fail")
         @ExcludePlatform(platforms = {"Extension"})
         @DefaultBoolean(false)

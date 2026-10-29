@@ -64,6 +64,9 @@ public class ConfigLoader {
             })
             .build())
         .addVersion(8, ConfigurationTransformation.empty())
+        .addVersion(9, ConfigurationTransformation.builder()
+            .addAction(path("session", "web-query-fallback"), remove())
+            .build())
         .build();
 
     public static CoreConfig loadConfig(File configFile, String platformName) throws ConfigurateException {

@@ -65,8 +65,6 @@ public class StandaloneMain {
             sessionInfo.setHostName(sessionManager.getGamertag());
         }
 
-        PingUtil.setWebPingEnabled(config.session().webQueryFallback());
-
         // Sync the session info from the server if needed
         updateSessionInfo(sessionInfo);
 

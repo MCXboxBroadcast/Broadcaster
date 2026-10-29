@@ -67,5 +67,5 @@ public class Constants {
     /**
      * Config version for upgrade purposes
      */
-    public static final int CONFIG_VERSION = 8;
+    public static final int CONFIG_VERSION = 9;
 }
