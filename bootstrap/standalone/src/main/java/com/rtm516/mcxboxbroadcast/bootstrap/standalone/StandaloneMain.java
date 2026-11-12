@@ -120,8 +120,13 @@ public class StandaloneMain {
                 InetSocketAddress addressToPing = new InetSocketAddress(sessionInfo.getIp(), sessionInfo.getPort());
                 PongData pong = PingUtil.ping(addressToPing, 1500, TimeUnit.MILLISECONDS).get();
 
+                String hostName = pong.levelName();
+                if (hostName == null || hostName.isEmpty()) {
+                    hostName = sessionManager.getGamertag();
+                }
+
                 // Update the session information
-                sessionInfo.setHostName(pong.levelName());
+                sessionInfo.setHostName(hostName);
                 sessionInfo.setWorldName(pong.serverName());
                 sessionInfo.setPlayers(pong.playerCount());
                 sessionInfo.setMaxPlayers(pong.maxPlayerCount());
