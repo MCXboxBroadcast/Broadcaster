@@ -6,6 +6,7 @@ import org.cloudburstmc.netty.channel.nethernet.signaling.PongData;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +22,12 @@ public class PingUtil {
     public static CompletableFuture<PongData> ping(InetSocketAddress server, long timeout, TimeUnit timeUnit) {
         return NetherNetHTTPClientSignaling.probe(server, Constants.HTTP_SIGNALING, Long.toUnsignedString(ThreadLocalRandom.current().nextLong()))
             .orTimeout(timeout, timeUnit)
-            .thenApply(NetherNetHTTPClientSignaling.Probe::motd);
+            .thenApply(probe -> {
+                PongData motd = probe.motd();
+                if (motd == null) {
+                    throw new CompletionException(new Exception("No pong data in probe response"));
+                }
+                return motd;
+            });
     }
 }

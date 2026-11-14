@@ -203,16 +203,10 @@ public class MCXboxBroadcastExtension implements Extension {
             return;
         }
 
-        // Fallback to the gamertag if the host name is empty
-        String hostName = event.secondaryMotd();
-        if (hostName == null || hostName.isEmpty()) {
-            hostName = sessionManager.getGamertag();
-        }
-
         // Allows support for motd and player count passthrough
-        sessionInfo.setHostName(hostName);
+        sessionInfo.setHostName(event.secondaryMotd());
         sessionInfo.setWorldName(event.primaryMotd());
-        
+
         sessionInfo.setPlayers(event.playerCount());
         sessionInfo.setMaxPlayers(event.maxPlayerCount());
 
