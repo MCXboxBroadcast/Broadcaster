@@ -81,15 +81,26 @@ public class ConfigLoader {
 
         CoreConfig config = node.get(CoreConfig.class);
 
-        // Keep ordering
-        CommentedConfigurationNode newRoot = CommentedConfigurationNode.root(loader.defaultOptions());
-        newRoot.set(config);
-
         if (originallyEmpty || currentVersion != newVersion) {
+            // Keep ordering
+            CommentedConfigurationNode newRoot = CommentedConfigurationNode.root(loader.defaultOptions());
+            newRoot.set(config);
+
             loader.save(newRoot);
         }
 
-        return config;
+        // Pull in system properties that override the config
+        applyProperty(node, "mcxboxbroadcast.remote.address", "session", "remote-address");
+        applyProperty(node, "mcxboxbroadcast.remote.port", "session", "remote-port");
+
+        return node.get(CoreConfig.class);
+    }
+
+    private static void applyProperty(ConfigurationNode node, String property, Object... path) throws ConfigurateException {
+        String value = System.getProperty(property, "");
+        if (!value.isEmpty()) {
+            node.node(path).set(value);
+        }
     }
 
     private static YamlConfigurationLoader createLoader(File configFile, String platformName) {
