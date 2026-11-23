@@ -13,11 +13,15 @@ public class JoinSessionRequest {
     public final Map<String, SessionMember> members;
 
     public JoinSessionRequest(ExpandedSessionInfo sessionInfo) {
+        this(sessionInfo, sessionInfo.getConnectionId());
+    }
+
+    public JoinSessionRequest(ExpandedSessionInfo sessionInfo, String connectionId) {
         Map<String, MemberConstantsSystem> constants = new HashMap<>() {{
             put("system", new MemberConstantsSystem(sessionInfo.getXuid(), true));
         }};
         Map<String, MemberPropertiesSystem> properties = new HashMap<>() {{
-            put("system", new MemberPropertiesSystem(true, sessionInfo.getConnectionId(), new MemberSubscription()));
+            put("system", new MemberPropertiesSystem(true, connectionId, new MemberSubscription()));
         }};
 
         this.members = new HashMap<>() {{

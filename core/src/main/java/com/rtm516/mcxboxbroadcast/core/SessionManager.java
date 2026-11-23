@@ -356,13 +356,13 @@ public class SessionManager extends SessionManagerCore {
      * @param sessionInfo The information to update the session with
      * @throws SessionUpdateException If the update failed
      */
-    public void updateSession(SessionInfo sessionInfo) throws SessionUpdateException {
+    public synchronized void updateSession(SessionInfo sessionInfo) throws SessionUpdateException {
         this.sessionInfo.updateSessionInfo(sessionInfo);
         updateSession();
     }
 
     @Override
-    public void updateNonces() throws SessionUpdateException {
+    public synchronized void updateNonces() throws SessionUpdateException {
         // Get session
         HttpRequest createSessionRequest = HttpRequest.newBuilder()
             .uri(URI.create(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId())))
@@ -425,11 +425,14 @@ public class SessionManager extends SessionManagerCore {
         }
     }
 
-    @Override
-    protected void updateSession() throws SessionUpdateException {
-        // Make sure the websocket connection is still active
-        checkConnection();
+    private void updateSession() throws SessionUpdateException {
+        if (checkConnection()) {
+            writeSession();
+        }
+    }
 
+    @Override
+    protected void writeSession() throws SessionUpdateException {
         String responseBody = super.updateSessionInternal(Constants.CREATE_SESSION.formatted(this.sessionInfo.getSessionId()), new CreateSessionRequest(this.sessionInfo, nonces));
         try {
             CreateSessionResponse sessionResponse = Constants.GSON.fromJson(responseBody, CreateSessionResponse.class);
@@ -458,8 +461,12 @@ public class SessionManager extends SessionManagerCore {
      * Swap to a new session and activity handle without recreating the websocket or NetherNet connections
      * Falls back to a full restart if this fails
      */
-    private void rotateSession() {
+    private synchronized void rotateSession() {
         try {
+            if (!checkConnection()) {
+                return;
+            }
+
             String oldSessionId = sessionInfo.getSessionId();
             sessionInfo.setSessionId(UUID.randomUUID().toString());
 
@@ -517,13 +524,13 @@ public class SessionManager extends SessionManagerCore {
      * Stop the current session and close the websocket
      */
     public void shutdown() {
+        super.shutdown();
+
         // Shutdown all sub-sessions
         for (SubSessionManager subSessionManager : subSessionManagers.values()) {
             subSessionManager.shutdown();
         }
 
-        // Shutdown self
-        super.shutdown();
         scheduledThreadPool.shutdownNow();
 
         // Cancel pending logins, clearing them first so cancelling isn't logged as a failure

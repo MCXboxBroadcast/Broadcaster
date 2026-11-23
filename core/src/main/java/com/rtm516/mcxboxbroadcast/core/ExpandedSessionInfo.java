@@ -7,7 +7,7 @@ import java.util.UUID;
 public class ExpandedSessionInfo extends SessionInfo {
     private static final Random RANDOM = new Random();
 
-    private String connectionId;
+    private volatile String connectionId;
     private String xuid;
     private String rakNetGUID;
     private String sessionId;
