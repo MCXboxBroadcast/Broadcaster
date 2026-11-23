@@ -1,10 +1,12 @@
 package com.rtm516.mcxboxbroadcast.core;
 
-import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.ws.MessageType;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.handshake.ServerHandshake;
 
+import java.io.IOException;
+import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -17,8 +19,8 @@ public class RtaWebsocketClient extends WebSocketClient {
     private String connectionId;
     private final Logger logger;
     private final String xuid;
-    private boolean isFirstConnection = true;
-    private CompletableFuture<String> connectionIdFuture = new CompletableFuture<>();
+    private final CompletableFuture<String> connectionIdFuture = new CompletableFuture<>();
+    private volatile boolean retired;
 
     /**
      * Create a new websocket and add the Authorization header
@@ -26,7 +28,7 @@ public class RtaWebsocketClient extends WebSocketClient {
      * @param sessionManager The session manager this websocket is for
      */
     public RtaWebsocketClient(SessionManagerCore sessionManager) {
-        super(Constants.RTA_WEBSOCKET);
+        super(Constants.RTA_WEBSOCKET, new Draft_6455(), null, (int) Constants.WEBSOCKET_CONNECTION_TIMEOUT.toMillis());
         addHeader("Authorization", sessionManager.getTokenHeader());
         this.sessionManager = sessionManager;
         this.xuid = sessionManager.getXuid();
@@ -46,6 +48,23 @@ public class RtaWebsocketClient extends WebSocketClient {
         return connectionIdFuture;
     }
 
+    void retire() {
+        retired = true;
+        if (isOpen()) {
+            close();
+        } else if (!isClosed() && !isClosing()) {
+            // close() only starts a WebSocket close handshake after the write thread exists.
+            Socket socket = getSocket();
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    logger.debug("Failed to close pending RTA socket: " + e.getMessage());
+                }
+            }
+        }
+    }
+
     /**
      * When the web socket connects send the request for the connection ID
      *
@@ -55,7 +74,11 @@ public class RtaWebsocketClient extends WebSocketClient {
      */
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-        send("[1,1,\"https://sessiondirectory.xboxlive.com/connections/\"]");
+        if (retired) {
+            close();
+        } else {
+            send("[1,1,\"https://sessiondirectory.xboxlive.com/connections/\"]");
+        }
     }
 
     /**
@@ -69,6 +92,10 @@ public class RtaWebsocketClient extends WebSocketClient {
     @SuppressWarnings("unchecked")
     @Override
     public void onMessage(String message) {
+        if (retired) {
+            return;
+        }
+
         // [Type, SequenceId, ...]
         // Subscribe: [type, sequenceId, status, subscriptionId, data]
         // Unsubscribe: [type, sequenceId, status]
@@ -80,13 +107,12 @@ public class RtaWebsocketClient extends WebSocketClient {
         switch (type) {
             case Subscribe:
                 logger.debug("RTA Websocket [" + connectionId + "] subscribed: " + message);
-                if (message.contains("ConnectionId") && isFirstConnection) {
-                    connectionId = ((Map<String, String>) parts[4]).get("ConnectionId");
-                    connectionIdFuture.complete(connectionId);
-                    isFirstConnection = false;
-
+                if (!connectionIdFuture.isDone() && parts.length > 4 && parts[4] instanceof Map<?, ?> subscription
+                    && subscription.get("ConnectionId") instanceof String id && !id.isBlank()) {
                     // Let xbox know we want friend updates
                     send("[1,2,\"https://social.xboxlive.com/users/xuid(" + this.xuid + ")/friends\"]");
+                    connectionId = id;
+                    connectionIdFuture.complete(id);
                 }
                 break;
             case Unsubscribe:
@@ -103,11 +129,7 @@ public class RtaWebsocketClient extends WebSocketClient {
 
                 // Check for a session update
                 if (data.containsKey("ncid")) {
-                    try {
-                        sessionManager.updateNonces();
-                    } catch (SessionUpdateException e) {
-                        logger.error("RTA Websocket [" + connectionId + "] failed to update session nonces: " + e.getMessage(), e);
-                    }
+                    sessionManager.onRtaSessionChanged();
                 }
 
                 break;
@@ -131,6 +153,9 @@ public class RtaWebsocketClient extends WebSocketClient {
 
         String reasonString = reason.isEmpty() && code == 1000 ? "Normal close" : reason;
         logger.debug("RTA Websocket [" + connectionId + "] disconnected: " + reasonString + " (" + code + ")");
+        if (!retired) {
+            sessionManager.onRtaClosed(this, code, reasonString);
+        }
     }
 
     /**
@@ -138,6 +163,8 @@ public class RtaWebsocketClient extends WebSocketClient {
      **/
     @Override
     public void onError(Exception ex) {
-        logger.error("RTA Websocket [" + connectionId + "] error: " + ex.getMessage(), ex);
+        if (!retired) {
+            logger.error("RTA Websocket [" + connectionId + "] error: " + ex.getMessage(), ex);
+        }
     }
 }

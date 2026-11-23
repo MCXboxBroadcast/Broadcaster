@@ -7,6 +7,7 @@ import com.rtm516.mcxboxbroadcast.core.exceptions.SessionCreationException;
 import com.rtm516.mcxboxbroadcast.core.exceptions.SessionUpdateException;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.CreateHandleResponse;
+import com.rtm516.mcxboxbroadcast.core.models.session.JoinSessionRequest;
 import com.rtm516.mcxboxbroadcast.core.models.session.SessionRef;
 import com.rtm516.mcxboxbroadcast.core.models.session.SocialSummaryResponse;
 import com.rtm516.mcxboxbroadcast.core.notifications.NotificationManager;
@@ -23,7 +24,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -31,6 +34,10 @@ import java.util.concurrent.TimeoutException;
  * Simple manager to authenticate and create sessions on Xbox
  */
 public abstract class SessionManagerCore {
+    private static final Duration RTA_RENEWAL_INTERVAL = Duration.ofMinutes(90);
+    private static final Duration RTA_RENEWAL_RETRY = Duration.ofMinutes(1);
+    private static final long MAX_RECOVERY_DELAY_SECONDS = 60;
+
     private final AuthManager authManager;
     private final FriendManager friendManager;
     protected final HttpClient httpClient;
@@ -40,11 +47,11 @@ public abstract class SessionManagerCore {
     private final NotificationManager notificationManager;
     private final GalleryManager galleryManager;
 
-    protected RtaWebsocketClient rtaWebsocket;
+    private RtaWebsocketClient rtaWebsocket;
     protected ExpandedSessionInfo sessionInfo;
     protected String lastSessionResponse;
 
-    protected boolean initialized = false;
+    protected volatile boolean initialized;
 
     /**
      * Whether IPv6 candidates are relayed to the target server, or stripped so players connect over IPv4
@@ -52,6 +59,11 @@ public abstract class SessionManagerCore {
     protected boolean allowIpv6 = false;
 
     private HttpRelaySignaling signaling;
+    private ScheduledFuture<?> rtaRenewal;
+    private ScheduledFuture<?> recoveryRetry;
+    private long recoveryAttempt;
+    private long recoveryDelaySeconds = 1;
+    private boolean stopped;
 
     /**
      * Create an instance of SessionManager
@@ -173,28 +185,28 @@ public abstract class SessionManagerCore {
 
         logger.info("Creating Xbox LIVE session...");
 
-        // Create the session
-        createSession();
-
-        // Update the presence
-        updatePresence();
-
-        // Let the user know we are done
-        logger.info("Creation of Xbox LIVE session was successful!");
-
-        authManager.setOnDeviceTokenRefreshCallback(() -> {
-            try {
-                logger.debug("Device token refreshed, recreating session...");
-                synchronized (this) {
-                    createSession();
-                }
-                logger.debug("Session recreated after device token refresh");
-            } catch (Exception e) {
-                logger.error("Failed to recreate session after device token refresh", e);
+        synchronized (this) {
+            if (stopped) {
+                return;
             }
-        });
+            if (initialized) {
+                throw new SessionCreationException("Already initialized!");
+            }
 
-        initialized = true;
+            try {
+                createSession();
+                updatePresence();
+            } catch (SessionCreationException | SessionUpdateException | RuntimeException e) {
+                closeRtaWebsocket();
+                shutdownNetherNet();
+                throw e;
+            }
+
+            logger.info("Creation of Xbox LIVE session was successful!");
+            initialized = true;
+            scheduleRtaRenewal(RTA_RENEWAL_INTERVAL);
+            authManager.setOnDeviceTokenRefreshCallback(() -> executeSessionTask(this::refreshSession));
+        }
     }
 
     /**
@@ -211,23 +223,15 @@ public abstract class SessionManagerCore {
      * @throws SessionUpdateException If the updating of the session information fails
      */
     private void createSession() throws SessionCreationException, SessionUpdateException {
+        cancelRtaRenewal();
         // We only need a websocket for the primary session manager
         if (this.sessionInfo != null) {
             // Update the current session XUID
             this.sessionInfo.setXuid(getXuid());
 
-            // Create the RTA websocket connection
-            setupRtaWebsocket();
-
-            try {
-                // Wait and get the connection ID from the websocket
-                String connectionId = waitForConnectionId();
-
-                // Update the current session connection ID
-                this.sessionInfo.setConnectionId(connectionId);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                throw new SessionCreationException("Unable to get connectionId for session: " + e.getMessage());
-            }
+            closeRtaWebsocket();
+            rtaWebsocket = connectRtaWebsocket();
+            this.sessionInfo.setConnectionId(rtaWebsocket.getConnectionId());
 
             setupNetherNet();
 
@@ -251,7 +255,7 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Called after the session has been (re)created and published
+     * Called after session publication or after a replacement RTA connection ID has been written
      */
     protected void onSessionCreated() {
     }
@@ -273,7 +277,7 @@ public abstract class SessionManagerCore {
         }
 
         // Push the session information to the session directory
-        updateSession();
+        writeSession();
 
         // Create the session handle request
         CreateHandleRequest createHandleContent = new CreateHandleRequest(
@@ -326,7 +330,7 @@ public abstract class SessionManagerCore {
      *
      * @throws SessionUpdateException If the update fails
      */
-    protected abstract void updateSession() throws SessionUpdateException;
+    protected abstract void writeSession() throws SessionUpdateException;
 
     /**
      * Update the nonces in the session based on the current players
@@ -375,24 +379,156 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Check the connections we depend on and if any are down re-open them and re-create the session
-     * This should be called before any updates to the session otherwise they might fail
+     * Check the session connections before writing regular updates. An RTA close event usually
+     * starts recovery first, but this also detects missed close events and NetherNet failures.
      */
-    protected synchronized void checkConnection() {
-        boolean rtaIsOpen = this.rtaWebsocket != null && this.rtaWebsocket.isOpen();
-        boolean signalingIsOpen = this.signaling != null && this.signaling.isActive();
+    protected synchronized boolean checkConnection() {
+        if (!initialized || recoveryRetry != null) {
+            return false;
+        }
 
-        // Check if the connection is Lost
+        boolean rtaIsOpen = rtaWebsocket != null && rtaWebsocket.isOpen();
+        boolean signalingIsOpen = signaling != null && signaling.isActive();
         if (!rtaIsOpen || !signalingIsOpen) {
-            try {
-                logger.warn("Connection to websocket lost, re-creating session...");
-                logger.debug("WebSocket status: RTA Open: " + rtaIsOpen + ", Signaling: " + signalingIsOpen);
+            logger.warn("Session connection lost (RTA open: " + rtaIsOpen + ", NetherNet active: " + signalingIsOpen + "), re-creating session...");
+            recoverSession();
+            // Recovery writes the session itself, or has scheduled a retry.
+            return false;
+        }
+        return true;
+    }
 
-                createSession();
-                logger.info("WebSocket session reconnected");
-            } catch (SessionCreationException | SessionUpdateException e) {
-                logger.error("Session is dead and hit exception trying to re-create it", e);
+    void onRtaClosed(RtaWebsocketClient websocket, int code, String reason) {
+        executeSessionTask(() -> {
+            synchronized (this) {
+                if (!initialized || websocket != rtaWebsocket || recoveryRetry != null) {
+                    return;
+                }
+
+                logger.warn("RTA WebSocket disconnected (" + code + ")"
+                    + (reason.isEmpty() ? "" : ": " + reason) + ", re-creating session...");
+                recoverSession();
             }
+        });
+    }
+
+    void onRtaSessionChanged() {
+        executeSessionTask(() -> {
+            synchronized (this) {
+                if (!initialized || recoveryRetry != null) {
+                    return;
+                }
+
+                try {
+                    // Read current membership even if RTA was renewed after the notification arrived.
+                    updateNonces();
+                } catch (SessionUpdateException e) {
+                    logger.error("Failed to update session nonces", e);
+                }
+            }
+        });
+    }
+
+    private void executeSessionTask(Runnable task) {
+        try {
+            scheduledThread().execute(task);
+        } catch (RejectedExecutionException ignored) {
+            // The session's executor has been shut down.
+        }
+    }
+
+    private synchronized void refreshSession() {
+        if (!initialized) {
+            return;
+        }
+
+        try {
+            logger.debug("Device token refreshed, recreating session...");
+            createSession();
+            connectionRestored();
+            logger.debug("Session recreated after device token refresh");
+        } catch (SessionCreationException | SessionUpdateException | RuntimeException e) {
+            logger.error("Failed to recreate session after device token refresh", e);
+            if (sessionInfo != null && recoveryRetry == null) {
+                scheduleRecoveryRetry();
+            }
+        }
+    }
+
+    private void recoverSession() {
+        try {
+            createSession();
+            connectionRestored();
+            logger.info("WebSocket session reconnected");
+        } catch (SessionCreationException | SessionUpdateException | RuntimeException e) {
+            logger.error("Failed to re-create session, retrying in " + recoveryDelaySeconds + " seconds", e);
+            scheduleRecoveryRetry();
+        }
+    }
+
+    private void scheduleRecoveryRetry() {
+        long attempt = ++recoveryAttempt;
+        recoveryRetry = scheduledThread().schedule(() -> retryRecovery(attempt), recoveryDelaySeconds, TimeUnit.SECONDS);
+        recoveryDelaySeconds = Math.min(recoveryDelaySeconds * 2, MAX_RECOVERY_DELAY_SECONDS);
+    }
+
+    private synchronized void retryRecovery(long attempt) {
+        if (initialized && recoveryRetry != null && attempt == recoveryAttempt) {
+            recoveryRetry = null;
+            recoverSession();
+        }
+    }
+
+    private void connectionRestored() {
+        if (recoveryRetry != null) {
+            recoveryRetry.cancel(false);
+            recoveryRetry = null;
+        }
+        recoveryDelaySeconds = 1;
+        scheduleRtaRenewal(RTA_RENEWAL_INTERVAL);
+    }
+
+    private void scheduleRtaRenewal(Duration delay) {
+        if (rtaWebsocket != null) {
+            cancelRtaRenewal();
+            RtaWebsocketClient websocket = rtaWebsocket;
+            rtaRenewal = scheduledThread().schedule(() -> renewRtaWebsocket(websocket), delay.toSeconds(), TimeUnit.SECONDS);
+        }
+    }
+
+    private void cancelRtaRenewal() {
+        if (rtaRenewal != null) {
+            rtaRenewal.cancel(false);
+            rtaRenewal = null;
+        }
+    }
+
+    private synchronized void renewRtaWebsocket(RtaWebsocketClient previous) {
+        if (previous != rtaWebsocket || !checkConnection()) {
+            return;
+        }
+
+        RtaWebsocketClient replacement = null;
+        try {
+            replacement = connectRtaWebsocket();
+            updateSessionInternal(Constants.CREATE_SESSION.formatted(getSessionId()), new JoinSessionRequest(sessionInfo, replacement.getConnectionId()));
+        } catch (SessionCreationException | SessionUpdateException | RuntimeException e) {
+            if (replacement != null) {
+                replacement.retire();
+            }
+            logger.error("Failed to renew the RTA WebSocket, retrying in one minute", e);
+            scheduleRtaRenewal(RTA_RENEWAL_RETRY);
+            return;
+        }
+
+        sessionInfo.setConnectionId(replacement.getConnectionId());
+        rtaWebsocket = replacement;
+        scheduleRtaRenewal(RTA_RENEWAL_INTERVAL);
+        logger.debug("Renewed the RTA WebSocket");
+        try {
+            onSessionCreated();
+        } finally {
+            previous.retire();
         }
     }
 
@@ -411,23 +547,37 @@ public abstract class SessionManagerCore {
     }
 
     /**
-     * Wait for the RTA websocket to receive a connection ID
-     *
-     * @return The received connection ID
+     * Open and subscribe a new RTA WebSocket before using its connection ID in a session write.
      */
-    protected String waitForConnectionId() throws InterruptedException, ExecutionException, TimeoutException {
-        return this.rtaWebsocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+    private RtaWebsocketClient connectRtaWebsocket() throws SessionCreationException {
+        RtaWebsocketClient websocket = new RtaWebsocketClient(this);
+        try {
+            websocket.connect();
+            websocket.getConnectionIdFuture().get(Constants.WEBSOCKET_CONNECTION_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            websocket.retire();
+            throw new SessionCreationException("Interrupted while connecting the RTA WebSocket");
+        } catch (TimeoutException e) {
+            websocket.retire();
+            throw new SessionCreationException("Timed out waiting for an RTA connection ID");
+        } catch (ExecutionException | RuntimeException e) {
+            websocket.retire();
+            throw new SessionCreationException("Unable to connect the RTA WebSocket: " + e);
+        }
+        if (!websocket.isOpen()) {
+            websocket.retire();
+            throw new SessionCreationException("RTA WebSocket closed after receiving its connection ID");
+        }
+        return websocket;
     }
 
-    /**
-     * Setup the RTA websocket connection
-     */
-    protected void setupRtaWebsocket() {
-        if (rtaWebsocket != null) {
-            rtaWebsocket.close();
+    private void closeRtaWebsocket() {
+        RtaWebsocketClient websocket = rtaWebsocket;
+        rtaWebsocket = null;
+        if (websocket != null) {
+            websocket.retire();
         }
-        rtaWebsocket = new RtaWebsocketClient(this);
-        rtaWebsocket.connect();
     }
 
     protected void setupNetherNet() {
@@ -451,14 +601,16 @@ public abstract class SessionManagerCore {
     /**
      * Stop the current session and close the websocket
      */
-    public void shutdown() {
-        if (rtaWebsocket != null) {
-            rtaWebsocket.close();
+    public synchronized void shutdown() {
+        stopped = true;
+        initialized = false;
+        cancelRtaRenewal();
+        if (recoveryRetry != null) {
+            recoveryRetry.cancel(false);
+            recoveryRetry = null;
         }
-        
+        closeRtaWebsocket();
         shutdownNetherNet();
-        
-        this.initialized = false;
     }
 
     private void shutdownNetherNet() {

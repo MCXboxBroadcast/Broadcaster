@@ -51,7 +51,7 @@ public class SubSessionManager extends SessionManagerCore {
     }
 
     @Override
-    protected void updateSession() throws SessionUpdateException {
+    protected void writeSession() throws SessionUpdateException {
         super.updateSessionInternal(Constants.JOIN_SESSION.formatted(parent.sessionInfo().getHandleId()), new JoinSessionRequest(parent.sessionInfo()));
     }
 }
